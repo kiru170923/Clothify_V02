@@ -67,7 +67,6 @@ export default function CameraModal({ isOpen, onClose, onCapture, type }: Camera
       stream.getTracks().forEach(track => {
         track.stop()
         track.enabled = false
-        track.readyState = 'ended'
       })
       setStream(null)
     }

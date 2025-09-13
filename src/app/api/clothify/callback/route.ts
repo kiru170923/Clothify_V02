@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Type declaration for global kieaiResults
+declare global {
+  var kieaiResults: {
+    [taskId: string]: {
+      success: boolean;
+      resultImage?: string;
+      taskId: string;
+      processingTime?: string;
+      error?: string;
+    };
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()

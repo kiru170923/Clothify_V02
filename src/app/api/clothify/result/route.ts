@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Type declaration for global kieaiResults
+declare global {
+  var kieaiResults: {
+    [taskId: string]: {
+      success: boolean;
+      resultImage?: string;
+      taskId: string;
+      processingTime?: string;
+      error?: string;
+    };
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
