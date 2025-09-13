@@ -10,24 +10,27 @@ export function generateAdvancedPrompt(clothingImageUrl: string): {
   negativePrompt: string
   parameters: Record<string, any>
 } {
-  // Base prompt structure
-  const basePrompt = `Professional virtual try-on: Replace the person's clothing with the new garment from the second image. 
+  // Base prompt structure - AI will auto-detect clothing type and apply appropriate logic
+  const basePrompt = `Professional virtual try-on: Intelligently replace the person's clothing with the new garment from the second image.
 
 CRITICAL REQUIREMENTS:
-- Completely remove ALL existing clothing items (shirts, pants, skirts, etc.)
+- AI should automatically detect what type of clothing needs to be replaced (top, bottom, dress, etc.)
+- Completely remove ALL existing clothing items that conflict with the new garment
 - The new garment should fit naturally and realistically on the person's body
 - Maintain proper proportions and body shape
 - Ensure seamless integration with the person's skin and body contours
 - Preserve the person's original pose, lighting, and background
 - No remnants or artifacts from old clothing should remain
 - The new clothing should look like it was naturally worn by the person
+- Handle clothing layering intelligently (e.g., if replacing a top, don't show midriff unless the new top is designed that way)
 
 QUALITY STANDARDS:
 - High resolution and sharp details
 - Realistic fabric texture and drape
-- Proper fit and sizing
+- Proper fit and sizing appropriate for the garment type
 - Natural shadows and lighting on the new garment
-- Professional photography quality`
+- Professional photography quality
+- Intelligent clothing type detection and appropriate replacement`
 
   const negativePrompt = `low quality, blurry, distorted, artifacts, remnants of old clothing, visible seams from old garments, 
 mismatched lighting, unrealistic proportions, clothing that doesn't fit properly, 

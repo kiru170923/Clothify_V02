@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { generateAdvancedPrompt, generateClothingSpecificPrompt } from '../../../../lib/promptGenerator'
+import { generateAdvancedPrompt } from '../../../../lib/promptGenerator'
 
 async function uploadToSupabase(base64Image: string, bucket: string): Promise<string> {
   // Convert base64 to buffer
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Authenticated user:', user.id)
 
-    const { personImage, clothingImage, clothingType = 'top' } = await request.json()
+    const { personImage, clothingImage } = await request.json()
 
     if (!personImage || !clothingImage) {
       return NextResponse.json(
@@ -89,19 +89,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'KIE.AI API key missing' }, { status: 500 })
     }
 
-    // Generate advanced prompt for better results
+    // Generate advanced prompt for better results (AI will auto-detect clothing type)
     const { prompt, negativePrompt, parameters } = generateAdvancedPrompt(clothingImageUrl)
     
-    // Add clothing-specific requirements
-    const clothingSpecificPrompt = generateClothingSpecificPrompt({ 
-      type: clothingType as any, 
-      category: 'shirt' // Default category
-    })
-    
-    const finalPrompt = `${prompt}\n\n${clothingSpecificPrompt}`
-    
-    console.log('Using advanced prompt for clothing type:', clothingType)
-    console.log('Prompt preview:', finalPrompt.substring(0, 200) + '...')
+    console.log('Using advanced prompt with AI auto-detection')
+    console.log('Prompt preview:', prompt.substring(0, 200) + '...')
     
     const kieaiResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
@@ -112,7 +104,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'google/nano-banana-edit',
         input: {
-          prompt: finalPrompt,
+          prompt,
           negative_prompt: negativePrompt,
           image_urls: [personImageUrl, clothingImageUrl],
           output_format: 'png',
