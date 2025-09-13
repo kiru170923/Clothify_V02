@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { signInWithGoogle, logAuthInfo } from '../lib/authHelpers'
 
 interface SupabaseContextType {
   user: User | null
@@ -40,15 +41,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-    if (error) {
+    try {
+      logAuthInfo()
+      await signInWithGoogle(supabase)
+    } catch (error: any) {
       console.error('Error signing in:', error)
-      alert('Lỗi đăng nhập: ' + error.message)
+      alert(error.message || 'Lỗi đăng nhập')
     }
   }
 
