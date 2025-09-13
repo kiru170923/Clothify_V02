@@ -11,12 +11,18 @@ export interface AuthConfig {
 export function getAuthConfig(): AuthConfig {
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
   
+  // Normalize origin (remove www, trailing slash, hash)
+  const normalizedOrigin = currentOrigin
+    .replace(/^https?:\/\/(www\.)?/, 'https://') // Remove www
+    .replace(/\/$/, '') // Remove trailing slash
+    .replace(/#.*$/, '') // Remove hash and everything after
+  
   return {
-    currentOrigin,
-    redirectUrl: `${currentOrigin}/auth/callback`,
-    isProduction: currentOrigin === 'https://clothify.top',
-    isDevelopment: currentOrigin === 'http://localhost:3000',
-    isPreview: currentOrigin.includes('vercel.app')
+    currentOrigin: normalizedOrigin,
+    redirectUrl: `${normalizedOrigin}/auth/callback`,
+    isProduction: normalizedOrigin === 'https://clothify.top',
+    isDevelopment: normalizedOrigin === 'http://localhost:3000',
+    isPreview: normalizedOrigin.includes('vercel.app')
   }
 }
 
@@ -40,14 +46,26 @@ export async function signInWithGoogle(supabase: any): Promise<void> {
   
   logAuthInfo()
   
+  // Force redirect URL to current domain (prevent www.clothify.top redirect)
+  const forceRedirectUrl = config.redirectUrl
+  
+  console.log('🚀 Initiating Google OAuth with:', {
+    provider: 'google',
+    redirectTo: forceRedirectUrl,
+    currentOrigin: window.location.origin,
+    normalizedOrigin: config.currentOrigin
+  })
+  
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: config.redirectUrl,
+      redirectTo: forceRedirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
-      }
+      },
+      // Force redirect to current domain
+      skipBrowserRedirect: false
     }
   })
   
@@ -56,7 +74,7 @@ export async function signInWithGoogle(supabase: any): Promise<void> {
     throw new Error(`Đăng nhập thất bại: ${error.message}`)
   }
   
-  console.log('✅ Auth redirect initiated to:', config.redirectUrl)
+  console.log('✅ Auth redirect initiated to:', forceRedirectUrl)
 }
 
 // Check if current URL is in allowed domains
