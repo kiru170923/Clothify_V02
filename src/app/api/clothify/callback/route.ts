@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Type for kieaiResults
-type KieaiResults = {
-  [taskId: string]: {
-    success: boolean;
-    resultImage?: string;
-    taskId: string;
-    processingTime?: string;
-    error?: string;
+// Extend global interface
+declare global {
+  var kieaiResults: {
+    [taskId: string]: {
+      success: boolean;
+      resultImage?: string;
+      taskId: string;
+      processingTime?: string;
+      error?: string;
+    };
   };
 }
 
@@ -23,16 +25,16 @@ export async function POST(request: NextRequest) {
       const resultImageUrl = resultJson.resultUrls[0]
       
       // Store result for the frontend to fetch
-      (global as any).kieaiResults = (global as any).kieaiResults || {}
-      ;(global as any).kieaiResults[data.data.taskId] = {
+      global.kieaiResults = global.kieaiResults || {}
+      global.kieaiResults[data.data.taskId] = {
         success: true,
         resultImage: resultImageUrl,
         taskId: data.data.taskId,
         processingTime: `${Math.floor((data.data.completeTime - data.data.createTime) / 1000)}s`
       }
     } else {
-      (global as any).kieaiResults = (global as any).kieaiResults || {}
-      ;(global as any).kieaiResults[data.data.taskId] = {
+      global.kieaiResults = global.kieaiResults || {}
+      global.kieaiResults[data.data.taskId] = {
         success: false,
         error: data.data.failMsg || 'Generation failed',
         taskId: data.data.taskId

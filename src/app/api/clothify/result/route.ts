@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Type for kieaiResults
-type KieaiResults = {
-  [taskId: string]: {
-    success: boolean;
-    resultImage?: string;
-    taskId: string;
-    processingTime?: string;
-    error?: string;
+// Extend global interface
+declare global {
+  var kieaiResults: {
+    [taskId: string]: {
+      success: boolean;
+      resultImage?: string;
+      taskId: string;
+      processingTime?: string;
+      error?: string;
+    };
   };
 }
 
@@ -21,10 +23,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Check if result is available
-    if (!(global as any).kieaiResults) {
-      (global as any).kieaiResults = {}
+    if (!global.kieaiResults) {
+      global.kieaiResults = {}
     }
-    const result = (global as any).kieaiResults[taskId]
+    const result = global.kieaiResults[taskId]
     
     if (!result) {
       return NextResponse.json({ 
