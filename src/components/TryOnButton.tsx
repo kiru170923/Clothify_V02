@@ -51,8 +51,8 @@ export default function TryOnButton({
     }, 500)
 
     try {
-      const loadingToast = toast.loading('Đang xử lý ảnh với AI...', {
-        duration: 30000
+      const loadingToast = toast.loading('Đang xử lý ảnh với AI... (có thể mất 2-3 phút)', {
+        duration: 180000 // 3 minutes
       })
 
       // Get fresh session token
@@ -76,6 +76,15 @@ export default function TryOnButton({
 
       const data = await response.json()
       toast.dismiss(loadingToast)
+
+      if (response.status === 202) {
+        // Task is processing, show timeout message
+        toast.success('Task đã được tạo! Đang xử lý, vui lòng chờ...', {
+          duration: 5000
+        })
+        setIsProcessing(false)
+        return
+      }
 
       if (data.success) {
         setProgress(100)

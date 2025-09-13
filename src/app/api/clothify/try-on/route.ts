@@ -121,12 +121,14 @@ export async function POST(request: NextRequest) {
     
     // Poll for results using status API
     let attempts = 0
-    const maxAttempts = 30 // 30 seconds timeout
+    const maxAttempts = 120 // 2 minutes timeout (KIE.AI can be slow)
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
       
       try {
+        console.log(`KIE.AI Status Check - Attempt ${attempts + 1}/${maxAttempts} for taskId: ${taskId}`)
+        
         const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
           headers: {
             'Authorization': `Bearer ${apiKey}`,
@@ -136,6 +138,13 @@ export async function POST(request: NextRequest) {
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
           console.log('KIE.AI Status Response:', statusData)
+          
+          // Check if task is still processing
+          if (statusData.code === 200 && statusData.data.state === 'processing') {
+            console.log(`Task ${taskId} is still processing... (${attempts + 1}/${maxAttempts})`)
+            attempts++
+            continue
+          }
           
           if (statusData.code === 200 && statusData.data.state === 'success') {
             const resultJson = JSON.parse(statusData.data.resultJson)
@@ -199,8 +208,11 @@ export async function POST(request: NextRequest) {
               processingTime: `${attempts + 1}s`
             })
           } else if (statusData.code === 200 && statusData.data.state === 'fail') {
+            console.log('KIE.AI generation failed:', statusData.data.failMsg)
             return NextResponse.json({ error: `KIE.AI generation failed: ${statusData.data.failMsg}` }, { status: 502 })
           }
+        } else {
+          console.log(`Status API returned ${statusResponse.status}: ${statusResponse.statusText}`)
         }
       } catch (error) {
         console.log('Status API error:', error)
@@ -209,8 +221,14 @@ export async function POST(request: NextRequest) {
       attempts++
     }
     
-    // Timeout
-    return NextResponse.json({ error: 'KIE.AI generation timeout' }, { status: 504 })
+    // Timeout - but return taskId for callback approach
+    console.log(`KIE.AI timeout after ${maxAttempts} attempts. TaskId: ${taskId}`)
+    return NextResponse.json({ 
+      success: true, 
+      taskId: taskId,
+      message: 'Task created successfully. Processing may take longer than expected. Please check back later.',
+      timeout: true
+    }, { status: 202 }) // 202 Accepted - processing
     
     // Fallback to callback approach
     return NextResponse.json({
