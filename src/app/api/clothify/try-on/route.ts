@@ -9,11 +9,13 @@ async function uploadToSupabase(base64Image: string, bucket: string): Promise<st
   // Generate unique filename
   const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
   
-  // Upload to Supabase Storage
+  // Upload to Supabase Storage with optimized settings
   const { data, error } = await supabaseAdmin.storage
     .from(bucket)
     .upload(filename, buffer, {
       contentType: 'image/jpeg',
+      cacheControl: '3600', // Cache for 1 hour
+      upsert: false // Don't overwrite existing files
     })
   
   if (error) {
@@ -64,9 +66,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload images to Supabase Storage first to get URLs
-    const personImageUrl = await uploadToSupabase(personImage, 'person-images')
-    const clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
+    // Upload images to Supabase Storage in parallel to get URLs (faster)
+    const [personImageUrl, clothingImageUrl] = await Promise.all([
+      uploadToSupabase(personImage, 'person-images'),
+      uploadToSupabase(clothingImage, 'clothing-images')
+    ])
 
     // Call KIE.AI API
     const rawKey = process.env.KIEAI_API_KEY ?? ''
@@ -124,7 +128,7 @@ export async function POST(request: NextRequest) {
     const maxAttempts = 120 // 2 minutes timeout (KIE.AI can be slow)
     
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+      await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms (faster polling)
       
       try {
         console.log(`KIE.AI Status Check - Attempt ${attempts + 1}/${maxAttempts} for taskId: ${taskId}`)

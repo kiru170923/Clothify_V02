@@ -39,16 +39,16 @@ export default function TryOnButton({
     setIsProcessing(true)
     setProgress(0)
 
-    // Simulate progress
+    // Simulate progress with faster updates
     const progressInterval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 90) {
+        if (prev >= 85) {
           clearInterval(progressInterval)
-          return 90
+          return 85 // Keep some progress for final result
         }
-        return prev + Math.random() * 15
+        return prev + Math.random() * 20 // Faster progress updates
       })
-    }, 500)
+    }, 300) // Faster interval
 
     try {
       const loadingToast = toast.loading('Đang xử lý ảnh với AI... (có thể mất 2-3 phút)', {

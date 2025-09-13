@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import CameraModal from './CameraModal'
+import { optimizeImageForUpload } from '../lib/imageOptimization'
 
 interface UploadCardProps {
   label: string
@@ -42,9 +43,17 @@ export default function UploadCard({ label, image, onChange, type }: UploadCardP
     
     try {
       const reader = new FileReader()
-      reader.onload = () => {
-        onChange(reader.result as string)
-        toast.success('Tải ảnh thành công!')
+      reader.onload = async () => {
+        try {
+          // Optimize image before setting
+          const optimizedImage = await optimizeImageForUpload(reader.result as string)
+          onChange(optimizedImage)
+          toast.success('Tải ảnh thành công! (đã tối ưu hóa)')
+        } catch (error) {
+          console.error('Image optimization failed:', error)
+          onChange(reader.result as string)
+          toast.success('Tải ảnh thành công!')
+        }
         setIsUploading(false)
       }
       reader.readAsDataURL(file)
