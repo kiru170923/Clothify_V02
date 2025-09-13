@@ -68,10 +68,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload images to Supabase Storage in parallel to get URLs (faster)
-    const [personImageUrl, clothingImageUrl] = await Promise.all([
+    // Upload images to Supabase Storage in parallel with timeout
+    const uploadPromises = [
       uploadToSupabase(personImage, 'person-images'),
       uploadToSupabase(clothingImage, 'clothing-images')
-    ])
+    ]
+    
+    const [personImageUrl, clothingImageUrl] = await Promise.all(
+      uploadPromises.map(promise => 
+        Promise.race([
+          promise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Upload timeout')), 10000) // 10s timeout
+          )
+        ])
+      )
+    )
 
     // Call KIE.AI API
     const rawKey = process.env.KIEAI_API_KEY ?? ''
@@ -133,12 +145,14 @@ export async function POST(request: NextRequest) {
     // Try to get result immediately
     const taskId = kieaiData.data.taskId
     
-    // Poll for results using status API
+    // Poll for results using status API with exponential backoff
     let attempts = 0
-    const maxAttempts = 120 // 2 minutes timeout (KIE.AI can be slow)
+    const maxAttempts = 60 // 1 minute timeout (optimized)
     
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms (faster polling)
+      // Exponential backoff: 250ms, 500ms, 1s, 2s, 4s...
+      const delay = Math.min(250 * Math.pow(2, Math.floor(attempts / 5)), 4000);
+      await new Promise(resolve => setTimeout(resolve, delay))
       
       try {
         console.log(`KIE.AI Status Check - Attempt ${attempts + 1}/${maxAttempts} for taskId: ${taskId}`)

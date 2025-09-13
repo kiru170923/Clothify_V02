@@ -6,9 +6,9 @@ export function compressImage(base64Image: string, quality: number = 0.8): Promi
     const img = new Image()
     
     img.onload = () => {
-      // Calculate new dimensions (max 1024px width)
-      const maxWidth = 1024
-      const maxHeight = 1024
+      // Calculate new dimensions (max 800px width for faster processing)
+      const maxWidth = 800
+      const maxHeight = 800
       let { width, height } = img
       
       if (width > maxWidth || height > maxHeight) {
@@ -50,10 +50,10 @@ export async function optimizeImageForUpload(base64Image: string): Promise<strin
     const originalSize = await getImageSize(base64Image)
     console.log('Original image size:', originalSize)
     
-    // Compress if too large
-    if (originalSize.width > 1024 || originalSize.height > 1024) {
+    // Compress if too large (optimized for speed)
+    if (originalSize.width > 800 || originalSize.height > 800) {
       console.log('Compressing large image...')
-      return await compressImage(base64Image, 0.8)
+      return await compressImage(base64Image, 0.75) // Lower quality for faster processing
     }
     
     return base64Image
