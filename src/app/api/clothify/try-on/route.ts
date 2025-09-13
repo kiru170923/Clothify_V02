@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate advanced prompt for better results (AI will auto-detect clothing type)
-    const { prompt, negativePrompt, parameters } = generateAdvancedPrompt(clothingImageUrl)
+    const { prompt, negativePrompt, parameters } = generateAdvancedPrompt(clothingImageUrl as string)
     
     console.log('Using advanced prompt with AI auto-detection')
     console.log('Prompt preview:', prompt.substring(0, 200) + '...')
@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'google/nano-banana-edit',
-        input: {
-          prompt,
-          negative_prompt: negativePrompt,
-          image_urls: [personImageUrl, clothingImageUrl],
+        body: JSON.stringify({
+          model: 'google/nano-banana-edit',
+          input: {
+            prompt,
+            negative_prompt: negativePrompt,
+            image_urls: [personImageUrl as string, clothingImageUrl as string],
           output_format: 'png',
           image_size: 'auto',
           ...parameters
@@ -207,8 +207,8 @@ export async function POST(request: NextRequest) {
             // Save to database
             const insertData = {
               user_id: user.id,
-              person_image_url: personImageUrl,
-              clothing_image_url: clothingImageUrl,
+            person_image_url: personImageUrl as string,
+            clothing_image_url: clothingImageUrl as string,
               result_image_url: finalResultImageUrl,
               status: 'completed',
               processing_time: (attempts + 1) * 1000, // Convert to milliseconds
