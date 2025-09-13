@@ -11,11 +11,15 @@ export interface AuthConfig {
 export function getAuthConfig(): AuthConfig {
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
   
-  // Normalize origin (remove www, trailing slash, hash)
-  const normalizedOrigin = currentOrigin
-    .replace(/^https?:\/\/(www\.)?/, 'https://') // Remove www
+  // Normalize origin (remove trailing slash, hash, but keep www for clothify.top)
+  let normalizedOrigin = currentOrigin
     .replace(/\/$/, '') // Remove trailing slash
     .replace(/#.*$/, '') // Remove hash and everything after
+  
+  // Special handling for clothify.top - convert www.clothify.top to clothify.top
+  if (normalizedOrigin === 'https://www.clothify.top') {
+    normalizedOrigin = 'https://clothify.top'
+  }
   
   return {
     currentOrigin: normalizedOrigin,

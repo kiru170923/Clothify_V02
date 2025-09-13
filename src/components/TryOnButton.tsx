@@ -62,6 +62,31 @@ export default function TryOnButton({
         throw new Error('Không thể lấy token xác thực')
       }
 
+      // First, consume token
+      const tokenResponse = await fetch('/api/membership/tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          tokensToUse: 1,
+          description: 'AI Image Generation',
+          imageId: null // Will be updated after image is created
+        })
+      })
+
+      if (!tokenResponse.ok) {
+        const tokenData = await tokenResponse.json()
+        if (tokenData.error === 'Insufficient tokens') {
+          toast.error(`Không đủ tokens! Bạn còn ${tokenData.availableTokens} tokens. Vui lòng nâng cấp gói membership.`)
+          setIsProcessing(false)
+          return
+        }
+        throw new Error(tokenData.error || 'Failed to consume token')
+      }
+
+      // Then generate image
       const response = await fetch('/api/clothify/try-on', {
         method: 'POST',
         headers: {
@@ -218,6 +243,20 @@ export default function TryOnButton({
         )}
       </motion.button>
 
+
+      {/* Token warning */}
+      {personImage && clothingImage && user && !isProcessing && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+        >
+          <div className="flex items-center gap-2 text-amber-700">
+            <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+            <span className="text-sm font-medium">💡 Mỗi lần tạo ảnh sẽ tốn 1 token</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Help text */}
       {!user && (

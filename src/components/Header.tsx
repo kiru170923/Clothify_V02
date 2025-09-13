@@ -3,16 +3,63 @@
 import { motion } from 'framer-motion'
 import { Menu, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
-import { 
+import {
   BellIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  CreditCardIcon,
+  UserIcon
 } from '@heroicons/react/24/outline'
 import { useSupabase } from './SupabaseProvider'
+import { useState, useEffect } from 'react'
+import { UserTokens } from '../types/membership'
+import { supabase } from '../lib/supabase'
+import toast from 'react-hot-toast'
 
 export default function Header() {
   const { user, signOut } = useSupabase()
+  const [userTokens, setUserTokens] = useState<UserTokens | null>(null)
+  const [loadingTokens, setLoadingTokens] = useState(false)
+
+  // Fetch user tokens
+  const fetchUserTokens = async () => {
+    if (!user) return
+    
+    setLoadingTokens(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+
+      const response = await fetch('/api/membership/tokens', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUserTokens(data.tokens)
+        
+        // Show bonus token notification for new users
+        if (data.isNewUser && data.bonusTokens > 0) {
+          toast.success(`🎉 Chào mừng! Bạn được tặng ${data.tokens.total_tokens} tokens miễn phí!`)
+        } else if (data.isNewUser) {
+          toast.success(`🎉 Chào mừng! Bạn được tặng ${data.tokens.total_tokens} tokens miễn phí!`)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user tokens:', error)
+    } finally {
+      setLoadingTokens(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUserTokens()
+  }, [user])
+
+  const availableTokens = userTokens ? userTokens.total_tokens - userTokens.used_tokens : 0
 
   return (
     <motion.header
@@ -37,6 +84,23 @@ export default function Header() {
 
         {/* Right section */}
         <div className="flex items-center gap-4">
+          {/* Token Display */}
+          {user && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg"
+            >
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm font-medium text-gray-700">
+                {loadingTokens ? '...' : availableTokens} tokens
+              </span>
+              {availableTokens <= 5 && (
+                <span className="text-xs text-orange-600 font-medium">(Sắp hết)</span>
+              )}
+            </motion.div>
+          )}
+
           {/* Notifications */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -97,6 +161,34 @@ export default function Header() {
                           {user?.email}
                         </p>
                       </div>
+                    )}
+                  </Menu.Item>
+                  
+                  <Menu.Item>
+                    {({ active }) => (
+                      <a
+                        href="/profile"
+                        className={`${
+                          active ? 'bg-gray-50' : ''
+                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors`}
+                      >
+                        <UserIcon className="w-5 h-5 text-gray-400" />
+                        Hồ sơ cá nhân
+                      </a>
+                    )}
+                  </Menu.Item>
+
+                  <Menu.Item>
+                    {({ active }) => (
+                      <a
+                        href="/membership"
+                        className={`${
+                          active ? 'bg-gray-50' : ''
+                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors`}
+                      >
+                        <CreditCardIcon className="w-5 h-5 text-gray-400" />
+                        Membership
+                      </a>
                     )}
                   </Menu.Item>
                   
