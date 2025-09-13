@@ -61,7 +61,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     </SupabaseContext.Provider>
   )
 }
-
 export function useSupabase() {
   const context = useContext(SupabaseContext)
   if (context === undefined) {
