@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
+import { generateAdvancedPrompt, generateClothingSpecificPrompt } from '../../../../lib/promptGenerator'
 
 async function uploadToSupabase(base64Image: string, bucket: string): Promise<string> {
   // Convert base64 to buffer
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Authenticated user:', user.id)
 
-    const { personImage, clothingImage } = await request.json()
+    const { personImage, clothingImage, clothingType = 'top' } = await request.json()
 
     if (!personImage || !clothingImage) {
       return NextResponse.json(
@@ -87,6 +88,21 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json({ error: 'KIE.AI API key missing' }, { status: 500 })
     }
+
+    // Generate advanced prompt for better results
+    const { prompt, negativePrompt, parameters } = generateAdvancedPrompt(clothingImageUrl)
+    
+    // Add clothing-specific requirements
+    const clothingSpecificPrompt = generateClothingSpecificPrompt({ 
+      type: clothingType as any, 
+      category: 'shirt' // Default category
+    })
+    
+    const finalPrompt = `${prompt}\n\n${clothingSpecificPrompt}`
+    
+    console.log('Using advanced prompt for clothing type:', clothingType)
+    console.log('Prompt preview:', finalPrompt.substring(0, 200) + '...')
+    
     const kieaiResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
       headers: {
@@ -96,10 +112,12 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'google/nano-banana-edit',
         input: {
-          prompt: 'Try on this clothing item on the person in the image',
+          prompt: finalPrompt,
+          negative_prompt: negativePrompt,
           image_urls: [personImageUrl, clothingImageUrl],
           output_format: 'png',
-          image_size: 'auto'
+          image_size: 'auto',
+          ...parameters
         }
       }),
     })

@@ -6,6 +6,7 @@ import { SparklesIcon, BoltIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import { useSupabase } from './SupabaseProvider'
 import { supabase } from '@/lib/supabase'
+import ClothingTypeSelector from './ClothingTypeSelector'
 
 interface TryOnButtonProps {
   personImage: string | null
@@ -24,6 +25,7 @@ export default function TryOnButton({
 }: TryOnButtonProps) {
   const { user } = useSupabase()
   const [progress, setProgress] = useState(0)
+  const [clothingType, setClothingType] = useState<string | null>(null)
 
   const handleTryOn = async () => {
     if (!personImage || !clothingImage) {
@@ -70,7 +72,8 @@ export default function TryOnButton({
         },
         body: JSON.stringify({
           personImage,
-          clothingImage
+          clothingImage,
+          clothingType: clothingType || 'top' // Default to top if not selected
         })
       })
 
@@ -217,6 +220,20 @@ export default function TryOnButton({
           />
         )}
       </motion.button>
+
+      {/* Clothing Type Selector */}
+      {personImage && clothingImage && user && !isProcessing && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 p-4 bg-white border border-gray-200 rounded-xl"
+        >
+          <ClothingTypeSelector 
+            onTypeChange={setClothingType}
+            selectedType={clothingType}
+          />
+        </motion.div>
+      )}
 
       {/* Help text */}
       {!user && (
