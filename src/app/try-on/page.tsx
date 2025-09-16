@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import Header from '../../components/Header'
@@ -11,11 +12,22 @@ import ResultModal from '../../components/ResultModal'
 import toast from 'react-hot-toast'
 
 export default function TryOnPage() {
+  const searchParams = useSearchParams()
   const [personImage, setPersonImage] = useState<string | null>(null)
   const [clothingImage, setClothingImage] = useState<string | null>(null)
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [showResultModal, setShowResultModal] = useState(false)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+
+  // Load clothing image from URL parameter
+  useEffect(() => {
+    const clothingParam = searchParams.get('clothing')
+    if (clothingParam) {
+      const decodedImageUrl = decodeURIComponent(clothingParam)
+      setClothingImage(decodedImageUrl)
+      toast.success('Đã tải ảnh sản phẩm từ chatbot!')
+    }
+  }, [searchParams])
 
   const handleTryOnResult = (imageUrl: string) => {
     setResultImage(imageUrl)

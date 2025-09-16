@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { 
   PaperAirplaneIcon, 
   SparklesIcon,
@@ -45,6 +46,7 @@ interface FashionAdvice {
 }
 
 export default function FashionChatbot() {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -59,6 +61,18 @@ export default function FashionChatbot() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleTryOn = (imageUrl: string) => {
+    if (!imageUrl) {
+      toast.error('Không có ảnh sản phẩm để thử đồ')
+      return
+    }
+    
+    // Encode image URL and navigate to try-on page
+    const encodedImageUrl = encodeURIComponent(imageUrl)
+    router.push(`/try-on?clothing=${encodedImageUrl}`)
+    toast.success('Chuyển đến trang thử đồ ảo...')
   }
 
   useEffect(() => {
@@ -294,6 +308,15 @@ export default function FashionChatbot() {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleTryOn(message.product?.images?.[0] || '')}
+                          className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-600 transition-all"
+                        >
+                          <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Thử đồ ảo
+                        </button>
                         <button className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all">
                           <ShoppingBagIcon className="w-4 h-4 inline mr-2" />
                           Mua ngay
