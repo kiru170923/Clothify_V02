@@ -236,10 +236,11 @@ export async function POST(request: NextRequest) {
         throw new Error('Person image must be base64 data URL')
       }
       
-      // Clothing image: use URL directly if it's from Shopee
+      // Clothing image: always upload to Supabase for KIE.AI compatibility
       if (clothingImage.startsWith('http')) {
-        console.log('🔗 Using clothing image URL directly:', clothingImage)
-        clothingImageUrl = clothingImage
+        console.log('🔄 Converting clothing image URL to base64 and uploading to Supabase...')
+        const processedImage = await processImage(clothingImage)
+        clothingImageUrl = await uploadToSupabase(processedImage, 'clothing-images')
       } else if (clothingImage.startsWith('data:image/')) {
         console.log('📤 Uploading clothing image to Supabase...')
         clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
@@ -278,7 +279,7 @@ export async function POST(request: NextRequest) {
     
     // Test if images are accessible and validate format
     try {
-      // Always test person image (uploaded to Supabase)
+      // Test both images (both uploaded to Supabase)
       const personTest = await fetch(personImageUrl)
       if (!personTest.ok) {
         throw new Error(`Person image not accessible: ${personTest.status}`)
@@ -292,20 +293,19 @@ export async function POST(request: NextRequest) {
       console.log('✅ Person image is accessible and valid')
       console.log('Person image type:', personContentType)
       
-      // Only test clothing image if it's a URL (not Supabase URL)
-      if (clothingImageUrl.startsWith('http') && !clothingImageUrl.includes('supabase.co')) {
-        console.log('🔍 Testing external clothing image URL...')
-        const clothingTest = await fetch(clothingImageUrl)
-        if (!clothingTest.ok) {
-          console.warn(`⚠️ Clothing image not accessible: ${clothingTest.status}, but continuing...`)
-        } else {
-          const clothingContentType = clothingTest.headers.get('content-type')
-          console.log('✅ Clothing image is accessible')
-          console.log('Clothing image type:', clothingContentType)
-        }
-      } else {
-        console.log('✅ Using Supabase clothing image URL (no need to test)')
+      // Test clothing image (also uploaded to Supabase)
+      const clothingTest = await fetch(clothingImageUrl)
+      if (!clothingTest.ok) {
+        throw new Error(`Clothing image not accessible: ${clothingTest.status}`)
       }
+      
+      const clothingContentType = clothingTest.headers.get('content-type')
+      if (!clothingContentType?.startsWith('image/')) {
+        throw new Error(`Invalid clothing image format: ${clothingContentType}`)
+      }
+      
+      console.log('✅ Clothing image is accessible and valid')
+      console.log('Clothing image type:', clothingContentType)
       
     } catch (error) {
       console.error('❌ Image validation failed:', error)
