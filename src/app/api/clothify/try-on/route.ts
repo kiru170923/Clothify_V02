@@ -10,13 +10,13 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
     const fallbackRequestBody = {
       model: 'google/nano-banana-edit',
       input: {
-        prompt: 'Virtual try-on: person wearing new clothing',
-        negative_prompt: 'blurry, low quality, distorted',
+        prompt: 'Virtual try-on: Replace clothing with new garment, maintain fit and pose',
+        negative_prompt: 'blurry, low quality, distorted, artifacts, poor fit',
         image_urls: [personImageUrl, clothingImageUrl],
         output_format: 'png',
         image_size: 'auto',
-        num_inference_steps: 25,
-        guidance_scale: 4.0
+        num_inference_steps: 30,
+        guidance_scale: 5.0
       }
     }
     
@@ -54,13 +54,13 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
       const finalFallbackRequestBody = {
         model: 'google/nano-banana-edit',
         input: {
-          prompt: 'person wearing clothes',
-          negative_prompt: 'blurry',
+          prompt: 'person wearing new clothing item',
+          negative_prompt: 'blurry, low quality',
           image_urls: [personImageUrl, clothingImageUrl],
           output_format: 'png',
           image_size: 'auto',
-          num_inference_steps: 15,
-          guidance_scale: 3.0
+          num_inference_steps: 20,
+          guidance_scale: 4.0
         }
       }
       

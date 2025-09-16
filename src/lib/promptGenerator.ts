@@ -10,16 +10,16 @@ export function generateAdvancedPrompt(clothingImageUrl: string): {
   negativePrompt: string
   parameters: Record<string, any>
 } {
-  // Simplified prompt for better performance
-  const basePrompt = `Virtual try-on: Replace person's clothing with new garment. Remove old clothing completely, maintain natural fit and proportions, preserve pose and lighting.`
+  // Optimized prompt for better quality while keeping it concise
+  const basePrompt = `Professional virtual try-on: Replace person's clothing with new garment from second image. Complete removal of old clothing, perfect fit and proportions, seamless integration with body contours, preserve original pose and lighting, realistic fabric texture and drape.`
 
-  const negativePrompt = `low quality, blurry, distorted, artifacts, old clothing remnants, poor fit, unnatural shadows`
+  const negativePrompt = `low quality, blurry, distorted, artifacts, old clothing remnants, poor fit, unnatural shadows, floating clothing, disconnected elements, visible seams, wrong proportions, mismatched lighting`
 
-  // Optimized parameters for better performance
+  // Optimized parameters for better quality
   const parameters = {
-    guidance_scale: 7.0, // Balanced guidance
-    num_inference_steps: 40, // Reduced steps for faster processing
-    strength: 0.8, // Strong transformation
+    guidance_scale: 8.0, // Higher guidance for better prompt adherence
+    num_inference_steps: 50, // More steps for better quality
+    strength: 0.85, // Strong transformation for complete replacement
     seed: Math.floor(Math.random() * 1000000), // Random seed for variety
     scheduler: 'DDIMScheduler', // Better scheduler for clothing
     eta: 0.0, // Deterministic sampling
