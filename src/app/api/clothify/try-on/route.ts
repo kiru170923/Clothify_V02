@@ -73,7 +73,7 @@ async function pollForKieaiResult(taskId: string, apiKey: string) {
       if (statusResponse.ok) {
         const statusData = await statusResponse.json()
         
-        if (statusData.code === 200 && statusData.data.state === 'processing') {
+        if (statusData.code === 200 && (statusData.data.state === 'processing' || statusData.data.state === 'generating')) {
           attempts++
           continue
         }
@@ -388,9 +388,9 @@ export async function POST(request: NextRequest) {
           const statusData = await statusResponse.json()
           console.log('📊 KIE.AI Status Check:', JSON.stringify(statusData, null, 2))
           
-          // Check if task is still processing
-          if (statusData.code === 200 && statusData.data.state === 'processing') {
-            console.log('⏳ Task still processing...')
+          // Check if task is still processing or generating
+          if (statusData.code === 200 && (statusData.data.state === 'processing' || statusData.data.state === 'generating')) {
+            console.log('⏳ Task still processing/generating...')
             attempts++
             continue
           }
@@ -455,6 +455,13 @@ export async function POST(request: NextRequest) {
             })
           } else if (statusData.code === 200 && statusData.data.state === 'fail') {
             console.log('❌ KIE.AI generation failed:', statusData.data.failMsg)
+            
+            // If it's an E006 error, try with fallback
+            if (statusData.data.failMsg && statusData.data.failMsg.includes('E006')) {
+              console.log('🔄 E006 error detected, trying with fallback images...')
+              return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
+            }
+            
             return NextResponse.json({ error: `KIE.AI generation failed: ${statusData.data.failMsg}` }, { status: 502 })
           } else {
             // Handle other states
