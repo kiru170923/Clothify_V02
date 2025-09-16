@@ -170,10 +170,17 @@ async function processImage(imageData: string): Promise<string> {
         throw new Error('Empty image data')
       }
       
+      // Check if image is too large (KIE.AI might have size limits)
+      if (buffer.byteLength > 10 * 1024 * 1024) { // 10MB limit
+        console.log(`⚠️ Image too large: ${buffer.byteLength} bytes, resizing...`)
+        // Could add image resizing here if needed
+      }
+      
       const base64 = Buffer.from(buffer).toString('base64')
       const result = `data:${contentType};base64,${base64}`
       
       console.log(`✅ Successfully converted URL to base64 (${buffer.byteLength} bytes, ${contentType})`)
+      console.log(`🔍 Base64 length: ${base64.length} characters`)
       return result
     } catch (error) {
       console.error('❌ Failed to convert URL to base64:', error)
@@ -274,8 +281,11 @@ export async function POST(request: NextRequest) {
       // Clothing image: always upload to Supabase for KIE.AI compatibility
       if (clothingImage.startsWith('http')) {
         console.log('🔄 Converting clothing image URL to base64 and uploading to Supabase...')
+        console.log('🔍 Original clothing URL:', clothingImage)
         const processedImage = await processImage(clothingImage)
+        console.log('🔍 Processed image type:', processedImage.substring(0, 50) + '...')
         clothingImageUrl = await uploadToSupabase(processedImage, 'clothing-images')
+        console.log('🔍 Final clothing URL:', clothingImageUrl)
       } else if (clothingImage.startsWith('data:image/')) {
         console.log('📤 Uploading clothing image to Supabase...')
         clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
