@@ -23,11 +23,20 @@ export default function TryOnPage() {
   }
 
   const handleClearImages = () => {
+    // Optimistic update - immediate UI feedback
     setPersonImage(null)
     setClothingImage(null)
     setResultImage(null)
     setShowResultModal(false)
-    toast.success('Đã xóa tất cả ảnh')
+    
+    toast.success('Đã xóa tất cả ảnh', {
+      duration: 2000,
+      icon: '🗑️',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+    })
   }
 
   return (
@@ -73,6 +82,8 @@ export default function TryOnPage() {
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleClearImages}

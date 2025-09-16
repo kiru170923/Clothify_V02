@@ -84,8 +84,16 @@ export default function UploadCard({ label, image, onChange, type, onZoom }: Upl
   }
 
   const removeImage = () => {
+    // Optimistic update with smooth animation
     onChange(null)
-    toast.success('Đã xóa ảnh')
+    toast.success('Đã xóa ảnh', {
+      duration: 2000,
+      icon: '🗑️',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+    })
   }
 
   if (image) {
@@ -93,6 +101,8 @@ export default function UploadCard({ label, image, onChange, type, onZoom }: Upl
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ duration: 0.2 }}
         className="relative group"
       >
         <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 max-w-[120px] max-h-[160px] sm:max-w-[200px] sm:max-h-[267px] lg:max-w-[360px] lg:max-h-[480px] mx-auto group">
@@ -128,13 +138,13 @@ export default function UploadCard({ label, image, onChange, type, onZoom }: Upl
                 initial={{ scale: 0, opacity: 0 }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 bg-white rounded-full shadow-lg"
+                className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 bg-white rounded-full shadow-lg hover:bg-red-50"
                 onClick={(e) => {
                   e.stopPropagation()
                   removeImage()
                 }}
               >
-                <XMarkIcon className="w-4 h-4 text-gray-600" />
+                <XMarkIcon className="w-4 h-4 text-gray-600 hover:text-red-600 transition-colors" />
               </motion.button>
             </div>
           </div>

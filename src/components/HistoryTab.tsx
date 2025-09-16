@@ -4,6 +4,8 @@ import React, { useState, useCallback } from 'react'
 import { History, Download, Trash2, Calendar, Image as ImageIcon } from 'lucide-react'
 import { ImageModal } from './ImageModal'
 import { useHistory, useDeleteHistory } from '../hooks/useHistory'
+import { useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 
 interface HistoryItem {
   id: string
@@ -21,6 +23,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
   // Use React Query hooks
   const { data: historyItems = [], isLoading: loading, error } = useHistory()
   const deleteHistoryMutation = useDeleteHistory()
+  const queryClient = useQueryClient()
 
   const handleDownload = useCallback(async (imageUrl: string, filename: string) => {
     try {
@@ -46,12 +49,24 @@ export const HistoryTab = React.memo(function HistoryTab() {
   }, [])
 
   const handleDelete = useCallback(async (id: string) => {
+    // Optimistic update - immediately remove from UI
+    const previousData = queryClient.getQueryData(['history'])
+    
+    // Update UI immediately
+    queryClient.setQueryData(['history'], (old: any) => 
+      old?.filter((item: any) => item.id !== id) || []
+    )
+    
     try {
       await deleteHistoryMutation.mutateAsync(id)
+      toast.success('Đã xóa thành công!')
     } catch (error) {
+      // Rollback on error
+      queryClient.setQueryData(['history'], previousData)
+      toast.error('Không thể xóa, vui lòng thử lại')
       console.error('Error deleting record:', error)
     }
-  }, [deleteHistoryMutation])
+  }, [deleteHistoryMutation, queryClient])
 
   if (loading) {
     return (
