@@ -386,9 +386,11 @@ export async function POST(request: NextRequest) {
         
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
+          console.log('📊 KIE.AI Status Check:', JSON.stringify(statusData, null, 2))
           
           // Check if task is still processing
           if (statusData.code === 200 && statusData.data.state === 'processing') {
+            console.log('⏳ Task still processing...')
             attempts++
             continue
           }
@@ -454,7 +456,25 @@ export async function POST(request: NextRequest) {
           } else if (statusData.code === 200 && statusData.data.state === 'fail') {
             console.log('❌ KIE.AI generation failed:', statusData.data.failMsg)
             return NextResponse.json({ error: `KIE.AI generation failed: ${statusData.data.failMsg}` }, { status: 502 })
+          } else {
+            // Handle other states
+            console.log('⚠️ Unexpected KIE.AI state:', statusData.data.state)
+            console.log('📊 Full status data:', JSON.stringify(statusData, null, 2))
+            
+            // If we get an error state, try fallback
+            if (statusData.data.state === 'error' || statusData.data.error) {
+              console.log('🔄 KIE.AI returned error state, trying fallback...')
+              return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
+            }
+            
+            // For other unknown states, continue polling
+            attempts++
+            continue
           }
+        } else {
+          console.log('❌ Status check failed:', statusResponse.status, statusResponse.statusText)
+          attempts++
+          continue
         }
       } catch (error) {
         // Continue polling on error
