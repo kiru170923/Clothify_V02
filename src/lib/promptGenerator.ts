@@ -10,40 +10,16 @@ export function generateAdvancedPrompt(clothingImageUrl: string): {
   negativePrompt: string
   parameters: Record<string, any>
 } {
-  // Base prompt structure - AI will auto-detect clothing type and apply appropriate logic
-  const basePrompt = `Professional virtual try-on: Intelligently replace the person's clothing with the new garment from the second image.
+  // Simplified prompt for better performance
+  const basePrompt = `Virtual try-on: Replace person's clothing with new garment. Remove old clothing completely, maintain natural fit and proportions, preserve pose and lighting.`
 
-CRITICAL REQUIREMENTS:
-- AI should automatically detect what type of clothing needs to be replaced (top, bottom, dress, etc.)
-- Completely remove ALL existing clothing items that conflict with the new garment
-- The new garment should fit naturally and realistically on the person's body
-- Maintain proper proportions and body shape
-- Ensure seamless integration with the person's skin and body contours
-- Preserve the person's original pose, lighting, and background
-- No remnants or artifacts from old clothing should remain
-- The new clothing should look like it was naturally worn by the person
-- Handle clothing layering intelligently (e.g., if replacing a top, don't show midriff unless the new top is designed that way)
+  const negativePrompt = `low quality, blurry, distorted, artifacts, old clothing remnants, poor fit, unnatural shadows`
 
-QUALITY STANDARDS:
-- High resolution and sharp details
-- Realistic fabric texture and drape
-- Proper fit and sizing appropriate for the garment type
-- Natural shadows and lighting on the new garment
-- Professional photography quality
-- Intelligent clothing type detection and appropriate replacement`
-
-  const negativePrompt = `low quality, blurry, distorted, artifacts, remnants of old clothing, visible seams from old garments, 
-mismatched lighting, unrealistic proportions, clothing that doesn't fit properly, 
-partial clothing replacement, visible old clothing underneath, poor integration, 
-floating clothing, disconnected clothing elements, visible bra straps, underwear showing,
-crop top showing midriff when not intended, loose fitting when should be tight,
-tight fitting when should be loose, wrong fabric texture, unnatural shadows`
-
-  // Advanced parameters for better results
+  // Optimized parameters for better performance
   const parameters = {
-    guidance_scale: 8.0, // Higher guidance for more precise control
-    num_inference_steps: 60, // More steps for better quality
-    strength: 0.85, // Strong transformation to ensure complete replacement
+    guidance_scale: 7.0, // Balanced guidance
+    num_inference_steps: 40, // Reduced steps for faster processing
+    strength: 0.8, // Strong transformation
     seed: Math.floor(Math.random() * 1000000), // Random seed for variety
     scheduler: 'DDIMScheduler', // Better scheduler for clothing
     eta: 0.0, // Deterministic sampling

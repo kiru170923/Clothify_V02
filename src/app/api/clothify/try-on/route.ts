@@ -10,13 +10,13 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
     const fallbackRequestBody = {
       model: 'google/nano-banana-edit',
       input: {
-        prompt: 'A person wearing the clothing item',
+        prompt: 'Virtual try-on: person wearing new clothing',
         negative_prompt: 'blurry, low quality, distorted',
         image_urls: [personImageUrl, clothingImageUrl],
         output_format: 'png',
         image_size: 'auto',
-        num_inference_steps: 30,
-        guidance_scale: 5.0
+        num_inference_steps: 25,
+        guidance_scale: 4.0
       }
     }
     
@@ -386,11 +386,9 @@ export async function POST(request: NextRequest) {
         
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
-          console.log('📊 KIE.AI Status Check:', JSON.stringify(statusData, null, 2))
           
           // Check if task is still processing or generating
           if (statusData.code === 200 && (statusData.data.state === 'processing' || statusData.data.state === 'generating')) {
-            console.log('⏳ Task still processing/generating...')
             attempts++
             continue
           }
@@ -464,13 +462,9 @@ export async function POST(request: NextRequest) {
             
             return NextResponse.json({ error: `KIE.AI generation failed: ${statusData.data.failMsg}` }, { status: 502 })
           } else {
-            // Handle other states
-            console.log('⚠️ Unexpected KIE.AI state:', statusData.data.state)
-            console.log('📊 Full status data:', JSON.stringify(statusData, null, 2))
-            
-            // If we get an error state, try fallback
+            // Handle other states - try fallback for unknown states
             if (statusData.data.state === 'error' || statusData.data.error) {
-              console.log('🔄 KIE.AI returned error state, trying fallback...')
+              console.log('🔄 KIE.AI error state, trying fallback...')
               return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
             }
             
