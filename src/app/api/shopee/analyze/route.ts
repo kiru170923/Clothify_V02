@@ -9,6 +9,10 @@ const openai = new OpenAI({
 const SCRAPELESS_API_KEY = process.env.SCRAPELESS_API_KEY
 const SCRAPELESS_BASE_URL = 'https://api.scrapeless.com/api/v1'
 
+// Simple in-memory cache
+const productCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
   
@@ -26,6 +30,18 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Starting product analysis...')
 
+    // Check cache first
+    const cached = productCache.get(url)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      console.log('🚀 Using cached data for:', url)
+      return NextResponse.json({
+        success: true,
+        product: cached.data,
+        cached: true,
+        processingTime: Date.now() - startTime
+      })
+    }
+
     // Scrape product data using Scrapeless (with timeout)
     const scrapingStartTime = Date.now()
     let productData = await scrapeShopeeProduct(url)
@@ -36,6 +52,9 @@ export async function POST(request: NextRequest) {
     if (!productData) {
       console.log('Scrapeless failed, using mock data for demo')
       productData = createMockProductData(url)
+      
+      // Cache mock data too
+      productCache.set(url, { data: productData, timestamp: Date.now() })
     }
 
     // Get AI fashion advice (with timeout)
@@ -47,6 +66,9 @@ export async function POST(request: NextRequest) {
     const totalTime = Date.now() - startTime
     console.log(`✅ Total processing time: ${totalTime}ms`)
 
+    // Cache the result
+    productCache.set(url, { data: productData, timestamp: Date.now() })
+
     return NextResponse.json({
       success: true,
       product: productData,
@@ -55,7 +77,8 @@ export async function POST(request: NextRequest) {
         scrapingTime,
         aiTime,
         totalTime
-      }
+      },
+      cached: false
     })
 
   } catch (error) {
@@ -77,7 +100,7 @@ async function scrapeShopeeProduct(url: string) {
     // Step 1: Create scraping task with timeout
     console.log('📤 Creating Scrapeless task...')
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
 
     const taskResponse = await fetch(`${SCRAPELESS_BASE_URL}/scraper/request`, {
       method: 'POST',
@@ -131,13 +154,13 @@ async function scrapeShopeeProduct(url: string) {
   }
 }
 
-async function pollForResult(taskId: string, maxAttempts: number = 12): Promise<any> {
+async function pollForResult(taskId: string, maxAttempts: number = 8): Promise<any> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`🔄 Polling attempt ${attempt}/${maxAttempts}...`)
 
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout per request
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout per request
 
       const resultResponse = await fetch(`${SCRAPELESS_BASE_URL}/scraper/result/${taskId}`, {
         method: 'GET',
@@ -168,7 +191,7 @@ async function pollForResult(taskId: string, maxAttempts: number = 12): Promise<
       } else {
         // Still processing, wait and try again
         console.log(`⏳ Task still processing (${resultData.state || resultData.status}), waiting...`)
-        await new Promise(resolve => setTimeout(resolve, 3000)) // Wait 3 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
