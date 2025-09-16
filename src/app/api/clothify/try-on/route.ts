@@ -82,14 +82,9 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
       console.error('❌ Final fallback also failed:', finalError)
     }
     
-    // Return mock result instead of error to prevent app crash
-    console.log('🔄 All KIE.AI attempts failed, returning mock result...')
-    return NextResponse.json({
-      success: true,
-      resultImageUrl: 'https://via.placeholder.com/512x512/cccccc/666666?text=Try-on+Unavailable',
-      taskId: 'mock-result',
-      message: 'KIE.AI service temporarily unavailable. Please try again later.'
-    })
+    return NextResponse.json({ 
+      error: `All attempts failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    }, { status: 500 })
   }
 }
 
@@ -97,7 +92,7 @@ async function pollForKieaiResult(taskId: string, apiKey: string) {
   console.log('🔄 Polling for KIE.AI result...')
   
   let attempts = 0
-  const maxAttempts = 15 // 15 seconds timeout
+  const maxAttempts = 60 // 60 seconds timeout
   
   while (attempts < maxAttempts) {
     const delay = Math.min(250 * Math.pow(2, Math.floor(attempts / 5)), 4000)
@@ -398,14 +393,10 @@ export async function POST(request: NextRequest) {
         return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
       }
       
-      // Return mock result instead of error
-      console.log('🔄 KIE.AI API error, returning mock result...')
-      return NextResponse.json({
-        success: true,
-        resultImageUrl: 'https://via.placeholder.com/512x512/cccccc/666666?text=Try-on+Unavailable',
-        taskId: 'mock-result',
-        message: 'KIE.AI service temporarily unavailable. Please try again later.'
-      })
+      const status = typeof kieaiData.code === 'number' && kieaiData.code >= 400 && kieaiData.code < 600
+        ? kieaiData.code
+        : 400
+      return NextResponse.json({ error: message, code: kieaiData.code }, { status })
     }
 
     // Try to get result immediately
@@ -414,7 +405,7 @@ export async function POST(request: NextRequest) {
     
     // Poll for results using status API with exponential backoff
     let attempts = 0
-    const maxAttempts = 15 // 15 seconds timeout
+    const maxAttempts = 60 // 60 seconds timeout
     
     while (attempts < maxAttempts) {
       // Exponential backoff: 250ms, 500ms, 1s, 2s, 4s...
