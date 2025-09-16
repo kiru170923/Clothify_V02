@@ -391,39 +391,21 @@ async function getFashionAdvice(productData: any) {
     console.log('Generating fashion advice for:', productData.name)
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo", // Faster model
       messages: [
         {
           role: "system",
-          content: `Bạn là chuyên gia thời trang Việt Nam với 10 năm kinh nghiệm. Nhiệm vụ của bạn:
-
-1. **Phân tích sản phẩm**: Đánh giá chất lượng, giá cả, phong cách
-2. **Tư vấn phối đồ**: Gợi ý cách mix & match phù hợp
-3. **Đánh giá xu hướng**: Cập nhật trend thời trang hiện tại
-4. **Lời khuyên cá nhân**: Phù hợp với người Việt Nam
-
-Luôn trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Sử dụng emoji để làm cho câu trả lời sinh động hơn.`
+          content: `Bạn là chuyên gia thời trang Việt Nam. Phân tích sản phẩm và tư vấn phối đồ ngắn gọn, súc tích.`
         },
         {
           role: "user",
-          content: `Hãy phân tích và tư vấn cho sản phẩm này:
-
-📦 **Thông tin sản phẩm:**
-- Tên: ${productData.name}
-- Giá: ${productData.price} ${productData.originalPrice ? `(giá gốc: ${productData.originalPrice})` : ''}
-- Đánh giá: ${productData.rating}/5 ⭐ (${productData.reviewCount})
-- Đã bán: ${productData.sold}
-- Thương hiệu: ${productData.brand || 'Không rõ'}
-- Danh mục: ${productData.category || 'Không rõ'}
-- Mô tả: ${productData.description || 'Không có mô tả'}
-
-Hãy đưa ra lời khuyên chi tiết về phong cách, cách phối đồ và đánh giá tổng thể.`
+          content: `Phân tích sản phẩm: ${productData.name} - ${productData.price} - ${productData.rating}/5⭐ - ${productData.brand}. Tư vấn phối đồ ngắn gọn.`
         }
       ],
-      max_tokens: 600, // Reduced from 800
+      max_tokens: 300, // Reduced from 600
       temperature: 0.7
     })
 
