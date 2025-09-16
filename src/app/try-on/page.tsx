@@ -26,23 +26,9 @@ export default function TryOnPage() {
       const decodedImageUrl = decodeURIComponent(clothingParam)
       console.log('🔍 Loading clothing image from URL:', decodedImageUrl)
       
-      // Use proxy to avoid CORS issues
-      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(decodedImageUrl)}`
-      
-      // Test if image can be loaded through proxy
-      const img = new Image()
-      img.onload = () => {
-        console.log('✅ Image loaded successfully through proxy')
-        setClothingImage(proxyUrl)
-        toast.success('Đã tải ảnh sản phẩm từ chatbot!')
-      }
-      img.onerror = (error) => {
-        console.error('❌ Failed to load image through proxy:', error)
-        // Fallback to original URL
-        setClothingImage(decodedImageUrl)
-        toast.error('Tải ảnh qua proxy thất bại, sử dụng URL gốc')
-      }
-      img.src = proxyUrl
+      // Use original URL directly for KIE.AI (no proxy needed)
+      setClothingImage(decodedImageUrl)
+      toast.success('Đã tải ảnh sản phẩm từ chatbot!')
     }
   }, [searchParams])
 
