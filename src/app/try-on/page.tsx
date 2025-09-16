@@ -13,11 +13,62 @@ import toast from 'react-hot-toast'
 
 export default function TryOnPage() {
   const searchParams = useSearchParams()
-  const [personImage, setPersonImage] = useState<string | null>(null)
-  const [clothingImage, setClothingImage] = useState<string | null>(null)
-  const [resultImage, setResultImage] = useState<string | null>(null)
+  
+  // Load state from localStorage on component mount
+  const [personImage, setPersonImage] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('try-on-person-image')
+    }
+    return null
+  })
+  
+  const [clothingImage, setClothingImage] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('try-on-clothing-image')
+    }
+    return null
+  })
+  
+  const [resultImage, setResultImage] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('try-on-result-image')
+    }
+    return null
+  })
+  
   const [showResultModal, setShowResultModal] = useState(false)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (personImage) {
+        localStorage.setItem('try-on-person-image', personImage)
+      } else {
+        localStorage.removeItem('try-on-person-image')
+      }
+    }
+  }, [personImage])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (clothingImage) {
+        localStorage.setItem('try-on-clothing-image', clothingImage)
+      } else {
+        localStorage.removeItem('try-on-clothing-image')
+      }
+    }
+  }, [clothingImage])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (resultImage) {
+        localStorage.setItem('try-on-result-image', resultImage)
+      } else {
+        localStorage.removeItem('try-on-result-image')
+      }
+    }
+  }, [resultImage])
 
   // Load clothing image from URL parameter
   useEffect(() => {
@@ -43,6 +94,13 @@ export default function TryOnPage() {
     setClothingImage(null)
     setResultImage(null)
     setShowResultModal(false)
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('try-on-person-image')
+      localStorage.removeItem('try-on-clothing-image')
+      localStorage.removeItem('try-on-result-image')
+    }
     
     toast.success('Đã xóa tất cả ảnh', {
       duration: 2000,

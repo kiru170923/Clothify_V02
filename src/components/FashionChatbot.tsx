@@ -10,7 +10,8 @@ import {
   StarIcon,
   ShoppingBagIcon,
   HeartIcon,
-  ShareIcon
+  ShareIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
@@ -47,14 +48,34 @@ interface FashionAdvice {
 
 export default function FashionChatbot() {
   const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'bot',
-      content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
-      timestamp: new Date()
+  
+  // Load messages from localStorage on component mount
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedMessages = localStorage.getItem('fashion-chatbot-messages')
+      if (savedMessages) {
+        try {
+          const parsed = JSON.parse(savedMessages)
+          // Convert timestamp strings back to Date objects
+          return parsed.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        } catch (error) {
+          console.error('Error parsing saved messages:', error)
+        }
+      }
     }
-  ])
+    return [
+      {
+        id: '1',
+        type: 'bot',
+        content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
+        timestamp: new Date()
+      }
+    ]
+  })
+  
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -75,9 +96,35 @@ export default function FashionChatbot() {
     toast.success('Chuyển đến trang thử đồ ảo...')
   }
 
+  // Save messages to localStorage whenever messages change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fashion-chatbot-messages', JSON.stringify(messages))
+    }
+  }, [messages])
+
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Function to clear conversation
+  const clearConversation = () => {
+    const initialMessage: Message = {
+      id: '1',
+      type: 'bot',
+      content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
+      timestamp: new Date()
+    }
+    setMessages([initialMessage])
+    toast.success('Đã xóa hội thoại!', {
+      duration: 2000,
+      icon: '🗑️',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -130,13 +177,22 @@ export default function FashionChatbot() {
           throw new Error(data.error || 'Không thể phân tích sản phẩm')
         }
       } else {
-        // Regular chat response
-        console.log('Sending chat message:', inputValue)
+        // Regular chat response with context
+        console.log('Sending chat message with context:', inputValue)
+        
+        // Prepare conversation context (last 10 messages to optimize tokens)
+        const recentMessages = messages.slice(-10).map(msg => ({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        }))
         
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: inputValue })
+          body: JSON.stringify({ 
+            message: inputValue,
+            context: recentMessages
+          })
         })
 
         const data = await response.json()
@@ -183,14 +239,34 @@ export default function FashionChatbot() {
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-gradient-to-r from-purple-50 to-pink-50">
-        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-          <SparklesIcon className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-purple-50 to-pink-50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+            <SparklesIcon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">AI Fashion Advisor</h2>
+            <p className="text-sm text-gray-600">Tư vấn thời trang thông minh</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">AI Fashion Advisor</h2>
-          <p className="text-sm text-gray-600">Tư vấn thời trang thông minh</p>
-        </div>
+        
+        {/* Clear Conversation Button */}
+        {messages.length > 1 && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={clearConversation}
+            className="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+            title="Xóa hội thoại"
+          >
+            <TrashIcon className="w-4 h-4" />
+            <span className="text-sm font-medium hidden sm:inline">Xóa hội thoại</span>
+          </motion.button>
+        )}
       </div>
 
       {/* Messages */}
