@@ -1,132 +1,133 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useRouter, usePathname } from 'next/navigation'
 import { 
   HomeIcon, 
   PhotoIcon, 
   UserIcon, 
   ClockIcon, 
   Cog6ToothIcon,
-  SparklesIcon
+  SparklesIcon,
+  CameraIcon
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
   PhotoIcon as PhotoIconSolid,
   UserIcon as UserIconSolid,
   ClockIcon as ClockIconSolid,
-  Cog6ToothIcon as Cog6ToothIconSolid
+  Cog6ToothIcon as Cog6ToothIconSolid,
+  CameraIcon as CameraIconSolid
 } from '@heroicons/react/24/solid'
-
-interface SidebarProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-}
 
 const menuItems = [
   {
-    id: 'home',
+    id: '/',
     icon: HomeIcon,
     iconActive: HomeIconSolid,
-    label: 'Trang chủ'
+    label: 'Tư vấn AI'
   },
   {
-    id: 'wardrobe',
+    id: '/try-on',
+    icon: CameraIcon,
+    iconActive: CameraIconSolid,
+    label: 'Thử đồ'
+  },
+  {
+    id: '/wardrobe',
     icon: PhotoIcon,
     iconActive: PhotoIconSolid,
     label: 'Tủ đồ'
   },
   {
-    id: 'history',
+    id: '/history',
     icon: ClockIcon,
     iconActive: ClockIconSolid,
     label: 'Lịch sử'
   },
   {
-    id: 'profile',
+    id: '/profile',
     icon: UserIcon,
     iconActive: UserIconSolid,
     label: 'Hồ sơ'
   },
   {
-    id: 'settings',
+    id: '/settings',
     icon: Cog6ToothIcon,
     iconActive: Cog6ToothIconSolid,
     label: 'Cài đặt'
   }
 ]
 
-export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+export default function Sidebar() {
+  const router = useRouter()
+  const pathname = usePathname()
   return (
-    <motion.div
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      className="w-20 lg:w-72 bg-white border-r border-gray-100 h-screen flex flex-col sticky top-0 z-40"
-    >
+    <div className="w-16 bg-gradient-to-b from-gray-50 to-white border-r border-gray-200 h-screen flex flex-col sticky top-0 z-40 shadow-sm">
       {/* Logo */}
-      <div className="flex items-center justify-center lg:justify-start lg:px-6 py-8">
+      <div className="flex items-center justify-center py-4">
         <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="flex items-center gap-3"
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg cursor-pointer"
+          onClick={() => router.push('/')}
         >
-          <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center">
-            <SparklesIcon className="w-6 h-6 text-white" />
-          </div>
-          <div className="hidden lg:block">
-            <h1 className="text-xl font-bold text-gray-900">Clothify</h1>
-            <p className="text-xs text-gray-500">AI Virtual Try-On</p>
-          </div>
+          <SparklesIcon className="w-4 h-4 text-white" />
         </motion.div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 lg:px-6 space-y-2">
+      <nav className="flex-1 px-2 space-y-1">
         {menuItems.map((item, index) => {
-          const Icon = activeTab === item.id ? item.iconActive : item.icon
-          const isActive = activeTab === item.id
+          const Icon = pathname === item.id ? item.iconActive : item.icon
+          const isActive = pathname === item.id
           
           return (
             <motion.button
               key={item.id}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onTabChange(item.id)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push(item.id)}
               className={`
-                w-full flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all duration-200
+                relative w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 group
                 ${isActive 
-                  ? 'bg-gray-100 text-gray-900' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-gray-800 text-white shadow-lg' 
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }
               `}
+              title={item.label}
             >
-              <Icon className={`w-6 h-6 flex-shrink-0 ${isActive ? 'text-gray-900' : ''}`} />
-              <span className="hidden lg:block font-medium text-sm">
+              <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'group-hover:text-gray-900'}`} />
+              
+              {/* Active indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeIndicator"
+                  className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-full"
+                />
+              )}
+              
+              {/* Tooltip */}
+              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                 {item.label}
-              </span>
+              </div>
             </motion.button>
           )
         })}
       </nav>
 
       {/* Bottom section */}
-      <div className="p-3 lg:p-6">
+      <div className="p-2 pb-4">
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="hidden lg:block p-4 bg-gray-50 rounded-xl border border-gray-200"
+          className="flex items-center justify-center p-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200"
+          title="Pro Tip: Sử dụng ảnh có độ phân giải cao và nền sáng để có kết quả tốt nhất"
         >
-          <div className="flex items-center gap-3 mb-2">
-            <SparklesIcon className="w-5 h-5 text-gray-600" />
-            <span className="font-semibold text-sm text-gray-900">Pro Tips</span>
-          </div>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            Sử dụng ảnh có độ phân giải cao và nền sáng để có kết quả tốt nhất
-          </p>
+          <SparklesIcon className="w-4 h-4 text-blue-600" />
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   )
 }

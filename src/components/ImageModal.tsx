@@ -6,10 +6,9 @@ interface ImageModalProps {
   imageUrl: string
   isOpen: boolean
   onClose: () => void
-  title?: string
 }
 
-export function ImageModal({ imageUrl, isOpen, onClose, title }: ImageModalProps) {
+export function ImageModal({ imageUrl, isOpen, onClose }: ImageModalProps) {
   if (!isOpen) return null
 
   return (
@@ -26,17 +25,10 @@ export function ImageModal({ imageUrl, isOpen, onClose, title }: ImageModalProps
         {/* Image */}
         <img
           src={imageUrl}
-          alt={title || 'Image'}
+          alt="Zoomed image"
           className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
           style={{ maxWidth: '100vw', maxHeight: '100vh' }}
         />
-        
-        {/* Title */}
-        {title && (
-          <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded-lg">
-            <p className="text-center font-medium">{title}</p>
-          </div>
-        )}
       </div>
     </div>
   )

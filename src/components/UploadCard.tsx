@@ -8,7 +8,8 @@ import {
   CameraIcon, 
   XMarkIcon,
   ArrowUpTrayIcon,
-  CheckCircleIcon 
+  CheckCircleIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import CameraModal from './CameraModal'
@@ -19,9 +20,10 @@ interface UploadCardProps {
   image: string | null
   onChange: (image: string | null) => void
   type: 'person' | 'clothing'
+  onZoom?: (image: string) => void
 }
 
-export default function UploadCard({ label, image, onChange, type }: UploadCardProps) {
+export default function UploadCard({ label, image, onChange, type, onZoom }: UploadCardProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
 
@@ -93,24 +95,48 @@ export default function UploadCard({ label, image, onChange, type }: UploadCardP
         animate={{ scale: 1, opacity: 1 }}
         className="relative group"
       >
-        <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 max-w-[120px] max-h-[160px] sm:max-w-[200px] sm:max-h-[267px] lg:max-w-[360px] lg:max-h-[480px] mx-auto">
+        <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 max-w-[120px] max-h-[160px] sm:max-w-[200px] sm:max-h-[267px] lg:max-w-[360px] lg:max-h-[480px] mx-auto group">
           <img
             src={image}
             alt={type === 'person' ? 'Ảnh cá nhân' : 'Trang phục'}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+            onClick={() => {
+              if (onZoom && image) {
+                onZoom(image)
+              }
+            }}
           />
           
           {/* Overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-            <motion.button
-              initial={{ scale: 0, opacity: 0 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 bg-white rounded-full shadow-lg"
-              onClick={removeImage}
-            >
-              <XMarkIcon className="w-5 h-5 text-gray-600" />
-            </motion.button>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center pointer-events-none">
+            <div className="flex gap-2 pointer-events-auto">
+              <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 bg-white rounded-full shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (onZoom && image) {
+                    onZoom(image)
+                  }
+                }}
+              >
+                <MagnifyingGlassIcon className="w-4 h-4 text-gray-600" />
+              </motion.button>
+              <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 bg-white rounded-full shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removeImage()
+                }}
+              >
+                <XMarkIcon className="w-4 h-4 text-gray-600" />
+              </motion.button>
+            </div>
           </div>
 
           {/* Success indicator */}

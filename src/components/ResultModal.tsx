@@ -8,10 +8,11 @@ import toast from 'react-hot-toast'
 interface ResultModalProps {
   isOpen: boolean
   onClose: () => void
-  resultImage: string
-  personImage: string
-  clothingImage: string
-  onTryAgain: () => void
+  resultImage: string | null
+  personImage: string | null
+  clothingImage: string | null
+  onTryAgain?: () => void
+  onZoom?: (image: string) => void
 }
 
 export default function ResultModal({ 
@@ -20,10 +21,15 @@ export default function ResultModal({
   resultImage, 
   personImage, 
   clothingImage,
-  onTryAgain
+  onTryAgain,
+  onZoom
 }: ResultModalProps) {
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const downloadImage = async () => {
+    if (!resultImage) {
+      toast.error('Không có ảnh để tải xuống')
+      return
+    }
+    
     try {
       const response = await fetch(resultImage)
       const blob = await response.blob()
@@ -97,14 +103,25 @@ export default function ResultModal({
             <div className="grid grid-cols-4 gap-3">
               {/* Original Images */}
               <div className="col-span-1">
-                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group">
-                  <img
-                    src={personImage}
-                    alt="Ảnh gốc"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    onClick={() => setZoomedImage(personImage)}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
+                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group"
+                     onClick={() => {
+                       if (personImage) {
+                         console.log('Person image clicked, calling onZoom')
+                         onZoom?.(personImage)
+                       }
+                     }}>
+                  {personImage ? (
+                    <img
+                      src={personImage}
+                      alt="Ảnh gốc"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Không có ảnh</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center pointer-events-none">
                     <MagnifyingGlassIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
@@ -114,14 +131,25 @@ export default function ResultModal({
               </div>
 
               <div className="col-span-1">
-                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group">
-                  <img
-                    src={clothingImage}
-                    alt="Trang phục"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    onClick={() => setZoomedImage(clothingImage)}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
+                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group"
+                     onClick={() => {
+                       if (clothingImage) {
+                         console.log('Clothing image clicked, calling onZoom')
+                         onZoom?.(clothingImage)
+                       }
+                     }}>
+                  {clothingImage ? (
+                    <img
+                      src={clothingImage}
+                      alt="Trang phục"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Không có ảnh</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center pointer-events-none">
                     <MagnifyingGlassIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
@@ -132,14 +160,25 @@ export default function ResultModal({
 
               {/* Result Image - Takes 2 columns and is 2x bigger */}
               <div className="col-span-2">
-                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group">
-                  <img
-                    src={resultImage}
-                    alt="Kết quả thử đồ"
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    onClick={() => setZoomedImage(resultImage)}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
+                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group"
+                     onClick={() => {
+                       if (resultImage) {
+                         console.log('Result image clicked, calling onZoom')
+                         onZoom?.(resultImage)
+                       }
+                     }}>
+                  {resultImage ? (
+                    <img
+                      src={resultImage}
+                      alt="Kết quả thử đồ"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Không có kết quả</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center pointer-events-none">
                     <MagnifyingGlassIcon className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
@@ -185,32 +224,6 @@ export default function ResultModal({
         </motion.div>
       </motion.div>
 
-      {/* Zoomed Image Modal - Outside main modal */}
-      {zoomedImage && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4"
-          onClick={() => setZoomedImage(null)}
-        >
-          <motion.img
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.8 }}
-            src={zoomedImage}
-            alt="Phóng to"
-            className="max-w-full max-h-full object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            onClick={() => setZoomedImage(null)}
-            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6 text-white" />
-          </button>
-        </motion.div>
-      )}
     </AnimatePresence>
   )
 }

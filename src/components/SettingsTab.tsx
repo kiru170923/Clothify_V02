@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Settings, Bell, Shield, Palette, Globe, Download, Trash2 } from 'lucide-react'
 import { useSupabase } from './SupabaseProvider'
 
-export function SettingsTab() {
+export const SettingsTab = React.memo(function SettingsTab() {
   const { signOut } = useSupabase()
   const [settings, setSettings] = useState({
     notifications: true,
@@ -206,4 +206,4 @@ export function SettingsTab() {
       </div>
     </div>
   )
-}
+})

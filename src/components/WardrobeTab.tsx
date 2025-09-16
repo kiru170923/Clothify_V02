@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Camera, Upload, Plus, Tag } from 'lucide-react'
 import UploadCard from './UploadCard'
 
@@ -12,7 +12,7 @@ interface WardrobeItem {
   createdAt: string
 }
 
-export function WardrobeTab() {
+export const WardrobeTab = React.memo(function WardrobeTab() {
   const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -146,4 +146,4 @@ export function WardrobeTab() {
       )}
     </div>
   )
-}
+})

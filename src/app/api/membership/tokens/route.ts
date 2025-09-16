@@ -105,18 +105,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch tokens' }, { status: 500 })
     }
 
-    if (!userTokens || userTokens.total_tokens - userTokens.used_tokens < tokensToUse) {
+    if (!userTokens || userTokens.total_tokens < tokensToUse) {
       return NextResponse.json({ 
         error: 'Insufficient tokens',
-        availableTokens: userTokens ? userTokens.total_tokens - userTokens.used_tokens : 0
+        availableTokens: userTokens ? userTokens.total_tokens : 0
       }, { status: 400 })
     }
 
-    // Update user tokens
+    // Update user tokens - trừ trực tiếp từ total_tokens
     const { error: updateError } = await supabaseAdmin
       .from('user_tokens')
       .update({
-        used_tokens: userTokens.used_tokens + tokensToUse,
+        total_tokens: userTokens.total_tokens - tokensToUse,
+        used_tokens: userTokens.used_tokens + tokensToUse, // Vẫn track used_tokens để thống kê
         updated_at: new Date().toISOString()
       })
       .eq('user_id', user.id)

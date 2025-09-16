@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { SupabaseProvider } from '@/components/SupabaseProvider'
-import AuthDebugger from '@/components/AuthDebugger'
+import { QueryProvider } from '@/components/QueryProvider'
+import AuthGuard from '@/components/AuthGuard'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,10 +26,13 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <SupabaseProvider>
-          {children}
-          <AuthDebugger />
-        </SupabaseProvider>
+        <QueryProvider>
+          <SupabaseProvider>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+          </SupabaseProvider>
+        </QueryProvider>
       </body>
     </html>
   )

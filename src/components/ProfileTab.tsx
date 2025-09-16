@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { User, Ruler, Weight, Heart, Target } from 'lucide-react'
 import { useSupabase } from './SupabaseProvider'
 
@@ -11,7 +11,7 @@ interface BodyInfo {
   preferences: string[]
 }
 
-export function ProfileTab() {
+export const ProfileTab = React.memo(function ProfileTab() {
   const { user } = useSupabase()
   const [bodyInfo, setBodyInfo] = useState<BodyInfo>({
     height: 170,
@@ -207,4 +207,4 @@ export function ProfileTab() {
       </div>
     </div>
   )
-}
+})

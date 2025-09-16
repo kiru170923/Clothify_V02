@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import { History, Download, Trash2, Calendar, Image as ImageIcon } from 'lucide-react'
 import { ImageModal } from './ImageModal'
-import { useSupabase } from './SupabaseProvider'
+import { useHistory, useDeleteHistory } from '../hooks/useHistory'
 
 interface HistoryItem {
   id: string
@@ -14,46 +14,15 @@ interface HistoryItem {
   processing_time?: number // in milliseconds
 }
 
-export function HistoryTab() {
-  const { session } = useSupabase()
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
-  const [loading, setLoading] = useState(true)
+export const HistoryTab = React.memo(function HistoryTab() {
   const [showImageModal, setShowImageModal] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  
+  // Use React Query hooks
+  const { data: historyItems = [], isLoading: loading, error } = useHistory()
+  const deleteHistoryMutation = useDeleteHistory()
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!session?.access_token) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        const response = await fetch('/api/clothify/history', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log('HistoryTab - Fetched data:', data)
-          console.log('HistoryTab - Data length:', data.length)
-          setHistoryItems(data)
-        } else {
-          console.error('Failed to fetch history:', response.status, response.statusText)
-        }
-      } catch (error) {
-        console.error('Error fetching history:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchHistory()
-  }, [session])
-
-  const handleDownload = async (imageUrl: string, filename: string) => {
+  const handleDownload = useCallback(async (imageUrl: string, filename: string) => {
     try {
       const response = await fetch(imageUrl)
       const blob = await response.blob()
@@ -74,36 +43,37 @@ export function HistoryTab() {
       link.target = '_blank'
       link.click()
     }
-  }
+  }, [])
 
-  const handleDelete = async (id: string) => {
-    if (!session?.access_token) return
-
+  const handleDelete = useCallback(async (id: string) => {
     try {
-      const response = await fetch('/api/clothify/delete', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      })
-
-      if (response.ok) {
-        // Only remove from UI if API call succeeds
-        setHistoryItems(prev => prev.filter(item => item.id !== id))
-      } else {
-        console.error('Failed to delete record:', response.status)
-      }
+      await deleteHistoryMutation.mutateAsync(id)
     } catch (error) {
       console.error('Error deleting record:', error)
     }
-  }
+  }, [deleteHistoryMutation])
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <p className="text-gray-500 mt-4">Đang tải lịch sử...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Có lỗi xảy ra khi tải lịch sử</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="btn btn-primary"
+          >
+            Thử lại
+          </button>
+        </div>
       </div>
     )
   }
@@ -113,12 +83,12 @@ export function HistoryTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Lịch sử thử đồ</h2>
-          <p className="text-gray-600 mt-2">Tất cả ảnh đã thử ({historyItems.length})</p>
+          <h2 className="text-2xl font-bold text-gray-900">Lịch sử thử đồ</h2>
+          <p className="text-gray-600 mt-1 text-sm">{historyItems.length} ảnh đã tạo</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Calendar className="w-4 h-4" />
-          Sắp xếp theo ngày tạo
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <Calendar className="w-3 h-3" />
+          Sắp xếp theo ngày
         </div>
       </div>
 
@@ -141,33 +111,39 @@ export function HistoryTab() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {historyItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="space-y-4 p-4">
+            <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="space-y-3 p-3">
                 {/* Result Image */}
                 <div className="relative">
                   <img
                     src={item.result_image_url}
                     alt="Kết quả thử đồ"
-                    className="w-full h-48 object-cover rounded-xl cursor-pointer"
+                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => {
                       setSelectedImage(item.result_image_url)
                       setShowImageModal(true)
                     }}
                   />
-                  <div className="absolute top-2 right-2 flex gap-2">
+                  <div className="absolute top-1 right-1 flex gap-1">
                     <button
-                      onClick={() => handleDownload(item.result_image_url, `clothify-result-${item.id}.jpg`)}
-                      className="p-2 bg-white rounded-full shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownload(item.result_image_url, `clothify-result-${item.id}.jpg`)
+                      }}
+                      className="p-1.5 bg-white/90 rounded-full shadow-lg hover:bg-white transition-colors"
                     >
-                      <Download className="w-4 h-4 text-gray-700" />
+                      <Download className="w-3 h-3 text-gray-700" />
                     </button>
                     <button
-                      onClick={() => handleDelete(item.id)}
-                      className="p-2 bg-red-500 text-white rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(item.id)
+                      }}
+                      className="p-1.5 bg-red-500/90 text-white rounded-full hover:bg-red-500 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -175,51 +151,52 @@ export function HistoryTab() {
                 {/* Input Images Preview */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="text-center">
-                    <div className="relative">
+                    <div className="relative group">
                       <img
                         src={item.person_image_url}
                         alt="Ảnh bản thân"
-                        className="w-full h-20 object-cover rounded-lg cursor-pointer"
+                        className="w-full h-16 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => {
                           setSelectedImage(item.person_image_url)
                           setShowImageModal(true)
                         }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
-                        <ImageIcon className="w-4 h-4 text-white opacity-0 hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-md flex items-center justify-center">
+                        <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Bản thân</p>
                   </div>
                   <div className="text-center">
-                    <div className="relative">
+                    <div className="relative group">
                       <img
                         src={item.clothing_image_url}
                         alt="Quần áo"
-                        className="w-full h-20 object-cover rounded-lg cursor-pointer"
+                        className="w-full h-16 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => {
                           setSelectedImage(item.clothing_image_url)
                           setShowImageModal(true)
                         }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
-                        <ImageIcon className="w-4 h-4 text-white opacity-0 hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-md flex items-center justify-center">
+                        <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Quần áo</p>
                   </div>
                 </div>
 
-                {/* Timestamp and Processing Time */}
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-500 text-center">
-                    {new Date(item.created_at).toLocaleString('vi-VN')}
+                {/* Timestamp */}
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">
+                    {new Date(item.created_at).toLocaleDateString('vi-VN', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </p>
-                  {item.processing_time && (
-                    <p className="text-xs text-gray-400 text-center">
-                      Xử lý: {Math.round(item.processing_time / 1000)}s
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -236,9 +213,8 @@ export function HistoryTab() {
             setShowImageModal(false)
             setSelectedImage(null)
           }}
-          title="Xem ảnh"
         />
       )}
     </div>
   )
-}
+})
