@@ -165,6 +165,11 @@ async function processImage(imageData: string): Promise<string> {
         throw new Error(`Invalid content type: ${contentType}`)
       }
       
+      // Clean content-type (remove charset for KIE.AI compatibility)
+      const cleanContentType = contentType.split(';')[0]
+      console.log(`🔍 Original content-type: ${contentType}`)
+      console.log(`🔍 Cleaned content-type: ${cleanContentType}`)
+      
       const buffer = await response.arrayBuffer()
       if (buffer.byteLength === 0) {
         throw new Error('Empty image data')
@@ -177,7 +182,7 @@ async function processImage(imageData: string): Promise<string> {
       }
       
       const base64 = Buffer.from(buffer).toString('base64')
-      const result = `data:${contentType};base64,${base64}`
+      const result = `data:${cleanContentType};base64,${base64}`
       
       console.log(`✅ Successfully converted URL to base64 (${buffer.byteLength} bytes, ${contentType})`)
       console.log(`🔍 Base64 length: ${base64.length} characters`)
