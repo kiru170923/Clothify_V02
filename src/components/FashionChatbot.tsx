@@ -418,7 +418,6 @@ export default function FashionChatbot() {
                   >
                     {/* Product Images */}
                     <div className="relative">
-                      {console.log('🔍 Frontend - Product images:', message.product.images)}
                       <div className="flex overflow-x-auto gap-2 p-3">
                         {message.product.images?.slice(0, 3).map((image, index) => (
                           <img
