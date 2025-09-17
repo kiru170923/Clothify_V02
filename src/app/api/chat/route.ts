@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo", // Use cheaper model for better performance
-      messages: messages,
+      messages: messages as any,
       max_tokens: 300, // Reduced tokens for optimization
       temperature: 0.7
     })
