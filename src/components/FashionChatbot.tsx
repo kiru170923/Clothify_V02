@@ -189,32 +189,76 @@ export default function FashionChatbot() {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             message: inputValue,
             context: recentMessages
           })
         })
 
-        const data = await response.json()
+        const defaultErrorMessage = 'Không thể kết nối tới chatbot. Vui lòng thử lại sau.'
+        const contentType = response.headers.get('content-type') ?? ''
+
+        if (!response.ok) {
+          if (contentType.includes('application/json')) {
+            const errorData = await response.json()
+            console.error('Chat error response:', errorData)
+            const errorMessage =
+              errorData?.error || errorData?.message || defaultErrorMessage
+            throw new Error(errorMessage)
+          }
+
+          const errorText = await response.text()
+          console.error('Chat error response (non-JSON):', errorText)
+          throw new Error(errorText || defaultErrorMessage)
+        }
+
+        if (!contentType.includes('application/json')) {
+          const responseText = await response.text()
+          console.error('Non-JSON chat response:', responseText)
+          throw new Error(defaultErrorMessage)
+        }
+
+        const data: {
+          success?: boolean
+          response?: string
+          error?: string
+          message?: string
+        } = await response.json()
+
         console.log('Chat response:', data)
-        
+
+        if (data?.success === false) {
+          const errorMessage = data?.error || data?.message || defaultErrorMessage
+          throw new Error(errorMessage)
+        }
+
+        const botResponse =
+          typeof data.response === 'string' ? data.response.trim() : ''
+
+        if (!botResponse) {
+          throw new Error(defaultErrorMessage)
+        }
+
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: data.response || 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
+          content: botResponse,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, botMessage])
       }
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Không thể kết nối tới chatbot. Vui lòng thử lại sau.'
       toast.error(errorMessage)
-      
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: `❌ **Lỗi**: ${errorMessage}\n\n💡 **Gợi ý**:\n- Kiểm tra lại link Shopee có đúng không\n- Thử lại sau vài giây\n- Liên hệ support nếu vấn đề tiếp tục`,
+        content: `❌ **Lỗi Chatbot**: ${errorMessage}\n\n💡 **Gợi ý**:\n- Kiểm tra lại link Shopee có đúng không\n- Thử lại sau vài giây\n- Liên hệ support nếu vấn đề tiếp tục`,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, botMessage])
