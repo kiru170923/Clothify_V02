@@ -46,9 +46,21 @@ interface FashionAdvice {
   trend: string
 }
 
+const MAX_MESSAGES = 100
+
+const trimMessages = (msgs: Message[]): Message[] => msgs.slice(-MAX_MESSAGES)
+
+const createInitialMessage = (): Message => ({
+  id: '1',
+  type: 'bot',
+  content:
+    '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
+  timestamp: new Date(),
+})
+
 export default function FashionChatbot() {
   const router = useRouter()
-  
+
   // Load messages from localStorage on component mount
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window !== 'undefined') {
@@ -56,24 +68,22 @@ export default function FashionChatbot() {
       if (savedMessages) {
         try {
           const parsed = JSON.parse(savedMessages)
-          // Convert timestamp strings back to Date objects
-          return parsed.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }))
+          if (Array.isArray(parsed)) {
+            const formattedMessages: Message[] = parsed.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp),
+            }))
+            const trimmedMessages = trimMessages(formattedMessages)
+            if (trimmedMessages.length > 0) {
+              return trimmedMessages
+            }
+          }
         } catch (error) {
           console.error('Error parsing saved messages:', error)
         }
       }
     }
-    return [
-      {
-        id: '1',
-        type: 'bot',
-        content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
-        timestamp: new Date()
-      }
-    ]
+    return [createInitialMessage()]
   })
   
   const [inputValue, setInputValue] = useState('')
@@ -99,7 +109,8 @@ export default function FashionChatbot() {
   // Save messages to localStorage whenever messages change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('fashion-chatbot-messages', JSON.stringify(messages))
+      const trimmedMessages = trimMessages(messages)
+      localStorage.setItem('fashion-chatbot-messages', JSON.stringify(trimmedMessages))
     }
   }, [messages])
 
@@ -109,12 +120,7 @@ export default function FashionChatbot() {
 
   // Function to clear conversation
   const clearConversation = () => {
-    const initialMessage: Message = {
-      id: '1',
-      type: 'bot',
-      content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
-      timestamp: new Date()
-    }
+    const initialMessage = createInitialMessage()
     setMessages([initialMessage])
     toast.success('Đã xóa hội thoại!', {
       duration: 2000,
@@ -137,7 +143,7 @@ export default function FashionChatbot() {
       timestamp: new Date()
     }
 
-    setMessages(prev => [...prev, userMessage])
+    setMessages(prev => trimMessages([...prev, userMessage]))
     setInputValue('')
     setIsLoading(true)
 
@@ -171,7 +177,7 @@ export default function FashionChatbot() {
             timestamp: new Date(),
             product: data.product
           }
-          setMessages(prev => [...prev, botMessage])
+          setMessages(prev => trimMessages([...prev, botMessage]))
           toast.success('Phân tích sản phẩm thành công!')
         } else {
           throw new Error(data.error || 'Không thể phân tích sản phẩm')
@@ -181,7 +187,7 @@ export default function FashionChatbot() {
         console.log('Sending chat message with context:', inputValue)
         
         // Prepare conversation context (last 10 messages to optimize tokens)
-        const recentMessages = messages.slice(-10).map(msg => ({
+        const recentMessages = trimMessages(messages).slice(-10).map(msg => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content
         }))
@@ -204,7 +210,7 @@ export default function FashionChatbot() {
           content: data.response || 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
           timestamp: new Date()
         }
-        setMessages(prev => [...prev, botMessage])
+        setMessages(prev => trimMessages([...prev, botMessage]))
       }
     } catch (error) {
       console.error('Error:', error)
@@ -217,7 +223,7 @@ export default function FashionChatbot() {
         content: `❌ **Lỗi**: ${errorMessage}\n\n💡 **Gợi ý**:\n- Kiểm tra lại link Shopee có đúng không\n- Thử lại sau vài giây\n- Liên hệ support nếu vấn đề tiếp tục`,
         timestamp: new Date()
       }
-      setMessages(prev => [...prev, botMessage])
+      setMessages(prev => trimMessages([...prev, botMessage]))
     } finally {
       setIsLoading(false)
     }
