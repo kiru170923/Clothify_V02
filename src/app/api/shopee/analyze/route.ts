@@ -48,6 +48,17 @@ export async function POST(request: NextRequest) {
     const scrapingTime = Date.now() - scrapingStartTime
     console.log(`⏱️ Scraping completed in ${scrapingTime}ms`)
     
+    // Debug: Log what we got from scraping
+    if (productData) {
+      console.log('🔍 Scraping returned data:', {
+        hasImages: !!productData.images,
+        imageCount: productData.images?.length || 0,
+        images: productData.images
+      })
+    } else {
+      console.log('🔍 Scraping returned null/undefined')
+    }
+    
     // If scraping fails, use fast fallback
     if (!productData) {
       console.log('❌ Scrapeless failed, using fast fallback...')
@@ -306,24 +317,71 @@ function processScrapelessData(data: any, url: string) {
   const description = productDescription.paragraph_list?.slice(0, 3).map((p: any) => p.text).join(' ') || 
                      item.description?.substring(0, 200) || ''
 
-  // Extract images from product_images or item.image
+  // Extract images from multiple possible sources
   const productImages = shopeeData.product_images || []
   const itemImage = item.image || ''
+  const itemImages = item.images || []
+  const shopeeImages = shopeeData.images || []
   const images = []
+  
+  // Debug: Log image data
+  console.log('🔍 Image extraction debug:', {
+    hasProductImages: !!productImages,
+    productImagesLength: productImages.length,
+    productImages: productImages,
+    hasItemImage: !!itemImage,
+    itemImage: itemImage,
+    hasItemImages: !!itemImages,
+    itemImages: itemImages,
+    hasShopeeImages: !!shopeeImages,
+    shopeeImages: shopeeImages,
+    shopeeDataKeys: Object.keys(shopeeData),
+    itemKeys: Object.keys(item)
+  })
   
   // Add main item image
   if (itemImage) {
     images.push(`https://down-zl-sg.img.susercontent.com/${itemImage}`)
   }
   
-  // Add product images
-  if (productImages.length > 0) {
-    productImages.forEach((img: any) => {
-      if (img.image) {
+  // Add item images array
+  if (itemImages && Array.isArray(itemImages)) {
+    itemImages.forEach((img: any) => {
+      if (typeof img === 'string') {
+        images.push(`https://down-zl-sg.img.susercontent.com/${img}`)
+      } else if (img && img.image) {
         images.push(`https://down-zl-sg.img.susercontent.com/${img.image}`)
       }
     })
   }
+  
+  // Add product images
+  if (productImages.length > 0) {
+    productImages.forEach((img: any) => {
+      if (typeof img === 'string') {
+        images.push(`https://down-zl-sg.img.susercontent.com/${img}`)
+      } else if (img && img.image) {
+        images.push(`https://down-zl-sg.img.susercontent.com/${img.image}`)
+      }
+    })
+  }
+  
+  // Add shopee images
+  if (shopeeImages.length > 0) {
+    shopeeImages.forEach((img: any) => {
+      if (typeof img === 'string') {
+        images.push(`https://down-zl-sg.img.susercontent.com/${img}`)
+      } else if (img && img.image) {
+        images.push(`https://down-zl-sg.img.susercontent.com/${img.image}`)
+      }
+    })
+  }
+  
+  // Remove duplicates
+  const uniqueImages = Array.from(new Set(images))
+  
+  // Debug: Log final images
+  console.log('🔍 Final images array:', uniqueImages)
 
   // Extract brand
   const brand = item.brand || 
@@ -347,7 +405,7 @@ function processScrapelessData(data: any, url: string) {
     reviewCount: `${reviewCount} đánh giá`,
     sold: `${sold} đã bán`,
     description: cleanText(description),
-    images: images,
+    images: uniqueImages,
     brand: cleanText(brand),
     category: cleanText(category),
     productUrl: url
@@ -497,14 +555,14 @@ async function getFashionAdvice(productData: any) {
       messages: [
         {
           role: "system",
-          content: `Bạn là chuyên gia thời trang Việt Nam. Phân tích sản phẩm và tư vấn phối đồ ngắn gọn, súc tích.`
+          content: `Bạn là chuyên gia thời trang Việt Nam thân thiện và nhiệt tình. Hãy phân tích sản phẩm một cách chi tiết và đưa ra những gợi ý phối đồ cụ thể, thực tế. Trả lời bằng giọng điệu thân thiện, như một người bạn đang tư vấn thời trang.`
         },
         {
           role: "user",
-          content: `Phân tích sản phẩm: ${productData.name} - ${productData.price} - ${productData.rating}/5⭐ - ${productData.brand}. Tư vấn phối đồ ngắn gọn.`
+          content: `Hãy phân tích chi tiết sản phẩm này và đưa ra gợi ý phối đồ: ${productData.name} - Giá: ${productData.price} - Đánh giá: ${productData.rating}/5⭐ - Thương hiệu: ${productData.brand} - Danh mục: ${productData.category}. Hãy đưa ra ít nhất 3 cách phối đồ khác nhau và lưu ý về chất liệu, màu sắc.`
         }
       ],
-      max_tokens: 300,
+      max_tokens: 500,
       temperature: 0.7
     })
 
@@ -517,15 +575,20 @@ async function getFashionAdvice(productData: any) {
   } catch (error) {
     console.error('OpenAI API error:', error)
     
-    return `🎯 **Phân tích sản phẩm**: ${productData.name}
+    return `🌟 **Chào bạn!** Tôi đã xem qua sản phẩm "${productData.name}" của bạn rồi!
 
-💡 **Gợi ý phối đồ**:
-- Kết hợp với quần jean hoặc chân váy
-- Giày sneaker hoặc giày cao gót tùy phong cách
-- Phụ kiện đơn giản để tạo điểm nhấn
+👕 **Phân tích sản phẩm**: 
+Đây là một ${productData.category} từ thương hiệu ${productData.brand}, với giá ${productData.price} và đánh giá ${productData.rating}/5⭐. Sản phẩm này có vẻ rất đáng mua đấy!
 
-⭐ **Đánh giá**: Sản phẩm có vẻ phù hợp cho phong cách casual hàng ngày.
+💡 **Gợi ý phối đồ cho bạn**:
+1. **Phong cách casual**: Kết hợp với quần jean xanh đậm + giày sneaker trắng
+2. **Phong cách năng động**: Quần short + giày thể thao + mũ lưỡi trai
+3. **Phong cách thời trang**: Quần kaki + giày loafer + túi xách nhỏ
 
-🔥 **Lưu ý**: Hãy kiểm tra chất liệu và kích thước trước khi mua!`
+🎨 **Lưu ý về màu sắc**: Hãy chọn các item phụ có màu tương đồng để tạo sự hài hòa nhé!
+
+✨ **Tip nhỏ**: Nếu bạn muốn thử đồ ảo trước khi mua, có thể dùng tính năng "Thử đồ ảo" ở trên để xem mình mặc như thế nào!
+
+Chúc bạn tìm được outfit đẹp nhé! 😊`
   }
 }

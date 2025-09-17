@@ -22,6 +22,7 @@ interface Message {
   content: string
   timestamp: Date
   product?: ProductData
+  image?: string
 }
 
 interface ProductData {
@@ -36,6 +37,7 @@ interface ProductData {
   images: string[]
   brand?: string
   category?: string
+  productUrl?: string
 }
 
 interface FashionAdvice {
@@ -78,7 +80,10 @@ export default function FashionChatbot() {
   
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -94,6 +99,47 @@ export default function FashionChatbot() {
     const encodedImageUrl = encodeURIComponent(imageUrl)
     router.push(`/try-on?clothing=${encodedImageUrl}`)
     toast.success('Chuyển đến trang thử đồ ảo...')
+  }
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 10MB.')
+        return
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Vui lòng chọn file ảnh hợp lệ.')
+        return
+      }
+      
+      setSelectedImage(file)
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    
+    // Clean up any existing object URLs
+    messages.forEach(message => {
+      if (message.image && message.image.startsWith('blob:')) {
+        URL.revokeObjectURL(message.image)
+      }
+    })
   }
 
   // Save messages to localStorage whenever messages change
@@ -126,15 +172,17 @@ export default function FashionChatbot() {
     })
   }
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputValue.trim() || isLoading) return
+    if ((!inputValue.trim() && !selectedImage) || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
-      timestamp: new Date()
+      content: inputValue || 'Đã gửi ảnh để phân tích',
+      timestamp: new Date(),
+      image: selectedImage ? URL.createObjectURL(selectedImage) : undefined
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -142,8 +190,59 @@ export default function FashionChatbot() {
     setIsLoading(true)
 
     try {
-      // Check if input is a Shopee URL
-      if (inputValue.includes('shopee.vn') || inputValue.includes('shopee.com')) {
+      // Check if user sent an image
+      if (selectedImage) {
+        console.log('🔍 Analyzing uploaded image:', selectedImage.name, selectedImage.size, 'bytes')
+        
+        const formData = new FormData()
+        formData.append('image', selectedImage)
+        formData.append('message', inputValue || 'Phân tích trang phục và đưa ra gợi ý')
+        
+        console.log('🔍 Sending FormData to /api/chat...')
+        
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          body: formData
+        })
+        
+        console.log('🔍 Response status:', response.status)
+        console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()))
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('❌ Response not ok:', response.status, errorText)
+          throw new Error(`Server error: ${response.status} - ${errorText}`)
+        }
+        
+        const contentType = response.headers.get('content-type')
+        console.log('🔍 Content type:', contentType)
+        
+        if (!contentType || !contentType.includes('application/json')) {
+          const responseText = await response.text()
+          console.error('❌ Non-JSON response:', responseText)
+          throw new Error(`Server trả về response không đúng format: ${responseText.substring(0, 200)}...`)
+        }
+        
+        const data = await response.json()
+        console.log('✅ Image analysis response:', data)
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Không thể phân tích ảnh')
+        }
+        
+        const botMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'bot',
+          content: data.response || 'Xin lỗi, tôi không thể phân tích ảnh này.',
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, botMessage])
+        toast.success('Phân tích ảnh thành công!')
+        
+        // Clear image after sending
+        removeImage()
+        
+      } else if (inputValue.includes('shopee.vn') || inputValue.includes('shopee.com')) {
         console.log('Analyzing Shopee product:', inputValue)
         
         const response = await fetch('/api/shopee/analyze', {
@@ -237,7 +336,25 @@ export default function FashionChatbot() {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-4xl mx-auto">
+    <div className="flex flex-col h-full max-w-4xl mx-auto relative">
+      {/* Sticky Clear Conversation Button */}
+      {messages.length > 1 && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.2 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={clearConversation}
+          className="fixed top-16 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors"
+          title="Xóa hội thoại"
+        >
+          <TrashIcon className="w-4 h-4" />
+          <span className="text-sm font-medium hidden sm:inline">Xóa hội thoại</span>
+        </motion.button>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-purple-50 to-pink-50">
         <div className="flex items-center gap-3">
@@ -249,24 +366,6 @@ export default function FashionChatbot() {
             <p className="text-sm text-gray-600">Tư vấn thời trang thông minh</p>
           </div>
         </div>
-        
-        {/* Clear Conversation Button */}
-        {messages.length > 1 && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.2 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={clearConversation}
-            className="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-            title="Xóa hội thoại"
-          >
-            <TrashIcon className="w-4 h-4" />
-            <span className="text-sm font-medium hidden sm:inline">Xóa hội thoại</span>
-          </motion.button>
-        )}
       </div>
 
       {/* Messages */}
@@ -283,10 +382,23 @@ export default function FashionChatbot() {
               <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
                 <div className={`rounded-2xl px-4 py-3 ${
                   message.type === 'user' 
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-                    : 'bg-white border border-gray-200 text-gray-900'
+                    ? 'bg-gray-800 text-white' 
+                    : 'bg-gray-50 border border-gray-200 text-gray-900'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  
+                  {/* User uploaded image */}
+                  {message.image && (
+                    <div className="mt-3">
+                      <img
+                        src={message.image}
+                        alt="Uploaded image"
+                        className="max-w-full h-auto rounded-lg border border-white/20"
+                        style={{ maxHeight: '200px', objectFit: 'cover' }}
+                      />
+                    </div>
+                  )}
+                  
                   <p className={`text-xs mt-1 ${
                     message.type === 'user' ? 'text-purple-100' : 'text-gray-500'
                   }`}>
@@ -306,13 +418,14 @@ export default function FashionChatbot() {
                   >
                     {/* Product Images */}
                     <div className="relative">
+                      {console.log('🔍 Frontend - Product images:', message.product.images)}
                       <div className="flex overflow-x-auto gap-2 p-3">
-                        {message.product.images?.slice(0, 5).map((image, index) => (
+                        {message.product.images?.slice(0, 3).map((image, index) => (
                           <img
                             key={index}
                             src={image}
                             alt={`Product ${index + 1}`}
-                            className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                            className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
                           />
                         ))}
                       </div>
@@ -383,24 +496,31 @@ export default function FashionChatbot() {
                       )}
 
                       {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleTryOn(message.product?.images?.[0] || '')}
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-600 transition-all"
-                        >
-                          <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          Thử đồ ảo
-                        </button>
-                        <button className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all">
-                          <ShoppingBagIcon className="w-4 h-4 inline mr-2" />
-                          Mua ngay
-                        </button>
-                        <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                          <LinkIcon className="w-4 h-4" />
-                        </button>
-                      </div>
+                       <div className="flex gap-2">
+                         <button 
+                           onClick={() => handleTryOn(message.product?.images?.[0] || '')}
+                           className="flex-1 bg-black hover:bg-gray-800 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all"
+                         >
+                           <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                           </svg>
+                           Thử đồ ảo
+                         </button>
+                         <button 
+                           onClick={() => {
+                             if (message.product?.productUrl) {
+                               window.open(message.product.productUrl, '_blank')
+                             }
+                           }}
+                           className="flex-1 bg-black hover:bg-gray-800 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all"
+                         >
+                           <ShoppingBagIcon className="w-3 h-3 inline mr-1" />
+                           Mua ngay
+                         </button>
+                         <button className="px-3 py-1.5 bg-black hover:bg-gray-800 text-white rounded-lg text-xs transition-all">
+                           <LinkIcon className="w-3 h-3" />
+                         </button>
+                       </div>
                     </div>
                   </motion.div>
                 )}
@@ -436,27 +556,70 @@ export default function FashionChatbot() {
 
       {/* Input */}
       <div className="p-4 border-t bg-white">
+        {/* Image Preview */}
+        {imagePreview && (
+          <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                className="w-16 h-16 object-cover rounded-lg"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{selectedImage?.name}</p>
+                <p className="text-xs text-gray-500">{(selectedImage?.size || 0 / 1024 / 1024).toFixed(1)} MB</p>
+              </div>
+              <button
+                onClick={removeImage}
+                className="p-1 text-gray-400 hover:text-red-500"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="flex gap-2">
           <div className="flex-1 relative">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Nhập link sản phẩm Shopee hoặc câu hỏi về thời trang..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Nhập link sản phẩm Shopee, câu hỏi về thời trang hoặc upload ảnh..."
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={isLoading}
             />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
             {inputValue.includes('shopee') && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
                 <LinkIcon className="w-5 h-5 text-green-500" />
               </div>
             )}
+            
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-purple-500 transition-colors"
+              disabled={isLoading}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={!inputValue.trim() || isLoading}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
+           <button
+             type="submit"
+             disabled={(!inputValue.trim() && !selectedImage) || isLoading}
+             className="px-6 py-3 bg-black hover:bg-gray-800 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+           >
             <PaperAirplaneIcon className="w-5 h-5" />
           </button>
         </form>
