@@ -12,8 +12,8 @@ export default function MembershipPage() {
   const { user } = useSupabase()
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
-  const [isLoading, setIsLoading] = useState(false)
   const [loadingPlans, setLoadingPlans] = useState(true)
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null)
 
   // Fetch plans from API
   useEffect(() => {
@@ -39,27 +39,60 @@ export default function MembershipPage() {
     fetchPlans()
   }, [])
 
+  // Handle payment result notifications
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const success = urlParams.get('success')
+    const error = urlParams.get('error')
+
+    if (success) {
+      toast.success(decodeURIComponent(success))
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    } else if (error) {
+      toast.error(decodeURIComponent(error))
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
+
+
   const handleSelectPlan = async (plan: MembershipPlan, cycle: 'monthly' | 'yearly') => {
     if (!user) {
       toast.error('Vui lòng đăng nhập để chọn gói membership')
       return
     }
 
-    setIsLoading(true)
+    setLoadingPlanId(plan.id)
     
     try {
-      // TODO: Integrate with payment system
-      // For now, just show a message
-      toast.success(`Đã chọn gói ${plan.name} (${cycle === 'monthly' ? 'hàng tháng' : 'hàng năm'}). Tính năng thanh toán sẽ được tích hợp sớm!`)
-      
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Tạo thanh toán PayOS
+      const response = await fetch('/api/payment/payos/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: plan.id,
+          billingCycle: cycle,
+          userId: user.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.paymentUrl) {
+        // Chuyển hướng đến PayOS
+        window.location.href = data.paymentUrl
+      } else {
+        throw new Error(data.error || 'Có lỗi xảy ra khi tạo thanh toán')
+      }
       
     } catch (error) {
       console.error('Error selecting plan:', error)
-      toast.error('Có lỗi xảy ra khi chọn gói. Vui lòng thử lại.')
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi chọn gói. Vui lòng thử lại.')
     } finally {
-      setIsLoading(false)
+      setLoadingPlanId(null)
     }
   }
 
@@ -126,7 +159,7 @@ export default function MembershipPage() {
               isPopular={index === 1} // Medium plan is popular
               billingCycle={billingCycle}
               onSelect={handleSelectPlan}
-              isLoading={isLoading}
+              isLoading={loadingPlanId === plan.id}
             />
           ))}
         </div>
