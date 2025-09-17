@@ -36,6 +36,7 @@ interface ProductData {
   images: string[]
   brand?: string
   category?: string
+  productUrl?: string
 }
 
 interface FashionAdvice {
@@ -94,6 +95,44 @@ export default function FashionChatbot() {
     const encodedImageUrl = encodeURIComponent(imageUrl)
     router.push(`/try-on?clothing=${encodedImageUrl}`)
     toast.success('Chuyển đến trang thử đồ ảo...')
+  }
+
+  const handleOpenProduct = (productUrl?: string) => {
+    if (!productUrl) {
+      toast.error('Không có link sản phẩm để mở')
+      return
+    }
+
+    if (typeof window !== 'undefined') {
+      window.open(productUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleCopyProductUrl = async (productUrl?: string) => {
+    if (!productUrl) {
+      toast.error('Không có link sản phẩm để sao chép')
+      return
+    }
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(productUrl)
+      } else {
+        const textArea = document.createElement('textarea')
+        textArea.value = productUrl
+        textArea.style.position = 'fixed'
+        textArea.style.opacity = '0'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+      }
+      toast.success('Đã sao chép link sản phẩm!')
+    } catch (error) {
+      console.error('Error copying product URL:', error)
+      toast.error('Không thể sao chép link sản phẩm')
+    }
   }
 
   // Save messages to localStorage whenever messages change
@@ -393,11 +432,18 @@ export default function FashionChatbot() {
                           </svg>
                           Thử đồ ảo
                         </button>
-                        <button className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all">
+                        <button
+                          onClick={() => handleOpenProduct(message.product?.productUrl)}
+                          className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all"
+                        >
                           <ShoppingBagIcon className="w-4 h-4 inline mr-2" />
                           Mua ngay
                         </button>
-                        <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                        <button
+                          onClick={() => handleCopyProductUrl(message.product?.productUrl)}
+                          className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                          title="Sao chép link sản phẩm"
+                        >
                           <LinkIcon className="w-4 h-4" />
                         </button>
                       </div>

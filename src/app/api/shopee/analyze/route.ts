@@ -133,13 +133,13 @@ async function scrapeShopeeProduct(url: string) {
     if (taskResponse.status === 200) {
       // Immediate result
       console.log('✅ Got immediate result!')
-      return processScrapelessData(taskData)
+      return processScrapelessData(taskData, url)
     } else if (taskResponse.status === 201) {
       // Need to poll for result
       const taskId = taskData.taskId
       console.log('⏳ Polling for result, taskId:', taskId)
 
-      return await pollForResult(taskId)
+      return await pollForResult(taskId, url)
     } else {
       throw new Error(`Unexpected response status: ${taskResponse.status}`)
     }
@@ -154,7 +154,7 @@ async function scrapeShopeeProduct(url: string) {
   }
 }
 
-async function pollForResult(taskId: string, maxAttempts: number = 8): Promise<any> {
+async function pollForResult(taskId: string, url: string, maxAttempts: number = 8): Promise<any> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`🔄 Polling attempt ${attempt}/${maxAttempts}...`)
 
@@ -184,7 +184,7 @@ async function pollForResult(taskId: string, maxAttempts: number = 8): Promise<a
       // Check if task is completed
       if (resultData.success === true && resultData.state === 'completed') {
         console.log('✅ Task completed!')
-        return processScrapelessData(resultData)
+        return processScrapelessData(resultData, url)
       } else if (resultData.success === false || resultData.state === 'failed') {
         console.error('❌ Task failed:', resultData.status || resultData.error)
         return null
@@ -207,7 +207,7 @@ async function pollForResult(taskId: string, maxAttempts: number = 8): Promise<a
   return null
 }
 
-function processScrapelessData(data: any) {
+function processScrapelessData(data: any, url: string) {
   console.log('🔍 Processing Scrapeless data:', JSON.stringify(data, null, 2))
   
   // Check if response has base64 encoded data (from webhook format)
@@ -339,7 +339,8 @@ function processScrapelessData(data: any) {
     description: cleanText(description),
     images: images,
     brand: cleanText(brand),
-    category: cleanText(category)
+    category: cleanText(category),
+    productUrl: url
   }
 
   console.log('✅ Cleaned product data:', cleanedProduct)
@@ -382,7 +383,8 @@ function createMockProductData(url: string) {
       'https://via.placeholder.com/300x300/EC4899/FFFFFF?text=Product+Image+3'
     ],
     brand: 'Demo Brand',
-    category: 'Áo thun'
+    category: 'Áo thun',
+    productUrl: url
   }
 }
 
