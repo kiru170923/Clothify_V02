@@ -161,7 +161,7 @@ export default function TryOnPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
       <Header />
       
       <div className="flex">
@@ -171,8 +171,8 @@ export default function TryOnPage() {
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                Thử Đồ với AI
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4">
+                Thử Đồ với AI ✨
               </h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 Upload ảnh của bạn và ảnh trang phục muốn thử, để AI tạo ra hình ảnh bạn mặc trang phục đó

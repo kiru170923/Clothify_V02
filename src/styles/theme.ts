@@ -1,32 +1,32 @@
-// Clothify Design System - Unified Theme
+// Clothify Design System - Cream/Beige Theme
 export const theme = {
   colors: {
-    // Primary Gradient (Purple to Pink like landing)
+    // Primary Cream/Beige palette based on #f6f1e9
     primary: {
-      50: '#f8f4ff',
-      100: '#f0e8ff', 
-      200: '#e4d4ff',
-      300: '#d1b3ff',
-      400: '#b885ff',
-      500: '#9c4dff', // Main purple
-      600: '#8b2cff',
-      700: '#7b1cff',
-      800: '#6b0dff',
-      900: '#5a00ff',
+      50: '#fdfcfa',
+      100: '#f9f5f0', 
+      200: '#f6f1e9', // Main color
+      300: '#f0e8dc',
+      400: '#e8dbc8',
+      500: '#dcc9a8', // Darker cream
+      600: '#c9b089',
+      700: '#b5956b',
+      800: '#9a7c52',
+      900: '#7a5f3e',
     },
     
-    // Secondary (Pink accents)
+    // Secondary (Complementary warm tones)
     secondary: {
-      50: '#fff0f8',
-      100: '#ffe0f1',
-      200: '#ffc2e4',
-      300: '#ff94d1',
-      400: '#ff5cb8', // Main pink
-      500: '#ff2da0',
-      600: '#ff0d88',
-      700: '#e6006b',
-      800: '#cc0052',
-      900: '#b30042',
+      50: '#fdf9f5',
+      100: '#faf3ea',
+      200: '#f5e6d3',
+      300: '#efd7b8',
+      400: '#e6c59a', // Warm beige
+      500: '#d9b17c',
+      600: '#c99a5e',
+      700: '#b68343',
+      800: '#9d6d2d',
+      900: '#7f5419',
     },
 
     // Neutral (Modern grays)
@@ -51,19 +51,19 @@ export const theme = {
     // Backgrounds
     background: {
       primary: '#ffffff',
-      secondary: '#fafafa',
-      tertiary: '#f4f4f5',
-      dark: '#18181b',
-      gradient: 'linear-gradient(135deg, #9c4dff 0%, #ff5cb8 100%)',
+      secondary: '#f6f1e9',
+      tertiary: '#f9f5f0',
+      dark: '#2c2317',
+      gradient: 'linear-gradient(135deg, #dcc9a8 0%, #e6c59a 100%)',
     }
   },
 
   gradients: {
-    primary: 'bg-gradient-to-r from-purple-500 to-pink-500',
-    primaryHover: 'bg-gradient-to-r from-purple-600 to-pink-600',
-    text: 'bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent',
-    subtle: 'bg-gradient-to-br from-purple-50 to-pink-50',
-    card: 'bg-gradient-to-br from-white to-purple-50/30',
+    primary: 'bg-gradient-to-r from-amber-200 to-yellow-200',
+    primaryHover: 'bg-gradient-to-r from-amber-300 to-yellow-300',
+    text: 'bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent',
+    subtle: 'bg-gradient-to-br from-amber-50 to-yellow-50',
+    card: 'bg-gradient-to-br from-white to-amber-50/30',
   },
 
   shadows: {
@@ -117,26 +117,26 @@ export const theme = {
 export const themeClasses = {
   // Buttons
   button: {
-    primary: 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl',
-    secondary: 'bg-white border-2 border-purple-200 hover:border-purple-300 text-purple-600 font-semibold py-3 px-6 rounded-xl transition-all duration-200',
-    ghost: 'bg-transparent hover:bg-purple-50 text-purple-600 font-medium py-2 px-4 rounded-lg transition-all duration-200',
+    primary: 'bg-gradient-to-r from-amber-300 to-yellow-300 hover:from-amber-400 hover:to-yellow-400 text-amber-900 font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl',
+    secondary: 'bg-white border-2 border-amber-200 hover:border-amber-300 text-amber-700 font-semibold py-3 px-6 rounded-xl transition-all duration-200',
+    ghost: 'bg-transparent hover:bg-amber-50 text-amber-700 font-medium py-2 px-4 rounded-lg transition-all duration-200',
   },
 
   // Cards
   card: {
-    primary: 'bg-white border border-purple-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300',
-    gradient: 'bg-gradient-to-br from-white to-purple-50/30 border border-purple-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300',
-    glass: 'bg-white/80 backdrop-blur-sm border border-purple-100 rounded-2xl shadow-lg',
+    primary: 'bg-white border border-amber-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300',
+    gradient: 'bg-gradient-to-br from-white to-amber-50/30 border border-amber-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300',
+    glass: 'bg-white/80 backdrop-blur-sm border border-amber-100 rounded-2xl shadow-lg',
   },
 
   // Inputs  
-  input: 'w-full px-4 py-3 border-2 border-purple-100 focus:border-purple-300 rounded-xl bg-white/80 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-100',
+  input: 'w-full px-4 py-3 border-2 border-amber-100 focus:border-amber-300 rounded-xl bg-white/80 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-amber-100',
 
   // Text styles
   text: {
     heading: 'text-3xl md:text-4xl font-bold text-gray-900',
     subheading: 'text-xl font-semibold text-gray-800',
     body: 'text-gray-600 leading-relaxed',
-    gradient: 'bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-bold',
+    gradient: 'bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent font-bold',
   }
 }

@@ -7,7 +7,7 @@ import FashionChatbot from '../components/FashionChatbot'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
       <Header />
       
       <div className="flex">
@@ -17,7 +17,7 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto">
             {/* Hero Section for Chat */}
             <div className="text-center mb-8">
-              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4">
                 AI Fashion Advisor ✨
               </h1>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">

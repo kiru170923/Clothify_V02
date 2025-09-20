@@ -67,7 +67,7 @@ export default function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
   return (
-    <div className="w-16 bg-gradient-to-b from-purple-50 via-white to-pink-50 border-r border-purple-100 h-screen flex flex-col sticky top-0 z-40 shadow-lg">
+    <div className="w-16 bg-gradient-to-b from-amber-50 via-white to-yellow-50 border-r border-amber-100 h-screen flex flex-col sticky top-0 z-40 shadow-lg" style={{ backgroundColor: '#f6f1e9' }}>
       {/* Logo */}
       <div className="flex items-center justify-center py-4">
         <motion.div
@@ -95,13 +95,13 @@ export default function Sidebar() {
               className={`
                 relative w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 group
                 ${isActive 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
-                  : 'text-purple-600 hover:bg-purple-100 hover:text-purple-700'
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 shadow-lg' 
+                  : 'text-amber-700 hover:bg-amber-100 hover:text-amber-800'
                 }
               `}
               title={item.label}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'group-hover:text-purple-700'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-amber-900' : 'group-hover:text-amber-800'}`} />
               
               {/* Active indicator */}
               {isActive && (
@@ -112,7 +112,7 @@ export default function Sidebar() {
               )}
               
               {/* Tooltip */}
-              <div className="absolute left-full ml-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+              <div className="absolute left-full ml-2 px-3 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
                 {item.label}
               </div>
             </motion.button>

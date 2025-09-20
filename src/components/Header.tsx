@@ -34,29 +34,29 @@ export default function Header() {
   const displayTokens = tokenData?.tokens?.total_tokens || 0
 
   return (
-    <header className="bg-gradient-to-r from-purple-50 via-white to-pink-50 border-b border-purple-100 px-6 py-4 shadow-lg">
+    <header className="bg-gradient-to-r from-amber-50 via-white to-yellow-50 border-b border-amber-100 px-6 py-4 shadow-lg" style={{ backgroundColor: '#f6f1e9' }}>
       <div className="flex items-center justify-between">
         {/* Logo and Navigation */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-sm">C</span>
             </div>
             <div>
-              <span className="font-bold text-xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Clothify</span>
-              <span className="text-xs text-purple-500 font-medium ml-2">AI Fashion Studio</span>
+              <span className="font-bold text-xl bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Clothify</span>
+              <span className="text-xs text-amber-600 font-medium ml-2">AI Fashion Studio</span>
             </div>
           </div>
           
           {/* Quick Navigation */}
           <nav className="hidden md:flex items-center gap-2">
-            <a href="/" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium text-sm">
+            <a href="/" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 rounded-lg shadow-lg hover:shadow-xl transition-all font-medium text-sm">
               <span>💬</span>
               <span>AI Chat</span>
               <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse"></div>
             </a>
-            <a href="/try-on" className="px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors font-medium text-sm">Thử đồ</a>
-            <a href="/wardrobe" className="px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors font-medium text-sm">Tủ đồ</a>
+            <a href="/try-on" className="px-3 py-2 text-amber-700 hover:bg-amber-50 rounded-lg transition-colors font-medium text-sm">Thử đồ</a>
+            <a href="/wardrobe" className="px-3 py-2 text-amber-700 hover:bg-amber-50 rounded-lg transition-colors font-medium text-sm">Tủ đồ</a>
           </nav>
         </div>
 
