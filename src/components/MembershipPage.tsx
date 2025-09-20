@@ -7,6 +7,7 @@ import MembershipCard from './MembershipCard'
 import { MembershipPlan, MEMBERSHIP_PLANS } from '../types/membership'
 import { useSupabase } from './SupabaseProvider'
 import toast from 'react-hot-toast'
+import AuthGuard from './AuthGuard'
 
 export default function MembershipPage() {
   const { user } = useSupabase()
@@ -108,8 +109,9 @@ export default function MembershipPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
-      <div className="container mx-auto px-4 py-16">
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+        <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -276,7 +278,8 @@ export default function MembershipPage() {
             </div>
           </div>
         </motion.div>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }

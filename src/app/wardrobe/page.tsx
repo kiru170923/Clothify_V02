@@ -7,6 +7,7 @@ import Sidebar from '../../components/Sidebar'
 import toast from 'react-hot-toast'
 import { useSupabase } from '../../components/SupabaseProvider'
 import { GridSkeleton, ImageSkeleton, LoadingText } from '../../components/SkeletonLoader'
+import AuthGuard from '../../components/AuthGuard'
 
 interface WardrobeItem {
   id: string
@@ -145,11 +146,12 @@ export default function WardrobePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
-      <Header />
-      
-      <div className="flex">
-        <Sidebar />
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+        <Header />
+        
+        <div className="flex">
+          <Sidebar />
         
         <main className="flex-1 p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
@@ -393,6 +395,7 @@ export default function WardrobePage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </AuthGuard>
   )
 }

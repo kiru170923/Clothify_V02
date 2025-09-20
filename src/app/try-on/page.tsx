@@ -15,6 +15,7 @@ import { useGenerateModel } from '../../hooks/useGenerateModel'
 import { useMyModels } from '../../hooks/useMyModels'
 import { useSupabase } from '../../components/SupabaseProvider'
 import { ImageSkeleton, LoadingText, GridSkeleton } from '../../components/SkeletonLoader'
+import AuthGuard from '../../components/AuthGuard'
 
 export default function TryOnPage() {
   const searchParams = useSearchParams()
@@ -161,11 +162,12 @@ export default function TryOnPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
-      <Header />
-      
-      <div className="flex">
-        <Sidebar />
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+        <Header />
+        
+        <div className="flex">
+          <Sidebar />
         
         <main className="flex-1 p-6 lg:p-8">
           <div className="max-w-4xl mx-auto">
@@ -873,6 +875,7 @@ export default function TryOnPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </AuthGuard>
   )
 }
