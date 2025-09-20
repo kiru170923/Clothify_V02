@@ -34,15 +34,30 @@ export default function Header() {
   const displayTokens = tokenData?.tokens?.total_tokens || 0
 
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-4">
+    <header className="bg-gradient-to-r from-purple-50 via-white to-pink-50 border-b border-purple-100 px-6 py-4 shadow-lg">
       <div className="flex items-center justify-between">
-        {/* Search and breadcrumb area - simplified */}
-        <div className="flex-1">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="font-medium text-gray-900">Clothify</span>
-            <span>/</span>
-            <span>Thử đồ AI</span>
+        {/* Logo and Navigation */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-sm">C</span>
+            </div>
+            <div>
+              <span className="font-bold text-xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Clothify</span>
+              <span className="text-xs text-purple-500 font-medium ml-2">AI Fashion Studio</span>
+            </div>
           </div>
+          
+          {/* Quick Navigation */}
+          <nav className="hidden md:flex items-center gap-2">
+            <a href="/chat" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium text-sm">
+              <span>💬</span>
+              <span>AI Chat</span>
+              <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse"></div>
+            </a>
+            <a href="/try-on" className="px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors font-medium text-sm">Thử đồ</a>
+            <a href="/wardrobe" className="px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors font-medium text-sm">Tủ đồ</a>
+          </nav>
         </div>
 
         {/* Right section */}

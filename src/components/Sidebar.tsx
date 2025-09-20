@@ -67,7 +67,7 @@ export default function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
   return (
-    <div className="w-16 bg-gradient-to-b from-gray-50 to-white border-r border-gray-200 h-screen flex flex-col sticky top-0 z-40 shadow-sm">
+    <div className="w-16 bg-gradient-to-b from-purple-50 via-white to-pink-50 border-r border-purple-100 h-screen flex flex-col sticky top-0 z-40 shadow-lg">
       {/* Logo */}
       <div className="flex items-center justify-center py-4">
         <motion.div
@@ -95,13 +95,13 @@ export default function Sidebar() {
               className={`
                 relative w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 group
                 ${isActive 
-                  ? 'bg-gray-800 text-white shadow-lg' 
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                  : 'text-purple-600 hover:bg-purple-100 hover:text-purple-700'
                 }
               `}
               title={item.label}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'group-hover:text-gray-900'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'group-hover:text-purple-700'}`} />
               
               {/* Active indicator */}
               {isActive && (
@@ -112,7 +112,7 @@ export default function Sidebar() {
               )}
               
               {/* Tooltip */}
-              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
                 {item.label}
               </div>
             </motion.button>
@@ -126,10 +126,10 @@ export default function Sidebar() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="flex items-center justify-center p-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200"
+          className="flex items-center justify-center p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200"
           title="Pro Tip: Sử dụng ảnh có độ phân giải cao và nền sáng để có kết quả tốt nhất"
         >
-          <SparklesIcon className="w-4 h-4 text-blue-600" />
+          <SparklesIcon className="w-4 h-4 text-purple-600" />
         </motion.div>
       </div>
     </div>
