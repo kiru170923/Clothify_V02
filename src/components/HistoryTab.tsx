@@ -173,18 +173,18 @@ export const HistoryTab = React.memo(function HistoryTab() {
 
       {historyItems.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FontAwesomeIcon icon={faClock} className="w-8 h-8 text-gray-400" />
+          <div className="w-16 h-16 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FontAwesomeIcon icon={faClock} className="w-8 h-8 text-amber-600" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Chưa có lịch sử nào
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-amber-700 mb-6">
             Hãy thử đồ để xem lịch sử ở đây
           </p>
           <button
             onClick={() => window.location.href = '/'}
-            className="btn btn-primary"
+            className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-semibold hover:from-amber-600 hover:to-yellow-600 transition-all shadow-lg"
           >
             Thử đồ ngay
           </button>

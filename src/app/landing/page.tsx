@@ -146,8 +146,8 @@ export default function LandingPage() {
                 onClick={() => setActiveTab(feature.id)}
                 className={`px-6 py-3 rounded-full font-medium transition-all ${
                   activeTab === feature.id
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-900 text-gray-400 hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg'
+                    : 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 hover:from-amber-200 hover:to-yellow-200 hover:text-amber-800'
                 }`}
               >
                 {feature.title}

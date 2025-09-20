@@ -6,7 +6,7 @@ import LazyTab from '../../components/LazyTab'
 
 export default function HistoryPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
       <Header />
       
       <div className="flex">
