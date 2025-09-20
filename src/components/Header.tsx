@@ -48,26 +48,18 @@ export default function Header() {
             </div>
           </div>
           
-          {/* Quick Navigation */}
-          <nav className="hidden md:flex items-center gap-2">
-            <a href="/" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 rounded-lg shadow-lg hover:shadow-xl transition-all font-medium text-sm">
-              <span>💬</span>
-              <span>AI Chat</span>
-              <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse"></div>
-            </a>
-            <a href="/try-on" className="px-3 py-2 text-amber-700 hover:bg-amber-50 rounded-lg transition-colors font-medium text-sm">Thử đồ</a>
-            <a href="/wardrobe" className="px-3 py-2 text-amber-700 hover:bg-amber-50 rounded-lg transition-colors font-medium text-sm">Tủ đồ</a>
-          </nav>
         </div>
 
         {/* Right section */}
         <div className="flex items-center gap-4">
           {/* Token Display */}
           {user && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium text-gray-700">
-                {loadingTokens ? '...' : displayTokens} tokens
+            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg">
+              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+              <span className="text-sm font-medium text-amber-700">
+                {loadingTokens ? '...' : displayTokens}
               </span>
             </div>
           )}
@@ -96,9 +88,6 @@ export default function Header() {
                 <p className="text-sm font-medium text-gray-900">
                   {user?.user_metadata?.full_name || 'User'}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {user?.email}
-                </p>
               </div>
               <ChevronDownIcon className="w-4 h-4 text-gray-400" />
             </Menu.Button>
@@ -119,9 +108,6 @@ export default function Header() {
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900">
                           {user?.user_metadata?.full_name || 'User'}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {user?.email}
                         </p>
                       </div>
                     )}
