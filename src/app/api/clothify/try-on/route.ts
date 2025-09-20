@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { generateAdvancedPrompt } from '../../../../lib/promptGenerator'
+import { createCompositeImage } from '../../../../lib/imageComposer'
 
 async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: string, apiKey: string) {
   console.log('🔄 Attempting fallback with different image processing...')
@@ -14,7 +15,7 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
         negative_prompt: 'blurry, low quality, distorted, artifacts, poor fit',
         image_urls: [personImageUrl, clothingImageUrl],
         output_format: 'png',
-        image_size: 'auto',
+        image_size: '1:1', // Force square ratio
         num_inference_steps: 30,
         guidance_scale: 5.0
       }
@@ -58,7 +59,7 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
           negative_prompt: 'blurry, low quality',
           image_urls: [personImageUrl, clothingImageUrl],
           output_format: 'png',
-          image_size: 'auto',
+          image_size: '1:1', // Force square ratio
           num_inference_steps: 20,
           guidance_scale: 4.0
         }
@@ -260,8 +261,9 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ User authenticated:', user.id)
 
-    const { personImage, clothingImage } = await request.json()
+    const { personImage, clothingImage, clothingImageUrls, selectedGarmentType, customModelPrompt } = await request.json()
 
+    // Check if we have clothing image
     if (!personImage || !clothingImage) {
       console.log('❌ Missing required images')
       return NextResponse.json(
@@ -270,32 +272,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Process images - person image needs to be uploaded, clothing can be URL
+    // Process images - person image needs to be uploaded, clothing image (composite)
     let personImageUrl: string
     let clothingImageUrl: string
     
     try {
-      // Person image: upload to Supabase (user upload)
+      // Person image: upload to Supabase (user upload or generated model)
       if (personImage.startsWith('data:image/')) {
-        console.log('📤 Uploading person image to Supabase...')
+        console.log('📤 Uploading person image (base64) to Supabase...')
         personImageUrl = await uploadToSupabase(personImage, 'person-images')
+      } else if (personImage.startsWith('http')) {
+        console.log('📤 Person image is already a URL (generated model):', personImage)
+        personImageUrl = personImage
       } else {
-        throw new Error('Person image must be base64 data URL')
+        throw new Error('Person image must be base64 data URL or HTTP URL')
       }
       
-      // Clothing image: always upload to Supabase for KIE.AI compatibility
-      if (clothingImage.startsWith('http')) {
-        console.log('🔄 Converting clothing image URL to base64 and uploading to Supabase...')
-        console.log('🔍 Original clothing URL:', clothingImage)
-        const processedImage = await processImage(clothingImage)
-        console.log('🔍 Processed image type:', processedImage.substring(0, 50) + '...')
-        clothingImageUrl = await uploadToSupabase(processedImage, 'clothing-images')
-        console.log('🔍 Final clothing URL:', clothingImageUrl)
-      } else if (clothingImage.startsWith('data:image/')) {
-        console.log('📤 Uploading clothing image to Supabase...')
-        clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
+    // Process clothing image (should be composite from client)
+    if (clothingImage) {
+        if (clothingImage.startsWith('http')) {
+          console.log('🔄 Converting clothing image URL to base64 and uploading to Supabase...')
+          console.log('🔍 Original clothing URL:', clothingImage)
+          const processedImage = await processImage(clothingImage)
+          console.log('🔍 Processed image type:', processedImage.substring(0, 50) + '...')
+          clothingImageUrl = await uploadToSupabase(processedImage, 'clothing-images')
+          console.log('🔍 Final clothing URL:', clothingImageUrl)
+        } else if (clothingImage.startsWith('data:image/')) {
+          console.log('📤 Composite image detected - uploading to Supabase (KIE.AI needs URL)')
+          clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
+        } else {
+          throw new Error('Invalid clothing image format')
+        }
       } else {
-        throw new Error('Invalid clothing image format')
+        throw new Error('No clothing image provided')
       }
       
       console.log('✅ Images processed successfully')
@@ -319,8 +328,40 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ KIE.AI API key found, calling API...')
 
-    // Generate advanced prompt for better results (AI will auto-detect clothing type)
-    const { prompt, negativePrompt, parameters } = generateAdvancedPrompt(clothingImageUrl as string)
+    // Always treat as separate images now - person + clothing composite
+    const isComposite = false
+    
+    console.log('🔍 Image type check:', isComposite ? 'Composite' : 'Separate')
+
+    // Generate advanced prompt for better results (composite image)
+    let prompt, negativePrompt, parameters
+    
+    if (customModelPrompt) {
+      // Use custom model prompt for model generation
+      console.log('🎨 Using custom model prompt:', customModelPrompt)
+      prompt = `${customModelPrompt}, high quality, detailed, studio lighting, clean background, full body shot, 2:3 aspect ratio, photorealistic`
+      negativePrompt = 'blurry, low quality, distorted, multiple people, bad anatomy, deformed, ugly, clothing items'
+      parameters = {
+        guidance_scale: 12.0,
+        num_inference_steps: 50,
+        strength: 0.5,
+        seed: Math.floor(Math.random() * 1000000),
+        scheduler: 'DPMSolverMultistepScheduler',
+        eta: 0.0,
+        clip_skip: 1,
+      }
+    } else {
+      // Use normal clothing swap prompt
+      const result = generateAdvancedPrompt(
+        clothingImageUrl as string, 
+        clothingImageUrls || [], // Pass clothing URLs for better prompt generation
+        isComposite, // Pass composite flag
+        selectedGarmentType // Pass selected garment type for better prompts
+      )
+      prompt = result.prompt
+      negativePrompt = result.negativePrompt
+      parameters = result.parameters
+    }
     
     // Validate images before sending to KIE.AI
     console.log('🔍 Validating images for KIE.AI...')
@@ -329,33 +370,60 @@ export async function POST(request: NextRequest) {
     
     // Test if images are accessible and validate format
     try {
-      // Test both images (both uploaded to Supabase)
-      const personTest = await fetch(personImageUrl)
-      if (!personTest.ok) {
-        throw new Error(`Person image not accessible: ${personTest.status}`)
+      if (isComposite) {
+        // Only validate composite image
+        console.log(`🔍 Testing composite image:`, clothingImageUrl)
+        
+        if (clothingImageUrl.startsWith('data:image/')) {
+          // Base64 composite image - no need to fetch
+          console.log('✅ Composite image is base64 data URL - valid')
+        } else {
+          // URL composite image - test accessibility
+          const clothingTest = await fetch(clothingImageUrl)
+          if (!clothingTest.ok) {
+            throw new Error(`Composite image not accessible: ${clothingTest.status}`)
+          }
+          
+          const clothingContentType = clothingTest.headers.get('content-type')
+          if (!clothingContentType?.startsWith('image/')) {
+            throw new Error(`Invalid composite image format: ${clothingContentType}`)
+          }
+          
+          console.log(`✅ Composite image is accessible and valid`)
+          console.log(`Composite image type:`, clothingContentType)
+        }
+      } else {
+        // Validate separate images
+        // Test person image
+        const personTest = await fetch(personImageUrl)
+        if (!personTest.ok) {
+          throw new Error(`Person image not accessible: ${personTest.status}`)
+        }
+        
+        const personContentType = personTest.headers.get('content-type')
+        if (!personContentType?.startsWith('image/')) {
+          throw new Error(`Invalid person image format: ${personContentType}`)
+        }
+        
+        console.log('✅ Person image is accessible and valid')
+        console.log('Person image type:', personContentType)
+        
+        // Test clothing image
+        console.log(`🔍 Testing clothing image:`, clothingImageUrl)
+        
+        const clothingTest = await fetch(clothingImageUrl)
+        if (!clothingTest.ok) {
+          throw new Error(`Clothing image not accessible: ${clothingTest.status}`)
+        }
+        
+        const clothingContentType = clothingTest.headers.get('content-type')
+        if (!clothingContentType?.startsWith('image/')) {
+          throw new Error(`Invalid clothing image format: ${clothingContentType}`)
+        }
+        
+        console.log(`✅ Clothing image is accessible and valid`)
+        console.log(`Clothing image type:`, clothingContentType)
       }
-      
-      const personContentType = personTest.headers.get('content-type')
-      if (!personContentType?.startsWith('image/')) {
-        throw new Error(`Invalid person image format: ${personContentType}`)
-      }
-      
-      console.log('✅ Person image is accessible and valid')
-      console.log('Person image type:', personContentType)
-      
-      // Test clothing image (also uploaded to Supabase)
-      const clothingTest = await fetch(clothingImageUrl)
-      if (!clothingTest.ok) {
-        throw new Error(`Clothing image not accessible: ${clothingTest.status}`)
-      }
-      
-      const clothingContentType = clothingTest.headers.get('content-type')
-      if (!clothingContentType?.startsWith('image/')) {
-        throw new Error(`Invalid clothing image format: ${clothingContentType}`)
-      }
-      
-      console.log('✅ Clothing image is accessible and valid')
-      console.log('Clothing image type:', clothingContentType)
       
     } catch (error) {
       console.error('❌ Image validation failed:', error)
@@ -364,16 +432,27 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
+    let imageUrls: string[]
+    
+    // Send images based on type
+    if (customModelPrompt) {
+      // For model generation, we don't need clothing images
+      console.log('🎨 Model generation mode - using placeholder image')
+      imageUrls = [clothingImageUrl as string] // Just use one placeholder image
+    } else {
+      // Normal clothing swap mode
+      console.log('🎨 Sending separate images: person + clothing composite')
+      imageUrls = [personImageUrl as string, clothingImageUrl as string]
+    }
+    
     const requestBody = {
       model: 'google/nano-banana-edit',
       input: {
         prompt,
         negative_prompt: negativePrompt,
-        image_urls: [personImageUrl as string, clothingImageUrl as string],
+        image_urls: imageUrls,
         output_format: 'png',
-        image_size: 'auto',
-        num_inference_steps: 50,
-        guidance_scale: 7.5,
+        image_size: '1:1', // Force square ratio
         ...parameters
       }
     }
@@ -552,7 +631,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('💥 Error in try-on API:', error)
+    console.error('💥 Error stack:', error?.stack)
+    console.error('💥 Error details:', error)
+    
     const message = typeof error?.message === 'string' ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('💥 Returning error message:', message)
+    
+    return NextResponse.json({ 
+      error: message,
+      details: error?.stack || 'No additional details'
+    }, { status: 500 })
   }
 }

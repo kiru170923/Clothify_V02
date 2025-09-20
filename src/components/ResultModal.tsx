@@ -11,6 +11,16 @@ interface ResultModalProps {
   resultImage: string | null
   personImage: string | null
   clothingImage: string | null
+  clothingItems?: Array<{
+    id: string
+    image: string
+    type: 'top' | 'bottom' | 'shoes' | 'accessory' | 'dress' | 'outerwear'
+    label: string
+    category?: string
+    color?: string
+    style?: string
+    confidence?: number
+  }>
   onTryAgain?: () => void
   onZoom?: (image: string) => void
 }
@@ -21,6 +31,7 @@ export default function ResultModal({
   resultImage, 
   personImage, 
   clothingImage,
+  clothingItems,
   onTryAgain,
   onZoom
 }: ResultModalProps) {
@@ -131,30 +142,51 @@ export default function ResultModal({
               </div>
 
               <div className="col-span-1">
-                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group"
-                     onClick={() => {
-                       if (clothingImage) {
-                         console.log('Clothing image clicked, calling onZoom')
-                         onZoom?.(clothingImage)
-                       }
-                     }}>
-                  {clothingImage ? (
-                    <img
-                      src={clothingImage}
-                      alt="Trang phục"
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
+                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 cursor-pointer group">
+                  {clothingItems && clothingItems.length > 0 ? (
+                    <div className="w-full h-full relative">
+                      {/* Show first clothing item as main */}
+                      <img
+                        src={clothingItems[0].image}
+                        alt="Trang phục"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        onClick={() => onZoom?.(clothingItems[0].image)}
+                      />
+                      
+                      {/* Show count badge if multiple items */}
+                      {clothingItems.length > 1 && (
+                        <div className="absolute top-1 right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                          +{clothingItems.length - 1}
+                        </div>
+                      )}
+                      
+                      {/* Hover overlay to show all items */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center pointer-events-none">
+                        <MagnifyingGlassIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  ) : clothingImage ? (
+                    <div className="w-full h-full relative">
+                      <img
+                        src={clothingImage}
+                        alt="Trang phục"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        onClick={() => onZoom?.(clothingImage)}
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center pointer-events-none">
+                        <MagnifyingGlassIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
                   ) : (
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                       <span className="text-gray-500 text-sm">Không có ảnh</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center pointer-events-none">
-                    <MagnifyingGlassIcon className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
                 </div>
                 <div className="text-center mt-1">
-                  <p className="text-xs font-medium text-gray-900">Đồ</p>
+                  <p className="text-xs font-medium text-gray-900">
+                    Đồ {clothingItems && clothingItems.length > 1 ? `(${clothingItems.length})` : ''}
+                  </p>
                 </div>
               </div>
 

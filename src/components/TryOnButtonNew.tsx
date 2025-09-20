@@ -9,12 +9,25 @@ import { useTryOn } from '../hooks/useTryOn'
 interface TryOnButtonProps {
   personImage: string | null
   clothingImage: string | null
+  clothingItems?: Array<{
+    id: string
+    image: string
+    type: 'top' | 'bottom' | 'shoes' | 'accessory' | 'dress' | 'outerwear'
+    label: string
+    category?: string
+    color?: string
+    style?: string
+    confidence?: number
+  }>
+  selectedGarmentType?: 'auto' | 'top' | 'bottom' | 'full-body'
   onResult?: (resultImageUrl: string) => void
 }
 
 export default function TryOnButton({ 
   personImage, 
   clothingImage, 
+  clothingItems,
+  selectedGarmentType,
   onResult
 }: TryOnButtonProps) {
   const tryOnMutation = useTryOn()
@@ -22,7 +35,9 @@ export default function TryOnButton({
   const [progress, setProgress] = useState(0)
 
   const handleTryOn = async () => {
-    if (!personImage || !clothingImage) {
+    const hasClothing = clothingItems && clothingItems.length > 0 ? clothingItems[0].image : clothingImage
+    
+    if (!personImage || !hasClothing) {
       toast.error('Vui lòng tải lên cả ảnh cá nhân và trang phục')
       return
     }
@@ -48,7 +63,9 @@ export default function TryOnButton({
 
       const result = await tryOnMutation.mutateAsync({
         personImage,
-        clothingImage
+        clothingImage: hasClothing,
+        clothingItems,
+        selectedGarmentType
       })
 
       toast.dismiss(loadingToast)
@@ -80,7 +97,8 @@ export default function TryOnButton({
     }
   }
 
-  const isDisabled = !personImage || !clothingImage || isProcessing || tryOnMutation.isPending
+  const hasClothing = clothingItems && clothingItems.length > 0 ? clothingItems[0] : clothingImage
+  const isDisabled = !personImage || !hasClothing || isProcessing || tryOnMutation.isPending
 
   return (
     <div className="flex justify-center">

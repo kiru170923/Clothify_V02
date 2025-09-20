@@ -5,25 +5,121 @@ export interface ClothingType {
   category: 'shirt' | 'pants' | 'shorts' | 'skirt' | 'dress' | 'jacket' | 'hoodie' | 'tank' | 'blouse'
 }
 
-export function generateAdvancedPrompt(clothingImageUrl: string): {
+// Function to add face preservation emphasis based on clothing type
+function getFacePreservationInstructions(clothingItems?: Array<{
+  type: 'top' | 'bottom' | 'shoes' | 'accessory' | 'dress' | 'outerwear'
+  label: string
+  category?: string
+  color?: string
+  style?: string
+}>): string {
+  if (!clothingItems || clothingItems.length === 0) {
+    return 'Maintain 100% facial identity and body proportions during clothing replacement.'
+  }
+
+  const types = clothingItems.map(item => item.type)
+  
+  if (types.includes('top') || types.includes('outerwear')) {
+    return 'CRITICAL: When changing upper garments, ensure facial features, neck, and shoulders remain EXACTLY the same. Only replace clothing from neckline down.'
+  } else if (types.includes('dress')) {
+    return 'CRITICAL: When changing dress, maintain exact facial features and head positioning. Only replace garment from neckline down to hemline.'
+  } else if (types.includes('bottom') || types.includes('shoes')) {
+    return 'CRITICAL: When changing lower garments, keep upper body including face, torso, and arms EXACTLY identical. Only replace clothing from waist down.'
+  }
+  
+  return 'Maintain 100% facial identity and body proportions during clothing replacement.'
+}
+
+export function generateAdvancedPrompt(clothingImageUrl: string, clothingItems?: Array<{
+  type: 'top' | 'bottom' | 'shoes' | 'accessory' | 'dress' | 'outerwear'
+  label: string
+  category?: string
+  color?: string
+  style?: string
+}>, isComposite?: boolean, selectedGarmentType?: 'auto' | 'top' | 'bottom' | 'full-body'): {
   prompt: string
   negativePrompt: string
   parameters: Record<string, any>
 } {
-  // Optimized prompt for better quality while keeping it concise
-  const basePrompt = `Professional virtual try-on: Replace person's clothing with new garment from second image. Complete removal of old clothing, perfect fit and proportions, seamless integration with body contours, preserve original pose and lighting, realistic fabric texture and drape.`
+  // Analyze clothing items and create intelligent prompt
+  let outfitDescription = ''
+  let technicalInstructions = ''
+  
+  if (clothingItems && clothingItems.length > 0) {
+    const itemsByType = clothingItems.reduce((acc, item) => {
+      acc[item.type] = item
+      return acc
+    }, {} as Record<string, any>)
 
-  const negativePrompt = `low quality, blurry, distorted, artifacts, old clothing remnants, poor fit, unnatural shadows, floating clothing, disconnected elements, visible seams, wrong proportions, mismatched lighting`
+    // Build outfit description based on detected items
+    const outfitParts = []
+    
+    if (itemsByType.dress) {
+      const dressDesc = `elegant ${itemsByType.dress.color || ''} ${itemsByType.dress.category || 'dress'}`.trim()
+      outfitDescription = dressDesc || 'elegant dress'
+      technicalInstructions = 'Ensure the dress flows naturally from neckline to hem, maintaining perfect fit and elegant drape throughout the entire silhouette.'
+    } else {
+      // Build layered outfit
+      if (itemsByType.top) {
+        const topDesc = `${itemsByType.top.color || ''} ${itemsByType.top.category || 'top'}`.trim()
+        if (topDesc) outfitParts.push(topDesc)
+      }
+      if (itemsByType.outerwear) {
+        const outerDesc = `${itemsByType.outerwear.color || ''} ${itemsByType.outerwear.category || 'outerwear'}`.trim()
+        if (outerDesc) outfitParts.push(outerDesc)
+      }
+      if (itemsByType.bottom) {
+        const bottomDesc = `${itemsByType.bottom.color || ''} ${itemsByType.bottom.category || 'bottom'}`.trim()
+        if (bottomDesc) outfitParts.push(bottomDesc)
+      }
+      if (itemsByType.shoes) {
+        const shoesDesc = `${itemsByType.shoes.color || ''} ${itemsByType.shoes.category || 'footwear'}`.trim()
+        if (shoesDesc) outfitParts.push(shoesDesc)
+      }
+      if (itemsByType.accessory) {
+        const accessoryDesc = (itemsByType.accessory.category || 'accessories').trim()
+        if (accessoryDesc) outfitParts.push(accessoryDesc)
+      }
+      
+      outfitDescription = outfitParts.filter(part => part.trim()).join(' with ')
+      technicalInstructions = 'Ensure perfect coordination between all clothing layers, maintaining natural fabric interaction and proper fit for each individual garment.'
+    }
+  } else {
+    outfitDescription = 'the new garment from the reference image'
+    technicalInstructions = 'Ensure the garment fits naturally and maintains proper proportions.'
+  }
 
-  // Optimized parameters for better quality
+  // Get specific face preservation instructions based on clothing type
+  const facePreservationInstructions = getFacePreservationInstructions(clothingItems)
+
+  // ENHANCED PROMPT BASED ON GARMENT TYPE
+  let basePrompt = ''
+  let negativePrompt = ''
+
+  if (selectedGarmentType === 'top') {
+    basePrompt = `Replace the ENTIRE upper clothing (including sleeves, collar, fabric type) of the person in the first image with the COMPLETE top garment from the second image. Keep the same face, body shape, and pose. Replace ALL upper clothing details including sleeve length, style, and material.`
+    negativePrompt = `face modification, body distortion, background change, multiple people, low quality, blur, artifacts, different pose, different gender, bottom change, pants change, shoes change, partial clothing change, mixed sleeve styles`
+  } else if (selectedGarmentType === 'bottom') {
+    basePrompt = `Replace the bottom/pants of the person in the first image with the bottom garment from the second image. Keep the same face, body shape, and pose. Only change the lower clothing.`
+    negativePrompt = `face modification, body distortion, background change, multiple people, low quality, blur, artifacts, different pose, different gender, top change, shirt change, upper change`
+  } else if (selectedGarmentType === 'full-body') {
+    basePrompt = `Replace the entire outfit of the person in the first image with the full-body garment from the second image. Keep the same face, body shape, and pose. Replace complete outfit.`
+    negativePrompt = `face modification, body distortion, background change, multiple people, low quality, blur, artifacts, different pose, different gender`
+  } else {
+    // Auto - let AI decide but be more specific about complete replacement
+    basePrompt = `Replace the clothing of the person in the first image with the garment from the second image. Keep the same face, body shape, and pose. Ensure COMPLETE replacement of all clothing details including sleeves, style, and material.`
+    negativePrompt = `face modification, body distortion, background change, multiple people, low quality, blur, artifacts, different pose, different gender, partial clothing change, mixed styles, inconsistent details`
+  }
+
+  // AGGRESSIVE PARAMETERS FOR COMPLETE CLOTHING CHANGE
   const parameters = {
-    guidance_scale: 8.0, // Higher guidance for better prompt adherence
-    num_inference_steps: 50, // More steps for better quality
-    strength: 0.85, // Strong transformation for complete replacement
-    seed: Math.floor(Math.random() * 1000000), // Random seed for variety
-    scheduler: 'DDIMScheduler', // Better scheduler for clothing
-    eta: 0.0, // Deterministic sampling
-    clip_skip: 1, // Skip last layer for better prompt adherence
+    guidance_scale: 12.0, // Even higher guidance to force complete change
+    num_inference_steps: 50, // More steps for thorough complete replacement
+    strength: 0.5, // Balanced strength for natural replacement
+    seed: Math.floor(Math.random() * 1000000),
+    scheduler: 'DPMSolverMultistepScheduler',
+    eta: 0.0,
+    clip_skip: 1,
   }
 
   return {
