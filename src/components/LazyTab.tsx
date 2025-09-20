@@ -6,10 +6,11 @@ import { Suspense, lazy } from 'react'
 const HistoryTab = lazy(() => import('./HistoryTab').then(module => ({ default: module.HistoryTab })))
 const WardrobeTab = lazy(() => import('./WardrobeTab').then(module => ({ default: module.WardrobeTab })))
 const ProfileTab = lazy(() => import('./ProfileTab').then(module => ({ default: module.ProfileTab })))
+const MembershipTab = lazy(() => import('./MembershipTab'))
 const SettingsTab = lazy(() => import('./SettingsTab').then(module => ({ default: module.SettingsTab })))
 
 interface LazyTabProps {
-  component: 'history' | 'wardrobe' | 'profile' | 'settings'
+  component: 'history' | 'wardrobe' | 'profile' | 'membership' | 'settings'
 }
 
 export default function LazyTab({ component }: LazyTabProps) {
@@ -17,6 +18,7 @@ export default function LazyTab({ component }: LazyTabProps) {
     history: HistoryTab,
     wardrobe: WardrobeTab,
     profile: ProfileTab,
+    membership: MembershipTab,
     settings: SettingsTab,
   }[component]
 

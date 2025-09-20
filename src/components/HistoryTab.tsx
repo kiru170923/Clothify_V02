@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
-import { History, Download, Trash2, Calendar, Image as ImageIcon } from 'lucide-react'
+import React, { useState, useCallback, useMemo } from 'react'
+import { History, Download, Trash2, Calendar, Image as ImageIcon, Filter, ChevronDown } from 'lucide-react'
 import { ImageModal } from './ImageModal'
 import { useHistory, useDeleteHistory } from '../hooks/useHistory'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ImageSkeleton } from './SkeletonLoader'
 
 interface HistoryItem {
   id: string
@@ -19,11 +20,46 @@ interface HistoryItem {
 export const HistoryTab = React.memo(function HistoryTab() {
   const [showImageModal, setShowImageModal] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   
   // Use React Query hooks
   const { data: historyItems = [], isLoading: loading, error } = useHistory()
   const deleteHistoryMutation = useDeleteHistory()
   const queryClient = useQueryClient()
+
+  // Filter history items by date
+  const filteredHistoryItems = useMemo(() => {
+    if (dateFilter === 'all') return historyItems
+    
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    
+    return historyItems.filter((item: HistoryItem) => {
+      const itemDate = new Date(item.created_at)
+      
+      switch (dateFilter) {
+        case 'today':
+          return itemDate >= today
+        case 'week':
+          return itemDate >= weekAgo
+        case 'month':
+          return itemDate >= monthAgo
+        default:
+          return true
+      }
+    })
+  }, [historyItems, dateFilter])
+
+  const filterOptions = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'today', label: 'Hôm nay' },
+    { value: 'week', label: '7 ngày qua' },
+    { value: 'month', label: '30 ngày qua' }
+  ]
 
   const handleDownload = useCallback(async (imageUrl: string, filename: string) => {
     try {
@@ -98,12 +134,39 @@ export const HistoryTab = React.memo(function HistoryTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Lịch sử thử đồ</h2>
-          <p className="text-gray-600 mt-1 text-sm">{historyItems.length} ảnh đã tạo</p>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Lịch sử thử đồ</h2>
+          <p className="text-amber-600 mt-1 text-sm">{filteredHistoryItems.length} ảnh đã tạo</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <Calendar className="w-3 h-3" />
-          Sắp xếp theo ngày
+        
+        {/* Date Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors text-sm font-medium"
+          >
+            <Filter className="w-4 h-4" />
+            <span>{filterOptions.find(opt => opt.value === dateFilter)?.label}</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+          
+          {showFilterDropdown && (
+            <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg border border-amber-200 z-10">
+              {filterOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setDateFilter(option.value as any)
+                    setShowFilterDropdown(false)
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-amber-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                    dateFilter === option.value ? 'bg-amber-100 text-amber-700 font-medium' : 'text-gray-700'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -127,8 +190,8 @@ export const HistoryTab = React.memo(function HistoryTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {historyItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {filteredHistoryItems.map((item) => (
+            <div key={item.id} className="bg-white rounded-xl shadow-sm border border-amber-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="space-y-3 p-3">
                 {/* Result Image */}
                 <div className="relative">
@@ -140,7 +203,19 @@ export const HistoryTab = React.memo(function HistoryTab() {
                       setSelectedImage(item.result_image_url)
                       setShowImageModal(true)
                     }}
+                    onLoad={() => {
+                      setLoadedImages(prev => new Set(prev).add(item.result_image_url))
+                    }}
+                    onError={() => {
+                      console.error('Failed to load image:', item.result_image_url)
+                    }}
                   />
+                  {/* Loading overlay - only show if image not loaded */}
+                  {!loadedImages.has(item.result_image_url) && (
+                    <div className="absolute inset-0 bg-amber-50 rounded-lg flex items-center justify-center">
+                      <ImageSkeleton aspectRatio="aspect-[4/3]" className="bg-amber-100" />
+                    </div>
+                  )}
                   <div className="absolute top-1 right-1 flex gap-1">
                     <button
                       onClick={(e) => {
