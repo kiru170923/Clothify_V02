@@ -29,10 +29,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           <SupabaseProvider>
-            <AuthGuard>
-              {children}
-              <NotificationProvider />
-            </AuthGuard>
+            {children}
+            <NotificationProvider />
           </SupabaseProvider>
         </QueryProvider>
       </body>

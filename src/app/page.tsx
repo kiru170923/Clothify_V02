@@ -8,17 +8,29 @@ import FashionChatbot from '../components/FashionChatbot'
 import { useSupabase } from '../components/SupabaseProvider'
 
 export default function HomePage() {
-  const { user } = useSupabase()
+  const { user, loading } = useSupabase()
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect to landing page if not logged in
-    if (!user) {
+    // Only redirect if loading is complete and no user
+    if (!loading && !user) {
       router.push('/landing')
     }
-  }, [user, router])
+  }, [user, loading, router])
 
   // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center" style={{ backgroundColor: '#f6f1e9' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+          <p className="text-amber-600">Đang kiểm tra...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading while redirecting if not logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center" style={{ backgroundColor: '#f6f1e9' }}>
