@@ -1,21 +1,34 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React from 'react'
+import Header from '../components/Header'
+import Sidebar from '../components/Sidebar'
+import FashionChatbot from '../components/FashionChatbot'
 
 export default function HomePage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Redirect to landing page
-    router.replace('/landing')
-  }, [router])
-
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-white text-center">
-        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p>Đang chuyển hướng...</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+      <Header />
+      
+      <div className="flex">
+        <Sidebar />
+        
+        <main className="flex-1 p-6 lg:p-8">
+          <div className="max-w-6xl mx-auto">
+            {/* Hero Section for Chat */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+                AI Fashion Advisor ✨
+              </h1>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Trợ lý thời trang thông minh của bạn. Gửi link Shopee hoặc chat để nhận tư vấn phong cách cá nhân!
+              </p>
+            </div>
+            
+            {/* Fashion Chatbot Component */}
+            <FashionChatbot />
+          </div>
+        </main>
       </div>
     </div>
   )

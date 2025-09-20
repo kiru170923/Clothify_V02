@@ -50,7 +50,7 @@ export default function Header() {
           
           {/* Quick Navigation */}
           <nav className="hidden md:flex items-center gap-2">
-            <a href="/chat" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium text-sm">
+            <a href="/" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium text-sm">
               <span>💬</span>
               <span>AI Chat</span>
               <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse"></div>
