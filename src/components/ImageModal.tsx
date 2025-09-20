@@ -1,6 +1,7 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faXmark } from '@fortawesome/free-solid-svg-icons'
 
 interface ImageModalProps {
   imageUrl: string
@@ -19,7 +20,7 @@ export function ImageModal({ imageUrl, isOpen, onClose }: ImageModalProps) {
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full"
         >
-          <X className="w-6 h-6" />
+          <FontAwesomeIcon icon={faXmark} className="w-6 h-6" />
         </button>
         
         {/* Image */}

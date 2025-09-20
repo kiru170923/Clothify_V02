@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Download, Trash2 } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faClock, faDownload, faTrash } from '@fortawesome/free-solid-svg-icons'
 
 interface RecentImage {
   id: string
@@ -67,7 +68,7 @@ export function RecentImages() {
     return (
       <div className="max-w-6xl mx-auto">
         <div className="text-center py-12">
-          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <FontAwesomeIcon icon={faClock} className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
             Chưa có ảnh nào
           </h3>
@@ -82,7 +83,7 @@ export function RecentImages() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-8">
-        <Clock className="w-6 h-6 text-primary-500" />
+        <FontAwesomeIcon icon={faClock} className="w-6 h-6 text-primary-500" />
         <h2 className="text-2xl font-bold text-gray-900">
           Ảnh đã thử gần đây
         </h2>
@@ -104,13 +105,13 @@ export function RecentImages() {
                     onClick={() => handleDownload(image.resultImage, `clothify-result-${image.id}.jpg`)}
                     className="p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
                   >
-                    <Download className="w-4 h-4 text-gray-700" />
+                    <FontAwesomeIcon icon={faDownload} className="w-4 h-4 text-gray-700" />
                   </button>
                   <button
                     onClick={() => handleDelete(image.id)}
                     className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
                   </button>
                 </div>
               </div>

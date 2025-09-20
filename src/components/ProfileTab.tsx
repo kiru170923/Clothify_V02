@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { User, Mail, Calendar, Settings, Crown, LogOut } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faUser, faEnvelope, faCalendarDays, faGear, faCrown, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useSupabase } from './SupabaseProvider'
 import { motion } from 'framer-motion'
 
@@ -50,7 +51,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
                 className="w-full h-full rounded-2xl object-cover"
               />
             ) : (
-              <User className="w-10 h-10 text-white" />
+              <FontAwesomeIcon icon={faUser} className="w-10 h-10 text-white" />
             )}
           </div>
           
@@ -69,7 +70,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-amber-50 rounded-xl">
             <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Calendar className="w-6 h-6 text-amber-600" />
+              <FontAwesomeIcon icon={faCalendarDays} className="w-6 h-6 text-amber-600" />
             </div>
             <p className="text-sm text-amber-600 font-medium">Thành viên từ</p>
             <p className="text-lg font-bold text-amber-800">
@@ -79,7 +80,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
 
           <div className="text-center p-4 bg-yellow-50 rounded-xl">
             <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Crown className="w-6 h-6 text-yellow-600" />
+              <FontAwesomeIcon icon={faCrown} className="w-6 h-6 text-yellow-600" />
             </div>
             <p className="text-sm text-yellow-600 font-medium">Gói hiện tại</p>
             <p className="text-lg font-bold text-yellow-800">Free</p>
@@ -87,7 +88,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
 
           <div className="text-center p-4 bg-orange-50 rounded-xl">
             <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Settings className="w-6 h-6 text-orange-600" />
+              <FontAwesomeIcon icon={faGear} className="w-6 h-6 text-orange-600" />
             </div>
             <p className="text-sm text-orange-600 font-medium">Trạng thái</p>
             <p className="text-lg font-bold text-orange-800">Hoạt động</p>
@@ -103,7 +104,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
         className="bg-white rounded-2xl shadow-lg border border-amber-200 p-8"
       >
         <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <Settings className="w-5 h-5 text-amber-600" />
+          <FontAwesomeIcon icon={faGear} className="w-5 h-5 text-amber-600" />
           Cài đặt tài khoản
         </h3>
 
@@ -111,7 +112,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
           {/* Email Settings */}
           <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl">
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-amber-600" />
+              <FontAwesomeIcon icon={faEnvelope} className="w-5 h-5 text-amber-600" />
               <div>
                 <p className="font-medium text-gray-900">Email</p>
                 <p className="text-sm text-gray-600">{user?.email}</p>
@@ -125,7 +126,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
           {/* Membership */}
           <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl">
             <div className="flex items-center gap-3">
-              <Crown className="w-5 h-5 text-yellow-600" />
+              <FontAwesomeIcon icon={faCrown} className="w-5 h-5 text-yellow-600" />
               <div>
                 <p className="font-medium text-gray-900">Gói membership</p>
                 <p className="text-sm text-gray-600">Free Plan - 10 tokens/tháng</p>
@@ -152,7 +153,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
           onClick={handleSignOut}
           className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors mx-auto"
         >
-          <LogOut className="w-5 h-5" />
+          <FontAwesomeIcon icon={faRightFromBracket} className="w-5 h-5" />
           Đăng xuất
         </button>
       </motion.div>

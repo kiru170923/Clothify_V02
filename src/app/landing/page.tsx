@@ -66,9 +66,9 @@ export default function LandingPage() {
                   Giải pháp <ArrowRight className="w-4 h-4 inline ml-1 rotate-90" />
                 </button>
                 <button className="text-amber-600 hover:text-amber-800 transition-colors font-medium">Giá cả</button>
-                <button className="text-amber-600 hover:text-amber-800 transition-colors font-medium">
-                  Tài nguyên <ArrowRight className="w-4 h-4 inline ml-1 rotate-90" />
-                </button>
+                <a href="#about-us" className="text-amber-600 hover:text-amber-800 transition-colors font-medium">
+                  Về Chúng Tôi
+                </a>
               </div>
             </nav>
 
@@ -311,6 +311,101 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* About Us Section */}
+      <section id="about-us" className="py-20 bg-amber-50 border-t border-amber-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-5xl md:text-6xl font-extrabold text-center mb-12 bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent"
+          >
+            Về Chúng Tôi – Clothify
+          </motion.h2>
+
+          <div className="space-y-12 text-lg text-gray-700 leading-relaxed">
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              Clothify là nền tảng công nghệ thời trang ứng dụng AI và AR giúp bạn phối đồ thông minh, thử trang phục ảo và mua sắm trực tuyến dễ dàng hơn bao giờ hết.
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              Chúng tôi được thành lập bởi một nhóm sinh viên trẻ đầy nhiệt huyết, với mong muốn giải quyết những vấn đề quen thuộc khi mua sắm thời trang online: chọn sai size, màu sắc không giống ảnh, khó phối đồ theo phong cách cá nhân hay dịp sử dụng.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Sứ mệnh của chúng tôi</h3>
+              <p className="mb-4">Clothify hướng đến việc mang lại trải nghiệm “Thời trang cá nhân hóa – Công nghệ hiện đại – Mua sắm tiện lợi” cho thế hệ trẻ (Gen Z, Millennials), giúp bạn:</p>
+              <ul className="list-disc list-inside space-y-2 pl-4">
+                <li>Nhận gợi ý phối đồ thông minh dựa trên vóc dáng, sở thích và hoàn cảnh sử dụng.</li>
+                <li>Thử trang phục trực tuyến bằng công nghệ AI/AR một cách chân thực trước khi mua.</li>
+                <li>Mua ngay qua liên kết trực tiếp từ các sàn thương mại điện tử lớn như Shopee, Tiki, Lazada.</li>
+              </ul>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Điểm khác biệt</h3>
+              <ul className="list-disc list-inside space-y-2 pl-4">
+                <li>AI Stylist cá nhân: Gợi ý trang phục theo vóc dáng, phong cách, sự kiện.</li>
+                <li>Trải nghiệm Thử Ảo (AR): Giúp bạn hình dung rõ ràng khi mặc đồ.</li>
+                <li>Tích hợp mua sắm nhanh: Liên kết trực tiếp với các sàn TMĐT, không mất thời gian tìm kiếm.</li>
+                <li>Gói dịch vụ linh hoạt: Sử dụng miễn phí hoặc nâng cấp VIP để mở khóa tính năng cao cấp.</li>
+                <li>Cộng đồng thời trang: Tham gia thử thách phối đồ, chia sẻ phong cách, kết nối cùng KOLs & shop thời trang.</li>
+              </ul>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Hành trình phát triển</h3>
+              <p className="mb-4">Khởi đầu từ ý tưởng khởi nghiệp tại đại học, Clothify đã nghiên cứu thị trường và nhận ra nhu cầu cấp thiết của người dùng trẻ về một công cụ phối đồ thông minh.</p>
+              <p className="mb-4">Sản phẩm được xây dựng qua nhiều giai đoạn: khảo sát – phát triển AI – thiết kế website/app thân thiện – chạy thử nghiệm – cải tiến liên tục dựa trên phản hồi thực tế.</p>
+              <p>Chúng tôi hợp tác cùng KOLs, shop thời trang nhỏ và cộng đồng yêu thời trang để mở rộng hệ sinh thái và tạo giá trị cho cả người mua lẫn người bán.</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Tầm nhìn tương lai</h3>
+              <p className="mb-4">Clothify không chỉ dừng lại ở Việt Nam, mà còn hướng tới mở rộng ra khu vực Đông Nam Á – nơi thị trường thương mại điện tử thời trang đang phát triển mạnh.</p>
+              <p className="mb-4">Trong tương lai, chúng tôi sẽ:</p>
+              <ul className="list-disc list-inside space-y-2 pl-4">
+                <li>Ra mắt ứng dụng di động với trải nghiệm tối ưu.</li>
+                <li>Phát triển tính năng phối đồ theo sự kiện, nghề nghiệp, tính cách.</li>
+                <li>Hợp tác chặt chẽ với thương hiệu và nhà bán lẻ để đa dạng hóa sản phẩm.</li>
+                <li>Xây dựng cộng đồng thời trang trẻ trung, sáng tạo và bền vững.</li>
+              </ul>
+            </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="text-center text-xl font-semibold text-amber-800"
+            >
+              ✨ Với Clothify, mua sắm thời trang không còn là nỗi lo chọn sai, mà trở thành hành trình trải nghiệm cá nhân hóa, thú vị và tràn đầy cảm hứng.
+            </motion.p>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-amber-200 py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -331,7 +426,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-8 pt-8 border-t border-amber-200 text-center text-amber-600">
-            <p>&copy; 2024 Clothify. Bản quyền thuộc về Công ty. Powered by AI Technology.</p>
+            <p>&copy; 2025 Clothify. Bản quyền thuộc về Kiru.</p>
           </div>
         </div>
       </footer>

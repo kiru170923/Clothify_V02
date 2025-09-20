@@ -31,8 +31,8 @@ export default function MembershipCard({
       whileHover={{ scale: 1.02 }}
       className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 ${
         isPopular 
-          ? 'border-blue-500 shadow-blue-100' 
-          : 'border-gray-200 hover:border-gray-300'
+          ? 'border-amber-500 shadow-amber-100' 
+          : 'border-amber-200 hover:border-amber-300'
       }`}
     >
       {/* Popular badge */}
@@ -41,7 +41,7 @@ export default function MembershipCard({
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
+            className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-amber-900 px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
           >
             <StarIcon className="w-4 h-4" />
             Phổ biến nhất
@@ -76,12 +76,12 @@ export default function MembershipCard({
 
         {/* Tokens */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-3 rounded-xl border border-blue-200">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-lg font-semibold text-gray-900">
+          <div className="inline-flex items-center gap-2 bg-amber-50 px-4 py-3 rounded-xl border border-amber-200">
+            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+            <span className="text-lg font-semibold text-amber-900">
               {tokens} tokens
             </span>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-amber-600">
               /{billingCycle === 'monthly' ? 'tháng' : 'năm'}
             </span>
           </div>
@@ -111,7 +111,7 @@ export default function MembershipCard({
           disabled={isLoading}
           className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
             isPopular
-              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-lg hover:shadow-xl'
               : 'bg-gray-900 text-white hover:bg-gray-800'
           } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >

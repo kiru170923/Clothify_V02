@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Camera, Upload, Plus, Tag } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCamera, faUpload, faPlus, faTag } from '@fortawesome/free-solid-svg-icons'
 import UploadCard from './UploadCard'
 
 interface WardrobeItem {
@@ -44,7 +45,7 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
           onClick={() => setShowUploadModal(true)}
           className="btn btn-primary flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" />
+          <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
           Thêm đồ
         </button>
       </div>
@@ -70,7 +71,7 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
       {filteredItems.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Camera className="w-8 h-8 text-gray-400" />
+            <FontAwesomeIcon icon={faCamera} className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Chưa có đồ nào
@@ -96,7 +97,7 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
               />
               <div className="p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <Tag className="w-3 h-3 text-gray-400" />
+                  <FontAwesomeIcon icon={faTag} className="w-3 h-3 text-gray-400" />
                   <span className="text-xs text-gray-500">{item.category}</span>
                 </div>
                 <h4 className="font-medium text-gray-900 truncate">{item.name}</h4>

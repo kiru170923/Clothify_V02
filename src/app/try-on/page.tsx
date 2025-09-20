@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TrashIcon } from '@heroicons/react/24/outline'
@@ -10,6 +10,8 @@ import UploadCard from '../../components/UploadCard'
 import MultipleClothingUpload from '../../components/MultipleClothingUpload'
 import TryOnButton from '../../components/TryOnButtonNew'
 import ResultModal from '../../components/ResultModal'
+import GarmentSelectionModal from '../../components/GarmentSelectionModal'
+import MiniWardrobeModal from '../../components/MiniWardrobeModal'
 import toast from 'react-hot-toast'
 import { useGenerateModel } from '../../hooks/useGenerateModel'
 import { useMyModels } from '../../hooks/useMyModels'
@@ -17,7 +19,7 @@ import { useSupabase } from '../../components/SupabaseProvider'
 import { ImageSkeleton, LoadingText, GridSkeleton } from '../../components/SkeletonLoader'
 import AuthGuard from '../../components/AuthGuard'
 
-export default function TryOnPage() {
+function TryOnPageContent() {
   const searchParams = useSearchParams()
   
   // Load state from localStorage on component mount
@@ -70,6 +72,7 @@ export default function TryOnPage() {
   const [showModelTooltip, setShowModelTooltip] = useState(false)
   const [showGarmentTooltip, setShowGarmentTooltip] = useState(false)
   const [showGarmentTypeTooltip, setShowGarmentTypeTooltip] = useState(false)
+  const [showGarmentSelectionModal, setShowGarmentSelectionModal] = useState(false) // New state for garment selection modal
   
   // Hooks for AI model generation and management
   const { session } = useSupabase()
@@ -161,6 +164,45 @@ export default function TryOnPage() {
     })
   }
 
+  // Handlers for GarmentSelectionModal
+  const handleSelectGarmentFromDevice = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const newItem = {
+        id: Date.now().toString(),
+        image: e.target?.result as string,
+        type: 'top' as const,
+        label: 'Garment',
+        category: 'Auto detected'
+      }
+      setClothingItems([newItem])
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const [showMiniWardrobeModal, setShowMiniWardrobeModal] = useState(false)
+
+  const handleSelectGarmentFromWardrobe = () => {
+    setShowMiniWardrobeModal(true)
+  }
+
+  const handleGarmentFromMiniWardrobe = (item: any) => {
+    // Assuming item from wardrobe has imageUrl, category, etc.
+    const newItem = {
+      id: item.id,
+      image: item.image_url,
+      type: (item.category as any) || 'top',
+      label: item.name || 'Wardrobe Garment',
+      category: item.category,
+      color: item.color,
+      style: item.style,
+      confidence: item.confidence
+    }
+    setClothingItems([newItem])
+    setShowMiniWardrobeModal(false)
+    setShowGarmentSelectionModal(false)
+  }
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
@@ -190,15 +232,15 @@ export default function TryOnPage() {
                   <div className="relative">
                     <button 
                       onClick={() => setShowModelTooltip(!showModelTooltip)}
-                      className="w-4 h-4 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+                      className="w-4 h-4 bg-amber-200 hover:bg-amber-300 rounded-full flex items-center justify-center cursor-pointer transition-colors"
                     >
-                      <span className="text-xs text-gray-600">?</span>
+                      <span className="text-xs text-amber-700">?</span>
                     </button>
                     
                     {/* Modal */}
                     {showModelTooltip && (
                       <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setShowModelTooltip(false)}>
-                        <div className="w-[80vw] aspect-video bg-black rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-[80vw] aspect-video bg-amber-50 rounded-lg overflow-hidden border border-amber-200" onClick={(e) => e.stopPropagation()}>
                           <img 
                             src="https://qriiosvdowitaigzvwfo.supabase.co/storage/v1/object/public/Linh%20Tinh/1758378024766t6sh54kr.webp"
                             alt="Model guide"
@@ -212,7 +254,7 @@ export default function TryOnPage() {
                 
                 {/* Model Image */}
                 <div className="relative mb-4">
-                  <div className="aspect-[2/3] bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="aspect-[2/3] bg-amber-50 rounded-lg overflow-hidden border border-amber-200">
                     {personImage ? (
                       <img
                         src={personImage}
@@ -223,14 +265,14 @@ export default function TryOnPage() {
                     ) : (
                       <label 
                         htmlFor="model-upload"
-                        className="w-full h-full flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+                        className="w-full h-full flex items-center justify-center text-amber-500 cursor-pointer hover:text-amber-700 transition-colors"
                       >
                         <div className="text-center">
-                          <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-12 h-12 mx-auto mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
                           <p className="text-sm">Chưa chọn model</p>
-                          <p className="text-xs mt-1 text-gray-500">Nhấp để tải lên</p>
+                          <p className="text-xs mt-1 text-amber-500">Nhấp để tải lên</p>
                         </div>
                       </label>
                     )}
@@ -309,8 +351,8 @@ export default function TryOnPage() {
 
               {/* Separator */}
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                   </svg>
                 </div>
@@ -323,15 +365,15 @@ export default function TryOnPage() {
                   <div className="relative">
                     <button 
                       onClick={() => setShowGarmentTooltip(!showGarmentTooltip)}
-                      className="w-4 h-4 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+                      className="w-4 h-4 bg-amber-200 hover:bg-amber-300 rounded-full flex items-center justify-center cursor-pointer transition-colors"
                     >
-                      <span className="text-xs text-gray-600">?</span>
+                      <span className="text-xs text-amber-700">?</span>
                     </button>
                     
                     {/* Modal */}
                     {showGarmentTooltip && (
                       <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setShowGarmentTooltip(false)}>
-                        <div className="w-[80vw] h-[29.8vw] bg-black rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-[80vw] h-[29.8vw] bg-amber-50 rounded-lg overflow-hidden border border-amber-200" onClick={(e) => e.stopPropagation()}>
                           <img 
                             src="https://qriiosvdowitaigzvwfo.supabase.co/storage/v1/object/public/Linh%20Tinh/1758378232989j1gkwxii.webp"
                             alt="Garment guide"
@@ -344,7 +386,7 @@ export default function TryOnPage() {
                 </div>
                 
                 {/* Garment Upload Area */}
-                <div className="aspect-[3/4] bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 relative overflow-hidden mb-4">
+                <div className="aspect-[3/4] bg-amber-50 rounded-lg border-2 border-dashed border-amber-300 relative overflow-hidden mb-4">
                   {clothingItems.length > 0 ? (
                     <>
                       <img
@@ -364,18 +406,18 @@ export default function TryOnPage() {
                       </button>
                     </>
                   ) : (
-                    <label 
-                      htmlFor="garment-upload"
-                      className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
+                    <button
+                      onClick={() => setShowGarmentSelectionModal(true)}
+                      className="absolute inset-0 flex items-center justify-center cursor-pointer hover:bg-amber-100 transition-colors"
                     >
                       <div className="text-center">
-                        <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-12 h-12 mx-auto mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        <p className="text-sm text-gray-500">Chưa chọn trang phục</p>
-                        <p className="text-xs mt-1 text-gray-400">Nhấp để tải lên</p>
+                        <p className="text-sm text-amber-500">Chưa chọn trang phục</p>
+                        <p className="text-xs mt-1 text-amber-400">Nhấp để tải lên</p>
                       </div>
-                    </label>
+                    </button>
                   )}
                 </div>
                 
@@ -395,31 +437,31 @@ export default function TryOnPage() {
                       {/* Modal */}
                       {showGarmentTypeTooltip && (
                         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setShowGarmentTypeTooltip(false)}>
-                          <div className="bg-white rounded-lg p-6 max-w-md" onClick={(e) => e.stopPropagation()}>
+                          <div className="bg-amber-50 rounded-lg p-6 max-w-md border border-amber-200" onClick={(e) => e.stopPropagation()}>
                             <h3 className="font-semibold text-gray-900 mb-3">Tác dụng của từng lựa chọn</h3>
                             <div className="space-y-3 text-sm text-gray-600">
-                              <div className="p-3 bg-blue-50 rounded-lg">
-                                <p className="font-semibold text-blue-800">🤖 Tự động</p>
+                              <div className="p-3 bg-amber-100 rounded-lg">
+                                <p className="font-semibold text-amber-800">🤖 Tự động</p>
                                 <p className="text-amber-700">AI tự phân tích và quyết định cách thay đổi trang phục. Phù hợp khi không chắc chắn loại trang phục.</p>
                               </div>
                               
-                              <div className="p-3 bg-green-50 rounded-lg">
-                                <p className="font-semibold text-green-800">👕 Áo</p>
-                                <p className="text-green-700">Chỉ thay đổi phần áo (tay áo, cổ áo, chất liệu). Giữ nguyên quần và phụ kiện khác. Tốt nhất khi muốn thay áo sơ mi, áo thun...</p>
+                              <div className="p-3 bg-amber-100 rounded-lg">
+                                <p className="font-semibold text-amber-800">👕 Áo</p>
+                                <p className="text-amber-700">Chỉ thay đổi phần áo (tay áo, cổ áo, chất liệu). Giữ nguyên quần và phụ kiện khác. Tốt nhất khi muốn thay áo sơ mi, áo thun...</p>
                               </div>
                               
-                              <div className="p-3 bg-orange-50 rounded-lg">
-                                <p className="font-semibold text-orange-800">👖 Quần</p>
-                                <p className="text-orange-700">Chỉ thay đổi phần quần. Giữ nguyên áo và phụ kiện. Tốt nhất khi muốn thay quần jean, quần tây...</p>
+                              <div className="p-3 bg-amber-100 rounded-lg">
+                                <p className="font-semibold text-amber-800">👖 Quần</p>
+                                <p className="text-amber-700">Chỉ thay đổi phần quần. Giữ nguyên áo và phụ kiện. Tốt nhất khi muốn thay quần jean, quần tây...</p>
                               </div>
                               
-                              <div className="p-3 bg-purple-50 rounded-lg">
-                                <p className="font-semibold text-purple-800">👗 Toàn thân</p>
+                              <div className="p-3 bg-amber-100 rounded-lg">
+                                <p className="font-semibold text-amber-800">👗 Toàn thân</p>
                                 <p className="text-amber-700">Thay đổi toàn bộ trang phục (đầm, jumpsuit, bộ đồ liền). Tốt nhất cho đầm, váy liền thân...</p>
                               </div>
                               
-                              <div className="p-2 bg-amber-100 rounded">
-                                <p className="text-amber-800 text-xs font-medium">💡 Mẹo: Lựa chọn chính xác giúp AI tạo kết quả tốt hơn!</p>
+                              <div className="p-2 bg-amber-200 rounded">
+                                <p className="text-amber-900 text-xs font-medium">💡 Mẹo: Lựa chọn chính xác giúp AI tạo kết quả tốt hơn!</p>
                               </div>
                             </div>
                           </div>
@@ -698,7 +740,7 @@ export default function TryOnPage() {
               </button>
 
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 pr-5">
                   <h3 className="font-semibold text-gray-900 text-xl">Models Của Tôi</h3>
                   <div className="text-sm text-gray-500">
                     {models?.length || 0} models
@@ -798,19 +840,48 @@ export default function TryOnPage() {
                       
                       {/* Delete Button */}
                       <button
-                        onClick={async () => {
-                          if (confirm('Bạn có chắc muốn xóa trang phục này khỏi tủ đồ?')) {
-                            try {
-                              await deleteModel(model.id)
-                              toast.success('🗑️ Đã xóa trang phục!')
-                            } catch (error) {
-                              console.error('Delete error:', error)
-                              toast.error('❌ Lỗi xóa trang phục')
-                            }
-                          }
+                        onClick={() => {
+                          toast.custom((t) => (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                              transition={{ duration: 0.2 }}
+                              className="bg-amber-50 border border-amber-200 rounded-lg p-4 shadow-lg flex flex-col items-center max-w-sm mx-auto"
+                            >
+                              <p className="text-lg font-semibold text-gray-900 mb-3">Xác nhận xóa Model</p>
+                              <p className="text-sm text-gray-600 text-center mb-4">Bạn có chắc chắn muốn xóa model này? Hành động này không thể hoàn tác.</p>
+                              <div className="flex gap-3">
+                                <button
+                                  onClick={() => toast.dismiss(t.id)}
+                                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 text-sm font-medium transition-colors"
+                                >
+                                  Hủy
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    toast.dismiss(t.id)
+                                    try {
+                                      await deleteModel(model.id)
+                                      toast.success('🗑️ Đã xóa model!')
+                                    } catch (error) {
+                                      console.error('Delete error:', error)
+                                      toast.error('❌ Lỗi xóa model')
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition-colors"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </motion.div>
+                          ), {
+                            duration: Infinity, // Keep the toast open until dismissed
+                            id: 'delete-model-confirm' // Unique ID to manage this toast
+                          })
                         }}
                         className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all opacity-90 hover:opacity-100 shadow-lg hover:shadow-xl"
-                        title="Xóa trang phục"
+                        title="Xóa model"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -875,7 +946,30 @@ export default function TryOnPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Garment Selection Modal */}
+      <GarmentSelectionModal
+        isOpen={showGarmentSelectionModal}
+        onClose={() => setShowGarmentSelectionModal(false)}
+        onSelectFromDevice={handleSelectGarmentFromDevice}
+        onSelectFromWardrobe={handleSelectGarmentFromWardrobe}
+      />
+
+      {/* Mini Wardrobe Modal */}
+      <MiniWardrobeModal
+        isOpen={showMiniWardrobeModal}
+        onClose={() => setShowMiniWardrobeModal(false)}
+        onSelectGarment={handleGarmentFromMiniWardrobe}
+      />
       </div>
     </AuthGuard>
+  )
+}
+
+export default function TryOnPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <TryOnPageContent />
+    </Suspense>
   )
 }

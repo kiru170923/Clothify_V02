@@ -111,7 +111,7 @@ export default function TryOnButton({
           relative overflow-hidden px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300
           ${isDisabled 
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-            : 'bg-gray-900 hover:bg-gray-800 text-white shadow-lg hover:shadow-xl'
+            : 'bg-amber-600 hover:bg-amber-700 text-white shadow-lg hover:shadow-xl'
           }
         `}
       >
@@ -143,9 +143,9 @@ export default function TryOnButton({
 
         {/* Progress bar */}
         {isProcessing && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-200">
             <motion.div
-              className="h-full bg-blue-500"
+              className="h-full bg-amber-500"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}

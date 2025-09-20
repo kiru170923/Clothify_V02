@@ -73,7 +73,7 @@ export default function Sidebar() {
         <motion.div
           whileHover={{ scale: 1.1, rotate: 5 }}
           whileTap={{ scale: 0.95 }}
-          className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg cursor-pointer"
+          className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg cursor-pointer"
           onClick={() => router.push('/')}
         >
           <SparklesIcon className="w-4 h-4 text-white" />
@@ -101,7 +101,7 @@ export default function Sidebar() {
               `}
               title={item.label}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-amber-900' : 'group-hover:text-amber-800'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-amber-900' : 'group-hover:text-amber-800 text-amber-700'}`} />
               
               {/* Active indicator */}
               {isActive && (
@@ -126,10 +126,10 @@ export default function Sidebar() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="flex items-center justify-center p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200"
+          className="flex items-center justify-center p-2 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200"
           title="Pro Tip: Sử dụng ảnh có độ phân giải cao và nền sáng để có kết quả tốt nhất"
         >
-          <SparklesIcon className="w-4 h-4 text-purple-600" />
+          <SparklesIcon className="w-4 h-4 text-amber-600" />
         </motion.div>
       </div>
     </div>

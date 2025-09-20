@@ -25,8 +25,8 @@ export default function LazyTab({ component }: LazyTabProps) {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <span className="ml-3 text-gray-600">Đang tải...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+        <span className="ml-3 text-amber-600">Đang tải...</span>
       </div>
     }>
       <Component />

@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Settings, Bell, Shield, Palette, Globe, Download, Trash2 } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faGear, faBell, faPalette, faShieldHalved, faDownload, faGlobe, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useSupabase } from './SupabaseProvider'
 
 export const SettingsTab = React.memo(function SettingsTab() {
@@ -42,7 +43,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
       {/* Notifications */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Bell className="w-5 h-5" />
+          <FontAwesomeIcon icon={faBell} className="w-5 h-5" />
           Thông báo
         </h3>
         
@@ -84,7 +85,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
       {/* Appearance */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Palette className="w-5 h-5" />
+          <FontAwesomeIcon icon={faPalette} className="w-5 h-5" />
           Giao diện
         </h3>
         
@@ -124,7 +125,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
       {/* Data & Privacy */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5" />
+          <FontAwesomeIcon icon={faShieldHalved} className="w-5 h-5" />
           Dữ liệu & Quyền riêng tư
         </h3>
         
@@ -165,7 +166,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
       {/* Account Actions */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Settings className="w-5 h-5" />
+          <FontAwesomeIcon icon={faGear} className="w-5 h-5" />
           Tài khoản
         </h3>
         
@@ -174,7 +175,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
             onClick={handleExportData}
             className="w-full flex items-center gap-3 p-4 text-left text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50"
           >
-            <Download className="w-5 h-5" />
+            <FontAwesomeIcon icon={faDownload} className="w-5 h-5" />
             <div>
               <h4 className="font-medium">Xuất dữ liệu</h4>
               <p className="text-sm text-gray-500">Tải xuống tất cả dữ liệu của bạn</p>
@@ -185,7 +186,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
             onClick={signOut}
             className="w-full flex items-center gap-3 p-4 text-left text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50"
           >
-            <Globe className="w-5 h-5" />
+            <FontAwesomeIcon icon={faGlobe} className="w-5 h-5" />
             <div>
               <h4 className="font-medium">Đăng xuất</h4>
               <p className="text-sm text-gray-500">Đăng xuất khỏi tài khoản</p>
@@ -196,7 +197,7 @@ export const SettingsTab = React.memo(function SettingsTab() {
             onClick={handleDeleteAccount}
             className="w-full flex items-center gap-3 p-4 text-left text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
           >
-            <Trash2 className="w-5 h-5" />
+            <FontAwesomeIcon icon={faTrash} className="w-5 h-5" />
             <div>
               <h4 className="font-medium">Xóa tài khoản</h4>
               <p className="text-sm text-red-500">Xóa vĩnh viễn tài khoản và dữ liệu</p>

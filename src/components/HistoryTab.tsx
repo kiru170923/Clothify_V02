@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
-import { History, Download, Trash2, Calendar, Image as ImageIcon, Filter, ChevronDown } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faClock, faDownload, faTrash, faFilter, faChevronDown, faImage } from '@fortawesome/free-solid-svg-icons'
 import { ImageModal } from './ImageModal'
 import { useHistory, useDeleteHistory } from '../hooks/useHistory'
 import { useQueryClient } from '@tanstack/react-query'
@@ -144,9 +145,9 @@ export const HistoryTab = React.memo(function HistoryTab() {
             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
             className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors text-sm font-medium"
           >
-            <Filter className="w-4 h-4" />
+            <FontAwesomeIcon icon={faFilter} className="w-4 h-4" />
             <span>{filterOptions.find(opt => opt.value === dateFilter)?.label}</span>
-            <ChevronDown className="w-4 h-4" />
+            <FontAwesomeIcon icon={faChevronDown} className="w-4 h-4" />
           </button>
           
           {showFilterDropdown && (
@@ -173,7 +174,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
       {historyItems.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <History className="w-8 h-8 text-gray-400" />
+            <FontAwesomeIcon icon={faClock} className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Chưa có lịch sử nào
@@ -224,7 +225,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
                       }}
                       className="p-1.5 bg-white/90 rounded-full shadow-lg hover:bg-white transition-colors"
                     >
-                      <Download className="w-3 h-3 text-gray-700" />
+                      <FontAwesomeIcon icon={faDownload} className="w-3 h-3 text-gray-700" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -233,7 +234,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
                       }}
                       className="p-1.5 bg-red-500/90 text-white rounded-full hover:bg-red-500 transition-colors"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -252,7 +253,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
                         }}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-md flex items-center justify-center">
-                        <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <FontAwesomeIcon icon={faImage} className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Bản thân</p>
@@ -269,7 +270,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
                         }}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-md flex items-center justify-center">
-                        <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <FontAwesomeIcon icon={faImage} className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Quần áo</p>

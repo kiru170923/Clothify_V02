@@ -18,8 +18,8 @@ export default function NotificationProvider() {
           className: '',
           duration: 4000,
           style: {
-            background: '#363636',
-            color: '#fff',
+            background: '#f6f1e9',
+            color: '#333',
             fontSize: '14px',
             fontWeight: '500',
             borderRadius: '12px',
@@ -31,12 +31,12 @@ export default function NotificationProvider() {
           success: {
             duration: 3000,
             style: {
-              background: 'linear-gradient(135deg, #10B981, #059669)',
-              color: '#fff',
+              background: 'linear-gradient(135deg, #FACC15, #F59E0B)',
+              color: '#333',
             },
             iconTheme: {
-              primary: '#fff',
-              secondary: '#10B981',
+              primary: '#333',
+              secondary: '#FACC15',
             },
           },
           error: {
@@ -52,12 +52,12 @@ export default function NotificationProvider() {
           },
           loading: {
             style: {
-              background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
-              color: '#fff',
+              background: 'linear-gradient(135deg, #FACC15, #F59E0B)',
+              color: '#333',
             },
             iconTheme: {
-              primary: '#fff',
-              secondary: '#6366F1',
+              primary: '#333',
+              secondary: '#FACC15',
             },
           },
         }}

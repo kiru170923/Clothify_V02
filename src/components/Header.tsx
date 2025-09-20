@@ -11,6 +11,8 @@ import {
   CreditCardIcon,
   UserIcon
 } from '@heroicons/react/24/outline'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCoins, faUser, faCreditCard, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useSupabase } from './SupabaseProvider'
 import React from 'react'
 import { UserTokens } from '../types/membership'
@@ -55,9 +57,7 @@ export default function Header() {
           {/* Token Display */}
           {user && (
             <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg">
-              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
+              <FontAwesomeIcon icon={faCoins} className="w-4 h-4 text-amber-600" />
               <span className="text-sm font-medium text-amber-700">
                 {loadingTokens ? '...' : displayTokens}
               </span>
@@ -66,13 +66,13 @@ export default function Header() {
 
           {/* Notifications */}
           <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-50 transition-all duration-200">
-            <BellIcon className="w-6 h-6" />
+            <BellIcon className="w-6 h-6 text-amber-600" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
           {/* User menu */}
           <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <Menu.Button className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
               <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
                 {user?.user_metadata?.avatar_url ? (
                   <img
@@ -81,7 +81,7 @@ export default function Header() {
                     className="w-8 h-8 rounded-lg object-cover"
                   />
                 ) : (
-                  <UserCircleIcon className="w-5 h-5 text-white" />
+                  <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-white" />
                 )}
               </div>
               <div className="hidden sm:block text-left">
@@ -118,10 +118,10 @@ export default function Header() {
                       <a
                         href="/profile"
                         className={`${
-                          active ? 'bg-gray-50' : ''
-                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors`}
+                          active ? 'bg-amber-50' : ''
+                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-amber-700 transition-colors`}
                       >
-                        <UserIcon className="w-5 h-5 text-gray-400" />
+                        <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-amber-500" />
                         Hồ sơ cá nhân
                       </a>
                     )}
@@ -132,10 +132,10 @@ export default function Header() {
                       <a
                         href="/membership"
                         className={`${
-                          active ? 'bg-gray-50' : ''
-                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors`}
+                          active ? 'bg-amber-50' : ''
+                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-amber-700 transition-colors`}
                       >
-                        <CreditCardIcon className="w-5 h-5 text-gray-400" />
+                        <FontAwesomeIcon icon={faCreditCard} className="w-5 h-5 text-amber-500" />
                         Membership
                       </a>
                     )}
@@ -153,10 +153,10 @@ export default function Header() {
                           }
                         }}
                         className={`${
-                          active ? 'bg-gray-50' : ''
-                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors`}
+                          active ? 'bg-amber-50' : ''
+                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-amber-700 transition-colors`}
                       >
-                        <ArrowRightOnRectangleIcon className="w-5 h-5 text-gray-400" />
+                        <FontAwesomeIcon icon={faRightFromBracket} className="w-5 h-5 text-amber-500" />
                         Đăng xuất
                       </button>
                     )}

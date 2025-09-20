@@ -8,8 +8,10 @@ import toast from 'react-hot-toast'
 import { useSupabase } from '../../components/SupabaseProvider'
 import { GridSkeleton, ImageSkeleton, LoadingText } from '../../components/SkeletonLoader'
 import AuthGuard from '../../components/AuthGuard'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShirt, faTshirt, faBagShopping } from '@fortawesome/free-solid-svg-icons'
 
-interface WardrobeItem {
+export interface WardrobeItem {
   id: string
   user_id: string
   image_url: string
@@ -29,6 +31,7 @@ export default function WardrobePage() {
   const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false) // New state for upload loading
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   
@@ -93,6 +96,7 @@ export default function WardrobePage() {
   const uploadWardrobeItem = async (file: File) => {
     if (!session?.access_token) return
     
+    setIsUploading(true) // Set uploading state to true
     try {
       // Convert to base64
       const reader = new FileReader()
@@ -123,6 +127,8 @@ export default function WardrobePage() {
     } catch (error) {
       console.error('Error uploading wardrobe item:', error)
       toast.error('❌ Lỗi upload trang phục')
+    } finally {
+      setIsUploading(false) // Reset uploading state to false
     }
   }
 
@@ -136,13 +142,13 @@ export default function WardrobePage() {
   })
 
   const categories = [
-    { key: 'all', label: 'Tất cả', icon: '👕', count: wardrobeItems.length },
-    { key: 'top', label: 'Áo', icon: '👕', count: wardrobeItems.filter(item => item.category === 'top').length },
-    { key: 'bottom', label: 'Quần', icon: '👖', count: wardrobeItems.filter(item => item.category === 'bottom').length },
-    { key: 'dress', label: 'Đầm', icon: '👗', count: wardrobeItems.filter(item => item.category === 'dress').length },
-    { key: 'shoes', label: 'Giày', icon: '👟', count: wardrobeItems.filter(item => item.category === 'shoes').length },
-    { key: 'accessory', label: 'Phụ kiện', icon: '👜', count: wardrobeItems.filter(item => item.category === 'accessory' || item.category === 'accessories').length },
-    { key: 'outerwear', label: 'Áo khoác', icon: '🧥', count: wardrobeItems.filter(item => item.category === 'outerwear').length }
+    { key: 'all', label: 'Tất cả', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.length },
+    { key: 'top', label: 'Áo', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'top').length },
+    { key: 'bottom', label: 'Quần', icon: <FontAwesomeIcon icon={faTshirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'bottom').length },
+    { key: 'dress', label: 'Đầm', icon: <FontAwesomeIcon icon={faTshirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'dress').length },
+    { key: 'shoes', label: 'Giày', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'shoes').length },
+    { key: 'accessory', label: 'Phụ kiện', icon: <FontAwesomeIcon icon={faBagShopping} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'accessory' || item.category === 'accessories').length },
+    { key: 'outerwear', label: 'Áo khoác', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'outerwear').length }
   ]
 
   return (
@@ -171,12 +177,13 @@ export default function WardrobePage() {
                 <h3 className="font-semibold text-gray-900 text-lg">Danh mục</h3>
                 <button
                   onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                  disabled={isUploading} // Disable button during upload
+                  className={`flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors ${
+                    isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Thêm trang phục
+                  {isUploading ? 'Đang tải lên...' : 'Thêm trang phục'}
+                  {isUploading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>} {/* Loading spinner */}
                 </button>
               </div>
               
@@ -191,12 +198,12 @@ export default function WardrobePage() {
                         : 'bg-white border border-gray-200 hover:border-gray-300 text-gray-700'
                     }`}
                   >
-                    <span className="text-base">{category.icon}</span>
+                    <span className="text-amber-600">{category.icon}</span>
                     <span>{category.label}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                       selectedCategory === category.key
                         ? 'bg-amber-500 text-white'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-amber-100 text-amber-600'
                     }`}>
                       {category.count}
                     </span>
@@ -246,9 +253,44 @@ export default function WardrobePage() {
                       {/* Delete Button */}
                       <button
                         onClick={() => {
-                          if (confirm('Bạn có chắc muốn xóa trang phục này?')) {
-                            deleteWardrobeItem(item.id)
-                          }
+                          toast.custom((t) => (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                              transition={{ duration: 0.2 }}
+                              className="bg-amber-50 border border-amber-200 rounded-lg p-4 shadow-lg flex flex-col items-center max-w-sm mx-auto"
+                            >
+                              <p className="text-lg font-semibold text-gray-900 mb-3">Xác nhận xóa Trang phục</p>
+                              <p className="text-sm text-gray-600 text-center mb-4">Bạn có chắc chắn muốn xóa trang phục này khỏi tủ đồ? Hành động này không thể hoàn tác.</p>
+                              <div className="flex gap-3">
+                                <button
+                                  onClick={() => toast.dismiss(t.id)}
+                                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 text-sm font-medium transition-colors"
+                                >
+                                  Hủy
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    toast.dismiss(t.id)
+                                    try {
+                                      await deleteWardrobeItem(item.id)
+                                      toast.success('🗑️ Đã xóa trang phục!')
+                                    } catch (error) {
+                                      console.error('Delete error:', error)
+                                      toast.error('❌ Lỗi xóa trang phục')
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition-colors"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </motion.div>
+                          ), {
+                            duration: Infinity, // Keep the toast open until dismissed
+                            id: 'delete-wardrobe-confirm' // Unique ID to manage this toast
+                          })
                         }}
                         className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all opacity-90 hover:opacity-100 shadow-lg"
                         title="Xóa trang phục"
