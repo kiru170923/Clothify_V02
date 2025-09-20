@@ -9,7 +9,9 @@ import {
   ClockIcon, 
   Cog6ToothIcon,
   SparklesIcon,
-  CameraIcon
+  CameraIcon,
+  SwatchIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -17,27 +19,29 @@ import {
   UserIcon as UserIconSolid,
   ClockIcon as ClockIconSolid,
   Cog6ToothIcon as Cog6ToothIconSolid,
-  CameraIcon as CameraIconSolid
+  CameraIcon as CameraIconSolid,
+  SwatchIcon as SwatchIconSolid,
+  CreditCardIcon as CreditCardIconSolid
 } from '@heroicons/react/24/solid'
 
 const menuItems = [
   {
-    id: '/',
+    id: '/landing',
     icon: HomeIcon,
     iconActive: HomeIconSolid,
-    label: 'Tư vấn AI'
+    label: 'Trang chủ'
   },
   {
     id: '/try-on',
     icon: CameraIcon,
     iconActive: CameraIconSolid,
-    label: 'Thử đồ'
+    label: 'Thử đồ AI'
   },
   {
     id: '/wardrobe',
-    icon: PhotoIcon,
-    iconActive: PhotoIconSolid,
-    label: 'Tủ đồ'
+    icon: SwatchIcon,
+    iconActive: SwatchIconSolid,
+    label: 'Tủ đồ của bạn'
   },
   {
     id: '/history',
@@ -46,16 +50,16 @@ const menuItems = [
     label: 'Lịch sử'
   },
   {
+    id: '/membership',
+    icon: CreditCardIcon,
+    iconActive: CreditCardIconSolid,
+    label: 'Gói VIP'
+  },
+  {
     id: '/profile',
     icon: UserIcon,
     iconActive: UserIconSolid,
     label: 'Hồ sơ'
-  },
-  {
-    id: '/settings',
-    icon: Cog6ToothIcon,
-    iconActive: Cog6ToothIconSolid,
-    label: 'Cài đặt'
   }
 ]
 

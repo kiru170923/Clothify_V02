@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 import { useGenerateModel } from '../../hooks/useGenerateModel'
 import { useMyModels } from '../../hooks/useMyModels'
 import { useSupabase } from '../../components/SupabaseProvider'
+import { ImageSkeleton, LoadingText, GridSkeleton } from '../../components/SkeletonLoader'
 
 export default function TryOnPage() {
   const searchParams = useSearchParams()
@@ -754,9 +755,11 @@ export default function TryOnPage() {
                 <div className="pb-5"></div>
               
               {isLoadingModels ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                  <span className="ml-2 text-gray-600">Loading models...</span>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingText text="Đang tải models của bạn..." className="text-lg" />
+                  </div>
+                  <GridSkeleton items={6} columns={3} />
                 </div>
               ) : models.length === 0 ? (
                 <div className="text-center py-12">

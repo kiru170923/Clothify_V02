@@ -4,6 +4,7 @@ import './globals.css'
 import { SupabaseProvider } from '@/components/SupabaseProvider'
 import { QueryProvider } from '@/components/QueryProvider'
 import AuthGuard from '@/components/AuthGuard'
+import NotificationProvider from '@/components/NotificationProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -30,6 +31,7 @@ export default function RootLayout({
           <SupabaseProvider>
             <AuthGuard>
               {children}
+              <NotificationProvider />
             </AuthGuard>
           </SupabaseProvider>
         </QueryProvider>

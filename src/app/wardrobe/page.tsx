@@ -6,6 +6,7 @@ import Header from '../../components/Header'
 import Sidebar from '../../components/Sidebar'
 import toast from 'react-hot-toast'
 import { useSupabase } from '../../components/SupabaseProvider'
+import { GridSkeleton, ImageSkeleton, LoadingText } from '../../components/SkeletonLoader'
 
 interface WardrobeItem {
   id: string
@@ -205,9 +206,11 @@ export default function WardrobePage() {
             {/* Wardrobe Items */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">Đang tải...</span>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingText text="Đang tải tủ đồ của bạn..." className="text-lg" />
+                  </div>
+                  <GridSkeleton items={8} columns={4} />
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="text-center py-12">

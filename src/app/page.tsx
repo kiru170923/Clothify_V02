@@ -1,21 +1,21 @@
 'use client'
 
-import React from 'react'
-import Header from '../components/Header'
-import Sidebar from '../components/Sidebar'
-import FashionChatbot from '../components/FashionChatbot'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Redirect to landing page
+    router.replace('/landing')
+  }, [router])
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <div className="flex">
-        <Sidebar />
-        
-        <main className="flex-1 p-6 lg:p-8">
-          <FashionChatbot />
-        </main>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-white text-center">
+        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p>Đang chuyển hướng...</p>
       </div>
     </div>
   )
