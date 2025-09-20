@@ -182,7 +182,7 @@ export default function TryOnPage() {
             {/* Upload Section - New Layout Like Image */}
             <div className="flex gap-6 mb-8">
               {/* Select Model Section */}
-              <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex-1 bg-white rounded-xl shadow-sm border border-amber-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="font-semibold text-gray-900">Chọn Model</h3>
                   <div className="relative">
@@ -270,7 +270,7 @@ export default function TryOnPage() {
                 <div className="space-y-2">
                   <button 
                     onClick={() => setShowPromptModal(true)}
-                    className="w-full flex items-center gap-2 px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
@@ -279,7 +279,7 @@ export default function TryOnPage() {
                   </button>
                   <button 
                     onClick={() => setShowMyModelsModal(true)}
-                    className="w-full flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
@@ -315,7 +315,7 @@ export default function TryOnPage() {
               </div>
 
               {/* Select Garment Section */}
-              <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex-1 bg-white rounded-xl shadow-sm border border-amber-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="font-semibold text-gray-900">Chọn Trang Phục</h3>
                   <div className="relative">
@@ -398,7 +398,7 @@ export default function TryOnPage() {
                             <div className="space-y-3 text-sm text-gray-600">
                               <div className="p-3 bg-blue-50 rounded-lg">
                                 <p className="font-semibold text-blue-800">🤖 Tự động</p>
-                                <p className="text-blue-700">AI tự phân tích và quyết định cách thay đổi trang phục. Phù hợp khi không chắc chắn loại trang phục.</p>
+                                <p className="text-amber-700">AI tự phân tích và quyết định cách thay đổi trang phục. Phù hợp khi không chắc chắn loại trang phục.</p>
                               </div>
                               
                               <div className="p-3 bg-green-50 rounded-lg">
@@ -413,7 +413,7 @@ export default function TryOnPage() {
                               
                               <div className="p-3 bg-purple-50 rounded-lg">
                                 <p className="font-semibold text-purple-800">👗 Toàn thân</p>
-                                <p className="text-purple-700">Thay đổi toàn bộ trang phục (đầm, jumpsuit, bộ đồ liền). Tốt nhất cho đầm, váy liền thân...</p>
+                                <p className="text-amber-700">Thay đổi toàn bộ trang phục (đầm, jumpsuit, bộ đồ liền). Tốt nhất cho đầm, váy liền thân...</p>
                               </div>
                               
                               <div className="p-2 bg-amber-100 rounded">
@@ -432,7 +432,7 @@ export default function TryOnPage() {
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         selectedGarmentType === 'auto' 
                           ? 'bg-amber-200 text-amber-800' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                       }`}
                     >
                       Tự động
@@ -442,7 +442,7 @@ export default function TryOnPage() {
                       className={`px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-1 transition-colors ${
                         selectedGarmentType === 'top' 
                           ? 'bg-amber-200 text-amber-800' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                       }`}
                     >
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -455,7 +455,7 @@ export default function TryOnPage() {
                       className={`px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-1 transition-colors ${
                         selectedGarmentType === 'bottom' 
                           ? 'bg-amber-200 text-amber-800' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                       }`}
                     >
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -468,7 +468,7 @@ export default function TryOnPage() {
                       className={`px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-1 transition-colors ${
                         selectedGarmentType === 'full-body' 
                           ? 'bg-amber-200 text-amber-800' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                       }`}
                     >
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -605,8 +605,8 @@ export default function TryOnPage() {
                       onClick={() => setSelectedGender('male')}
                       className={`p-4 border-2 rounded-lg transition-all ${
                         selectedGender === 'male'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-blue-300 text-gray-700'
+                          ? 'border-amber-500 bg-amber-50 text-amber-700'
+                          : 'border-gray-200 hover:border-amber-300 text-gray-700'
                       }`}
                     >
                       <div className="text-center">
@@ -627,7 +627,7 @@ export default function TryOnPage() {
                     placeholder="Ví dụ: Beautiful Asian woman, 25 years old, long black hair..."
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
-                    className="w-full h-20 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    className="w-full h-20 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Để trống để sử dụng prompt mặc định
@@ -741,7 +741,7 @@ export default function TryOnPage() {
                       }
                       input.click()
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -773,7 +773,7 @@ export default function TryOnPage() {
                       setShowMyModelsModal(false)
                       setShowPromptModal(true)
                     }}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                   >
                     Tạo Model AI
                   </button>

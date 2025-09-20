@@ -98,9 +98,9 @@ export default function MembershipPage() {
 
   if (loadingPlans) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center" style={{ backgroundColor: '#f6f1e9' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Đang tải các gói membership...</p>
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function MembershipPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <motion.div
@@ -131,7 +131,7 @@ export default function MembershipPage() {
             <Switch
               checked={billingCycle === 'yearly'}
               onChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
-              className="relative inline-flex h-8 w-14 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="relative inline-flex h-8 w-14 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
             >
               <span
                 className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
@@ -192,7 +192,7 @@ export default function MembershipPage() {
                   <td className="py-4 px-4 text-gray-700">Tokens/{(billingCycle === 'monthly' ? 'tháng' : 'năm')}</td>
                   {plans.map((plan, index) => (
                     <td key={index} className="text-center py-4 px-4">
-                      <span className="font-semibold text-blue-600">
+                      <span className="font-semibold text-amber-600">
                         {billingCycle === 'monthly' ? plan.tokens_monthly : plan.tokens_yearly}
                       </span>
                     </td>

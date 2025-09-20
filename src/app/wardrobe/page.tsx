@@ -145,7 +145,7 @@ export default function WardrobePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
       <Header />
       
       <div className="flex">
@@ -155,8 +155,8 @@ export default function WardrobePage() {
           <div className="max-w-6xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                Tủ đồ của bạn
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4">
+                Tủ đồ của bạn ✨
               </h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 Quản lý và phân loại quần áo của bạn với AI
@@ -169,7 +169,7 @@ export default function WardrobePage() {
                 <h3 className="font-semibold text-gray-900 text-lg">Danh mục</h3>
                 <button
                   onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -185,7 +185,7 @@ export default function WardrobePage() {
                     onClick={() => setSelectedCategory(category.key)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all ${
                       selectedCategory === category.key
-                        ? 'bg-blue-600 text-white shadow-md'
+                        ? 'bg-amber-600 text-white shadow-md'
                         : 'bg-white border border-gray-200 hover:border-gray-300 text-gray-700'
                     }`}
                   >
@@ -193,7 +193,7 @@ export default function WardrobePage() {
                     <span>{category.label}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                       selectedCategory === category.key
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-amber-500 text-white'
                         : 'bg-gray-100 text-gray-600'
                     }`}>
                       {category.count}
@@ -223,7 +223,7 @@ export default function WardrobePage() {
                   <p className="text-gray-600 mb-4">Thêm trang phục đầu tiên để bắt đầu</p>
                   <button
                     onClick={() => setShowUploadModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                   >
                     Thêm trang phục
                   </button>
@@ -265,12 +265,12 @@ export default function WardrobePage() {
                         {/* AI Classification Info */}
                         <div className="flex items-center gap-2 text-xs">
                           <span className={`px-2 py-1 rounded-full text-white font-medium ${
-                            item.category === 'top' ? 'bg-blue-500' :
-                            item.category === 'bottom' ? 'bg-green-500' :
-                            item.category === 'dress' ? 'bg-pink-500' :
-                            item.category === 'shoes' ? 'bg-purple-500' :
-                            item.category === 'accessories' ? 'bg-orange-500' :
-                            item.category === 'outerwear' ? 'bg-gray-500' :
+                            item.category === 'top' ? 'bg-amber-500' :
+                            item.category === 'bottom' ? 'bg-yellow-500' :
+                            item.category === 'dress' ? 'bg-amber-400' :
+                            item.category === 'shoes' ? 'bg-orange-500' :
+                            item.category === 'accessories' ? 'bg-amber-600' :
+                            item.category === 'outerwear' ? 'bg-yellow-600' :
                             'bg-gray-400'
                           }`}>
                             {item.category === 'top' ? 'Áo' :
