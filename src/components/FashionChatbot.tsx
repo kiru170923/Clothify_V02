@@ -72,7 +72,7 @@ export default function FashionChatbot() {
       {
         id: '1',
         type: 'bot',
-        content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
+        content: '👋 Hello! I am AI Fashion Advisor. Please send a Shopee product link so I can analyze and give you fashion advice!',
         timestamp: new Date()
       }
     ]
@@ -91,14 +91,14 @@ export default function FashionChatbot() {
 
   const handleTryOn = (imageUrl: string) => {
     if (!imageUrl) {
-      toast.error('Không có ảnh sản phẩm để thử đồ')
+      toast.error('No product image to try on')
       return
     }
     
     // Encode image URL and navigate to try-on page
     const encodedImageUrl = encodeURIComponent(imageUrl)
     router.push(`/try-on?clothing=${encodedImageUrl}`)
-    toast.success('Chuyển đến trang thử đồ ảo...')
+    toast.success('Redirecting to virtual try-on page...')
   }
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,13 +106,13 @@ export default function FashionChatbot() {
     if (file) {
       // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 10MB.')
+        toast.error('Image too large. Please choose an image smaller than 10MB.')
         return
       }
       
       // Check file type
       if (!file.type.startsWith('image/')) {
-        toast.error('Vui lòng chọn file ảnh hợp lệ.')
+        toast.error('Please select a valid image file.')
         return
       }
       
@@ -125,13 +125,20 @@ export default function FashionChatbot() {
       }
       reader.readAsDataURL(file)
     }
+    event.target.value = ''; // Clear the file input after selection
   }
 
   const removeImage = () => {
     setSelectedImage(null)
     setImagePreview(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = ''; // Giữ lại dòng này nhưng tôi sẽ thêm một cách xử lý khác.
+      try {
+        const dataTransfer = new DataTransfer();
+        fileInputRef.current.files = dataTransfer.files;
+      } catch (e) {
+        console.error("Could not reset file input using DataTransfer:", e);
+      }
     }
     
     // Clean up any existing object URLs
@@ -158,11 +165,11 @@ export default function FashionChatbot() {
     const initialMessage: Message = {
       id: '1',
       type: 'bot',
-      content: '👋 Chào bạn! Tôi là AI Fashion Advisor. Hãy gửi link sản phẩm Shopee để tôi phân tích và tư vấn thời trang cho bạn nhé!',
+        content: '👋 Hello! I am AI Fashion Advisor. Please send a Shopee product link so I can analyze and give you fashion advice!',
       timestamp: new Date()
     }
     setMessages([initialMessage])
-    toast.success('Đã xóa hội thoại!', {
+    toast.success('Conversation cleared!', {
       duration: 2000,
       icon: '🗑️',
       style: {
@@ -180,7 +187,7 @@ export default function FashionChatbot() {
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue || 'Đã gửi ảnh để phân tích',
+      content: inputValue || 'Image sent for analysis',
       timestamp: new Date(),
       image: selectedImage ? URL.createObjectURL(selectedImage) : undefined
     }
@@ -196,7 +203,7 @@ export default function FashionChatbot() {
         
         const formData = new FormData()
         formData.append('image', selectedImage)
-        formData.append('message', inputValue || 'Phân tích trang phục và đưa ra gợi ý')
+        formData.append('message', inputValue || 'Analyze clothing and provide suggestions')
         
         console.log('🔍 Sending FormData to /api/chat...')
         
@@ -220,24 +227,24 @@ export default function FashionChatbot() {
         if (!contentType || !contentType.includes('application/json')) {
           const responseText = await response.text()
           console.error('❌ Non-JSON response:', responseText)
-          throw new Error(`Server trả về response không đúng format: ${responseText.substring(0, 200)}...`)
+          throw new Error(`Server returned incorrect format response: ${responseText.substring(0, 200)}...`)
         }
         
         const data = await response.json()
         console.log('✅ Image analysis response:', data)
         
         if (!data.success) {
-          throw new Error(data.error || 'Không thể phân tích ảnh')
+          throw new Error(data.error || 'Cannot analyze image')
         }
         
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: data.response || 'Xin lỗi, tôi không thể phân tích ảnh này.',
+          content: data.response || 'Sorry, I cannot analyze this image.',
           timestamp: new Date()
         }
         setMessages(prev => [...prev, botMessage])
-        toast.success('Phân tích ảnh thành công!')
+        toast.success('Image analysis successful!')
         
         // Clear image after sending
         removeImage()
@@ -256,7 +263,7 @@ export default function FashionChatbot() {
         if (!contentType || !contentType.includes('application/json')) {
           const responseText = await response.text()
           console.error('Non-JSON response:', responseText)
-          throw new Error(`Server trả về response không đúng format: ${responseText.substring(0, 100)}...`)
+          throw new Error(`Server returned incorrect format response: ${responseText.substring(0, 100)}...`)
         }
 
         const data = await response.json()
@@ -266,14 +273,14 @@ export default function FashionChatbot() {
           const botMessage: Message = {
             id: (Date.now() + 1).toString(),
             type: 'bot',
-            content: data.advice || 'Tôi đã phân tích sản phẩm này! Đây là thông tin chi tiết và lời khuyên thời trang:',
+            content: data.advice || 'I have analyzed this product! Here is detailed information and fashion advice:',
             timestamp: new Date(),
             product: data.product
           }
           setMessages(prev => [...prev, botMessage])
-          toast.success('Phân tích sản phẩm thành công!')
+          toast.success('Product analysis successful!')
         } else {
-          throw new Error(data.error || 'Không thể phân tích sản phẩm')
+          throw new Error(data.error || 'Cannot analyze product')
         }
       } else {
         // Regular chat response with context
@@ -300,20 +307,20 @@ export default function FashionChatbot() {
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: data.response || 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
+          content: data.response || 'Sorry, I do not understand your question.',
           timestamp: new Date()
         }
         setMessages(prev => [...prev, botMessage])
       }
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
       toast.error(errorMessage)
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: `❌ **Lỗi**: ${errorMessage}\n\n💡 **Gợi ý**:\n- Kiểm tra lại link Shopee có đúng không\n- Thử lại sau vài giây\n- Liên hệ support nếu vấn đề tiếp tục`,
+        content: `❌ **Error**: ${errorMessage}\n\n💡 **Suggestions**:\n- Check if the Shopee link is correct\n- Try again in a few seconds\n- Contact support if the problem continues`,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, botMessage])
@@ -348,10 +355,10 @@ export default function FashionChatbot() {
           whileTap={{ scale: 0.95 }}
           onClick={clearConversation}
           className="fixed top-16 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors"
-          title="Xóa hội thoại"
+          title="Clear conversation"
         >
           <TrashIcon className="w-4 h-4" />
-          <span className="text-sm font-medium hidden sm:inline">Xóa hội thoại</span>
+          <span className="text-sm font-medium hidden sm:inline">Clear conversation</span>
         </motion.button>
       )}
 
@@ -363,7 +370,7 @@ export default function FashionChatbot() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">AI Fashion Advisor</h2>
-            <p className="text-sm text-gray-600">Tư vấn thời trang thông minh</p>
+            <p className="text-sm text-gray-600">Smart fashion advice</p>
           </div>
         </div>
       </div>
@@ -467,8 +474,8 @@ export default function FashionChatbot() {
                           {renderStars(message.product.rating)}
                           <span className="ml-1">{message.product.rating}</span>
                         </div>
-                        <span>{message.product.reviewCount} đánh giá</span>
-                        <span>{message.product.sold} đã bán</span>
+                        <span>{message.product.reviewCount} reviews</span>
+                        <span>{message.product.sold} sold</span>
                       </div>
 
                       {/* Brand & Category */}
@@ -503,7 +510,7 @@ export default function FashionChatbot() {
                            <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                            </svg>
-                           Thử đồ ảo
+                           Virtual Try-On
                          </button>
                          <button 
                            onClick={() => {
@@ -543,7 +550,7 @@ export default function FashionChatbot() {
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
                 <span className="text-sm text-gray-600">
-                  {inputValue.includes('shopee') ? 'Đang phân tích sản phẩm Shopee...' : 'AI đang suy nghĩ...'}
+                  {inputValue.includes('shopee') ? 'Analyzing Shopee product...' : 'AI is thinking...'}
                 </span>
               </div>
             </div>
@@ -586,7 +593,7 @@ export default function FashionChatbot() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Nhập link sản phẩm Shopee, câu hỏi về thời trang hoặc upload ảnh..."
+              placeholder="Enter Shopee product link, fashion questions or upload image..."
               className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={isLoading}
             />
@@ -625,27 +632,27 @@ export default function FashionChatbot() {
 
         {/* Example Links */}
         <div className="mt-3">
-          <p className="text-xs text-gray-500 mb-2">Thử với link Shopee này:</p>
+          <p className="text-xs text-gray-500 mb-2">Try with this Shopee link:</p>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setInputValue('https://shopee.vn/product/123456789')}
               className="text-xs text-blue-600 hover:text-blue-800 underline"
             >
-              Ví dụ link Shopee
+              Example Shopee link
             </button>
             <span className="text-xs text-gray-400">•</span>
             <button
-              onClick={() => setInputValue('Tôi nên mặc gì cho buổi hẹn hò?')}
+              onClick={() => setInputValue('What should I wear for a date?')}
               className="text-xs text-blue-600 hover:text-blue-800 underline"
             >
-              Tư vấn phối đồ
+              Styling advice
             </button>
             <span className="text-xs text-gray-400">•</span>
             <button
-              onClick={() => setInputValue('Xu hướng thời trang mùa hè 2024')}
+              onClick={() => setInputValue('Summer 2024 fashion trends')}
               className="text-xs text-blue-600 hover:text-blue-800 underline"
             >
-              Xu hướng thời trang
+              Fashion trends
             </button>
           </div>
         </div>

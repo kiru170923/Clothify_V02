@@ -17,9 +17,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     try {
       await signIn()
       onClose()
-      toast.success('Đăng nhập thành công!')
+      toast.success('Login successful!')
     } catch (error: any) {
-      toast.error('Lỗi đăng nhập: ' + error.message)
+      toast.error('Login error: ' + error.message)
     }
   }
 
@@ -44,8 +44,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Chào mừng đến với Clothify</h2>
-              <p className="text-gray-600 mt-1">Đăng nhập để sử dụng AI tư vấn phối đồ</p>
+              <h2 className="text-2xl font-bold text-gray-900">Welcome to Clothify</h2>
+              <p className="text-gray-600 mt-1">Login to use AI styling advice</p>
             </div>
             <button
               onClick={onClose}
@@ -97,17 +97,17 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             <span className="text-gray-700 font-medium group-hover:text-gray-900">
-              Đăng nhập với Google
+              Login with Google
             </span>
           </motion.button>
 
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              Bằng cách đăng nhập, bạn đồng ý với{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-700">Điều khoản sử dụng</a>
-              {' '}và{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-700">Chính sách bảo mật</a>
+              By logging in, you agree to our{' '}
+              <a href="#" className="text-blue-600 hover:text-blue-700">Terms of Service</a>
+              {' '}and{' '}
+              <a href="#" className="text-blue-600 hover:text-blue-700">Privacy Policy</a>
             </p>
           </div>
         </motion.div>

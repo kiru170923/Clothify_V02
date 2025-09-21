@@ -142,13 +142,13 @@ export default function WardrobePage() {
   })
 
   const categories = [
-    { key: 'all', label: 'Tất cả', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.length },
-    { key: 'top', label: 'Áo', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'top').length },
-    { key: 'bottom', label: 'Quần', icon: <FontAwesomeIcon icon={faTshirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'bottom').length },
-    { key: 'dress', label: 'Đầm', icon: <FontAwesomeIcon icon={faTshirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'dress').length },
-    { key: 'shoes', label: 'Giày', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'shoes').length },
-    { key: 'accessory', label: 'Phụ kiện', icon: <FontAwesomeIcon icon={faBagShopping} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'accessory' || item.category === 'accessories').length },
-    { key: 'outerwear', label: 'Áo khoác', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'outerwear').length }
+    { key: 'all', label: 'All', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.length },
+    { key: 'top', label: 'Top', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'top').length },
+    { key: 'bottom', label: 'Bottom', icon: <FontAwesomeIcon icon={faTshirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'bottom').length },
+    { key: 'dress', label: 'Dress', icon: <FontAwesomeIcon icon={faTshirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'dress').length },
+    { key: 'shoes', label: 'Shoes', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'shoes').length },
+    { key: 'accessory', label: 'Accessories', icon: <FontAwesomeIcon icon={faBagShopping} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'accessory' || item.category === 'accessories').length },
+    { key: 'outerwear', label: 'Outerwear', icon: <FontAwesomeIcon icon={faShirt} className="w-4 h-4" />, count: wardrobeItems.filter(item => item.category === 'outerwear').length }
   ]
 
   return (
@@ -164,17 +164,17 @@ export default function WardrobePage() {
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4">
-                Tủ đồ của bạn ✨
+                Your Wardrobe ✨
               </h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Quản lý và phân loại quần áo của bạn với AI
+                Manage and categorize your clothing with AI
               </p>
             </div>
 
             {/* Category Filter */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 text-lg">Danh mục</h3>
+                <h3 className="font-semibold text-gray-900 text-lg">Categories</h3>
                 <button
                   onClick={() => setShowUploadModal(true)}
                   disabled={isUploading} // Disable button during upload
@@ -182,7 +182,7 @@ export default function WardrobePage() {
                     isUploading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {isUploading ? 'Đang tải lên...' : 'Thêm trang phục'}
+                  {isUploading ? 'Uploading...' : 'Add Clothing'}
                   {isUploading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>} {/* Loading spinner */}
                 </button>
               </div>
@@ -227,14 +227,14 @@ export default function WardrobePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <h4 className="text-lg font-medium text-gray-900 mb-2">
-                    {selectedCategory === 'all' ? 'Chưa có trang phục nào' : `Chưa có ${categories.find(c => c.key === selectedCategory)?.label.toLowerCase()}`}
+                    {selectedCategory === 'all' ? 'No clothing items' : `No ${categories.find(c => c.key === selectedCategory)?.label.toLowerCase()}`}
                   </h4>
-                  <p className="text-gray-600 mb-4">Thêm trang phục đầu tiên để bắt đầu</p>
+                  <p className="text-gray-600 mb-4">Add your first clothing item to get started</p>
                   <button
                     onClick={() => setShowUploadModal(true)}
                     className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                   >
-                    Thêm trang phục
+                    Add Clothing
                   </button>
                 </div>
               ) : (
@@ -317,12 +317,12 @@ export default function WardrobePage() {
                             item.category === 'outerwear' ? 'bg-yellow-600' :
                             'bg-gray-400'
                           }`}>
-                            {item.category === 'top' ? 'Áo' :
-                             item.category === 'bottom' ? 'Quần' :
-                             item.category === 'dress' ? 'Đầm' :
-                             item.category === 'shoes' ? 'Giày' :
-                             item.category === 'accessories' ? 'Phụ kiện' :
-                             item.category === 'outerwear' ? 'Áo khoác' :
+                            {item.category === 'top' ? 'Top' :
+                             item.category === 'bottom' ? 'Bottom' :
+                             item.category === 'dress' ? 'Dress' :
+                             item.category === 'shoes' ? 'Shoes' :
+                             item.category === 'accessories' ? 'Accessories' :
+                             item.category === 'outerwear' ? 'Outerwear' :
                              item.category}
                           </span>
                           <span className="text-gray-500">
@@ -369,7 +369,7 @@ export default function WardrobePage() {
                 </svg>
               </button>
 
-              <h3 className="font-semibold text-gray-900 mb-4">Thêm trang phục vào tủ đồ</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Add Clothing to Wardrobe</h3>
               
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">

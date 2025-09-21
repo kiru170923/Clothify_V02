@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { CheckIcon, StarIcon } from '@heroicons/react/24/solid'
 import { MembershipPlan } from '../types/membership'
 import { formatPrice } from '../types/membership'
+import { MembershipResponse } from '../hooks/useMembership'
 
 interface MembershipCardProps {
   plan: MembershipPlan
@@ -11,18 +12,33 @@ interface MembershipCardProps {
   billingCycle: 'monthly' | 'yearly'
   onSelect: (plan: MembershipPlan, billingCycle: 'monthly' | 'yearly') => void
   isLoading?: boolean
+  currentMembership: MembershipResponse | undefined
+  loadingMembership: boolean
 }
 
-export default function MembershipCard({ 
-  plan, 
-  isPopular = false, 
-  billingCycle, 
-  onSelect, 
-  isLoading = false 
+export default function MembershipCard({
+  plan,
+  isPopular = false,
+  billingCycle,
+  onSelect,
+  isLoading = false,
+  currentMembership,
+  loadingMembership,
 }: MembershipCardProps) {
   const price = billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly
   const tokens = billingCycle === 'monthly' ? plan.tokens_monthly : plan.tokens_yearly
   const savings = billingCycle === 'yearly' ? Math.round((plan.price_monthly * 12 - plan.price_yearly) / (plan.price_monthly * 12) * 100) : 0
+
+  const isCurrentPlan = 
+    !!currentMembership?.membership?.plan &&
+    currentMembership.membership.plan.id === plan.id &&
+    currentMembership.membership.billing_cycle === billingCycle
+
+  const isLowerPlan = 
+    !!currentMembership?.membership?.plan &&
+    (billingCycle === 'monthly' 
+      ? plan.tokens_monthly < currentMembership.membership.plan.tokens_monthly
+      : plan.tokens_yearly < currentMembership.membership.plan.tokens_yearly)
 
   return (
     <motion.div
@@ -30,13 +46,17 @@ export default function MembershipCard({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
       className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 ${
-        isPopular 
+        isCurrentPlan
+          ? 'border-green-500 shadow-green-100'
+          : isLowerPlan
+          ? 'border-gray-300 opacity-60 cursor-not-allowed'
+          : isPopular 
           ? 'border-amber-500 shadow-amber-100' 
           : 'border-amber-200 hover:border-amber-300'
       }`}
     >
       {/* Popular badge */}
-      {isPopular && (
+      {isPopular && !isCurrentPlan && !isLowerPlan && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <motion.div
             initial={{ scale: 0 }}
@@ -44,7 +64,20 @@ export default function MembershipCard({
             className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-amber-900 px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
           >
             <StarIcon className="w-4 h-4" />
-            Phổ biến nhất
+            Most Popular
+          </motion.div>
+        </div>
+      )}
+
+      {isCurrentPlan && (
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
+          >
+            <CheckIcon className="w-4 h-4" />
+            Current Plan
           </motion.div>
         </div>
       )}
@@ -63,13 +96,13 @@ export default function MembershipCard({
               {formatPrice(price)}
             </span>
             <span className="text-gray-500">
-              /{billingCycle === 'monthly' ? 'tháng' : 'năm'}
+              /{billingCycle === 'monthly' ? 'month' : 'year'}
             </span>
           </div>
           
           {billingCycle === 'yearly' && savings > 0 && (
             <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-              <span>Tiết kiệm {savings}%</span>
+              <span>Save {savings}%</span>
             </div>
           )}
         </div>
@@ -82,7 +115,7 @@ export default function MembershipCard({
               {tokens} tokens
             </span>
             <span className="text-sm text-amber-600">
-              /{billingCycle === 'monthly' ? 'tháng' : 'năm'}
+              /{billingCycle === 'monthly' ? 'month' : 'year'}
             </span>
           </div>
         </div>
@@ -108,23 +141,37 @@ export default function MembershipCard({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onSelect(plan, billingCycle)}
-          disabled={isLoading}
+          disabled={isLoading || loadingMembership || isCurrentPlan || isLowerPlan}
           className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
-            isPopular
+            isCurrentPlan
+              ? 'bg-green-500 text-white cursor-default'
+              : isLowerPlan
+              ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+              : isPopular
               ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-lg hover:shadow-xl'
               : 'bg-gray-900 text-white hover:bg-gray-800'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          } ${isLoading || loadingMembership || isCurrentPlan || isLowerPlan ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isLoading ? 'Đang xử lý...' : 'Chọn gói này'}
+          {loadingMembership ? (
+            'Loading...'
+          ) : isLoading ? (
+            'Processing...'
+          ) : isCurrentPlan ? (
+            'Current Plan'
+          ) : isLowerPlan ? (
+            'Lower Plan'
+          ) : (
+            'Choose Plan'
+          )}
         </motion.button>
 
         {/* Additional info */}
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-500">
-            {billingCycle === 'yearly' ? 'Thanh toán 1 lần/năm' : 'Thanh toán hàng tháng'}
+            {billingCycle === 'yearly' ? 'One-time payment/year' : 'Monthly payment'}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Hủy bất cứ lúc nào
+            Cancel anytime
           </p>
         </div>
       </div>

@@ -38,7 +38,7 @@ export default function TryOnButton({
     const hasClothing = clothingItems && clothingItems.length > 0 ? clothingItems[0].image : clothingImage
     
     if (!personImage || !hasClothing) {
-      toast.error('Vui lòng tải lên cả ảnh cá nhân và trang phục')
+      toast.error('Please upload both person and clothing images')
       return
     }
 
@@ -57,7 +57,7 @@ export default function TryOnButton({
     }, 300) // Faster interval
 
     try {
-      const loadingToast = toast.loading('Đang xử lý ảnh với AI... (có thể mất 2-3 phút)', {
+      const loadingToast = toast.loading('Processing image with AI... (may take 2-3 minutes)', {
         duration: 180000 // 3 minutes
       })
 
@@ -125,7 +125,7 @@ export default function TryOnButton({
               className="flex items-center gap-3"
             >
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Đang xử lý...</span>
+              <span>Processing...</span>
             </motion.div>
           ) : (
             <motion.div
@@ -136,7 +136,7 @@ export default function TryOnButton({
               className="flex items-center gap-3"
             >
               <SparklesIcon className="w-6 h-6" />
-              <span>Thử đồ với AI</span>
+              <span>Try-On with AI</span>
             </motion.div>
           )}
         </AnimatePresence>

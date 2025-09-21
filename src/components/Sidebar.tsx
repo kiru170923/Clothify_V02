@@ -29,37 +29,37 @@ const menuItems = [
     id: '/landing',
     icon: HomeIcon,
     iconActive: HomeIconSolid,
-    label: 'Trang chủ'
+    label: 'Home'
   },
   {
     id: '/try-on',
     icon: CameraIcon,
     iconActive: CameraIconSolid,
-    label: 'Thử đồ AI'
+    label: 'AI Try-On'
   },
   {
     id: '/wardrobe',
     icon: SwatchIcon,
     iconActive: SwatchIconSolid,
-    label: 'Tủ đồ của bạn'
+    label: 'Your Wardrobe'
   },
   {
     id: '/history',
     icon: ClockIcon,
     iconActive: ClockIconSolid,
-    label: 'Lịch sử'
+    label: 'History'
   },
   {
     id: '/membership',
     icon: CreditCardIcon,
     iconActive: CreditCardIconSolid,
-    label: 'Gói VIP'
+    label: 'VIP Plans'
   },
   {
     id: '/profile',
     icon: UserIcon,
     iconActive: UserIconSolid,
-    label: 'Hồ sơ'
+    label: 'Profile'
   }
 ]
 
@@ -67,7 +67,7 @@ export default function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
   return (
-    <div className="w-16 bg-gradient-to-b from-amber-50 via-white to-yellow-50 border-r border-amber-100 h-screen flex flex-col sticky top-0 z-40 shadow-lg" style={{ backgroundColor: '#f6f1e9' }}>
+    <div className="w-16 bg-gradient-to-b from-amber-50 via-white to-yellow-50 border-r border-amber-100 h-screen flex flex-col sticky top-0 z-40 shadow-lg flex-shrink-0" style={{ backgroundColor: '#f6f1e9' }}>
       {/* Logo */}
       <div className="flex items-center justify-center py-4">
         <motion.div

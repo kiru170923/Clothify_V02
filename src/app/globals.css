@@ -51,6 +51,21 @@ body {
   overflow-x: hidden;
 }
 
+/* Class to prevent body scroll when modal is open */
+.modal-open {
+  overflow: hidden !important;
+  padding-right: var(--scrollbar-width, 0px) !important; /* Adjust if scrollbar is present */
+}
+
+.no-scroll-offset {
+  margin-right: var(--scrollbar-width, 0px) !important; /* Counteract scrollbar width */
+}
+
+html.lenis body {
+  overflow: hidden !important;
+  padding-right: var(--scrollbar-width, 0px) !important; /* For smooth scrolling libraries like Lenis */
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -288,4 +303,11 @@ body {
   .btn-xl {
     @apply px-6 py-3 text-base;
   }
+}
+
+/* Permanent Marker Font */
+.permanent-marker-regular {
+  font-family: "Permanent Marker", cursive;
+  font-weight: 400;
+  font-style: normal;
 }

@@ -26,7 +26,7 @@ export default function GarmentSelectionModal({
       onSelectFromDevice(file)
       onClose()
     } else {
-      toast.error('Vui lòng chọn một tệp ảnh.')
+      toast.error('Please select an image file.')
     }
   }
 
@@ -65,7 +65,7 @@ export default function GarmentSelectionModal({
 
             {/* Content */}
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Chọn Trang Phục</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Select Garment</h3>
 
               <div className="space-y-4">
                 {/* Chọn từ Tủ đồ */}
@@ -76,7 +76,7 @@ export default function GarmentSelectionModal({
                   <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
                     <FolderOpenIcon className="w-6 h-6 text-amber-600" />
                   </div>
-                  <span className="font-semibold text-gray-900">Chọn từ Tủ đồ</span>
+                  <span className="font-semibold text-gray-900">Choose from Wardrobe</span>
                 </button>
 
                 {/* Chọn từ Máy */}
@@ -87,7 +87,7 @@ export default function GarmentSelectionModal({
                   <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
                     <ComputerDesktopIcon className="w-6 h-6 text-yellow-600" />
                   </div>
-                  <span className="font-semibold text-gray-900">Chọn từ Máy</span>
+                  <span className="font-semibold text-gray-900">Choose from Device</span>
                   <input
                     type="file"
                     accept="image/*"

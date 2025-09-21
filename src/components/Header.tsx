@@ -18,9 +18,11 @@ import React from 'react'
 import { UserTokens } from '../types/membership'
 import { useTokens } from '../hooks/useTokens'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 export default function Header() {
   const { user, signOut } = useSupabase()
+  const router = useRouter()
   
   // Use React Query for tokens
   const { data: tokenData, isLoading: loadingTokens, error } = useTokens()
@@ -122,7 +124,7 @@ export default function Header() {
                         } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-amber-700 transition-colors`}
                       >
                         <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-amber-500" />
-                        Hồ sơ cá nhân
+                        Personal Profile
                       </a>
                     )}
                   </Menu.Item>
@@ -147,9 +149,10 @@ export default function Header() {
                         onClick={async () => {
                           try {
                             await signOut()
-                            toast.success('Đăng xuất thành công!')
+                            toast.success('Logged out successfully!')
+                            router.push('/landing')
                           } catch (error) {
-                            toast.error('Lỗi đăng xuất')
+                            toast.error('Logout error')
                           }
                         }}
                         className={`${
@@ -157,7 +160,7 @@ export default function Header() {
                         } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-amber-700 transition-colors`}
                       >
                         <FontAwesomeIcon icon={faRightFromBracket} className="w-5 h-5 text-amber-500" />
-                        Đăng xuất
+                        Logout
                       </button>
                     )}
                   </Menu.Item>

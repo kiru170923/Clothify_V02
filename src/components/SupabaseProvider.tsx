@@ -46,7 +46,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       await signInWithGoogle(supabase)
     } catch (error: any) {
       console.error('Error signing in:', error)
-      alert(error.message || 'Lỗi đăng nhập')
+      alert(error.message || 'Login error')
     }
   }
 

@@ -52,32 +52,32 @@ export interface TokenUsageHistory {
 export const MEMBERSHIP_PLANS: Omit<MembershipPlan, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Standard',
-    description: 'Gói cơ bản cho người dùng mới',
+    description: 'Basic plan for new users',
     price_monthly: 59000,
     price_yearly: 566400, // 59000 * 12 * 0.8
     tokens_monthly: 30,
     tokens_yearly: 360,
-    features: ['30 ảnh/tháng', 'Chất lượng HD', 'Hỗ trợ email'],
+    features: ['30 images/month', 'HD Quality', 'Email Support'],
     is_active: true
   },
   {
     name: 'Medium',
-    description: 'Gói phổ biến cho người dùng thường xuyên',
+    description: 'Popular plan for regular users',
     price_monthly: 99000,
     price_yearly: 950400, // 99000 * 12 * 0.8
     tokens_monthly: 50,
     tokens_yearly: 600,
-    features: ['50 ảnh/tháng', 'Chất lượng HD+', 'Hỗ trợ ưu tiên', 'Lưu trữ 100 ảnh'],
+    features: ['50 images/month', 'HD+ Quality', 'Priority Support', '100 images storage'],
     is_active: true
   },
   {
     name: 'Premium',
-    description: 'Gói cao cấp cho người dùng chuyên nghiệp',
+    description: 'Premium plan for professional users',
     price_monthly: 159000,
     price_yearly: 1526400, // 159000 * 12 * 0.8
     tokens_monthly: 100,
     tokens_yearly: 1200,
-    features: ['100 ảnh/tháng', 'Chất lượng 4K', 'Hỗ trợ 24/7', 'Lưu trữ không giới hạn', 'API access'],
+    features: ['100 images/month', '4K Quality', '24/7 Support', 'Unlimited storage', 'API access'],
     is_active: true
   }
 ]

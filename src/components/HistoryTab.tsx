@@ -56,10 +56,10 @@ export const HistoryTab = React.memo(function HistoryTab() {
   }, [historyItems, dateFilter])
 
   const filterOptions = [
-    { value: 'all', label: 'Tất cả' },
-    { value: 'today', label: 'Hôm nay' },
-    { value: 'week', label: '7 ngày qua' },
-    { value: 'month', label: '30 ngày qua' }
+    { value: 'all', label: 'All' },
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'Past 7 days' },
+    { value: 'month', label: 'Past 30 days' }
   ]
 
   const handleDownload = useCallback(async (imageUrl: string, filename: string) => {
@@ -96,7 +96,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
     
     try {
       await deleteHistoryMutation.mutateAsync(id)
-      toast.success('Đã xóa thành công!')
+      toast.success('Deleted successfully!')
     } catch (error) {
       // Rollback on error
       queryClient.setQueryData(['history'], previousData)
@@ -109,7 +109,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-        <p className="text-gray-500 mt-4">Đang tải lịch sử...</p>
+        <p className="text-gray-500 mt-4">Loading history...</p>
       </div>
     )
   }
@@ -118,12 +118,12 @@ export const HistoryTab = React.memo(function HistoryTab() {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <p className="text-red-500 mb-4">Có lỗi xảy ra khi tải lịch sử</p>
+          <p className="text-red-500 mb-4">Error occurred while loading history</p>
           <button 
             onClick={() => window.location.reload()} 
             className="btn btn-primary"
           >
-            Thử lại
+            Try Again
           </button>
         </div>
       </div>
@@ -135,8 +135,8 @@ export const HistoryTab = React.memo(function HistoryTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Lịch sử thử đồ</h2>
-          <p className="text-amber-600 mt-1 text-sm">{filteredHistoryItems.length} ảnh đã tạo</p>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Try-On History</h2>
+          <p className="text-amber-600 mt-1 text-sm">{filteredHistoryItems.length} images created</p>
         </div>
         
         {/* Date Filter */}
@@ -177,16 +177,16 @@ export const HistoryTab = React.memo(function HistoryTab() {
             <FontAwesomeIcon icon={faClock} className="w-8 h-8 text-amber-600" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Chưa có lịch sử nào
+            No history yet
           </h3>
           <p className="text-amber-700 mb-6">
-            Hãy thử đồ để xem lịch sử ở đây
+            Try on clothing to see history here
           </p>
           <button
             onClick={() => window.location.href = '/'}
             className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-semibold hover:from-amber-600 hover:to-yellow-600 transition-all shadow-lg"
           >
-            Thử đồ ngay
+            Try-On Now
           </button>
         </div>
       ) : (

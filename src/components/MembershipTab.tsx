@@ -7,6 +7,7 @@ import MembershipCard from './MembershipCard'
 import { MembershipPlan, MEMBERSHIP_PLANS } from '../types/membership'
 import { useSupabase } from './SupabaseProvider'
 import toast from 'react-hot-toast'
+import { useMembership } from '../hooks/useMembership'
 
 export default function MembershipTab() {
   const { user } = useSupabase()
@@ -14,6 +15,8 @@ export default function MembershipTab() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [loadingPlans, setLoadingPlans] = useState(true)
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null)
+
+  const { data: membershipData, isLoading: loadingMembership } = useMembership()
 
   // Fetch plans from API
   useEffect(() => {
@@ -41,7 +44,7 @@ export default function MembershipTab() {
 
   const handleSelectPlan = async (plan: MembershipPlan, cycle: 'monthly' | 'yearly') => {
     if (!user) {
-      toast.error('Vui lòng đăng nhập để chọn gói membership')
+      toast.error('Please log in to select a membership plan')
       return
     }
 
@@ -67,12 +70,12 @@ export default function MembershipTab() {
         // Chuyển hướng đến PayOS
         window.location.href = data.paymentUrl
       } else {
-        throw new Error(data.error || 'Có lỗi xảy ra khi tạo thanh toán')
+        throw new Error(data.error || 'Error occurred when creating payment')
       }
       
     } catch (error) {
       console.error('Error selecting plan:', error)
-      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi chọn gói. Vui lòng thử lại.')
+      toast.error(error instanceof Error ? error.message : 'Error occurred when selecting plan. Please try again.')
     } finally {
       setLoadingPlanId(null)
     }
@@ -83,7 +86,7 @@ export default function MembershipTab() {
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-amber-600">Đang tải các gói membership...</p>
+          <p className="text-amber-600">Loading membership plans...</p>
         </div>
       </div>
     )
@@ -98,7 +101,7 @@ export default function MembershipTab() {
           animate={{ opacity: 1, y: 0 }}
           className="text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4"
         >
-          Chọn gói Membership
+          Choose Membership Plan
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -106,7 +109,7 @@ export default function MembershipTab() {
           transition={{ delay: 0.1 }}
           className="text-lg text-gray-600"
         >
-          Nâng cấp tài khoản để có thêm tokens và trải nghiệm AI tốt hơn
+          Upgrade your account to get more tokens and better AI experience
         </motion.p>
       </div>
 
@@ -118,7 +121,7 @@ export default function MembershipTab() {
         className="flex items-center justify-center gap-4"
       >
         <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-amber-700' : 'text-gray-500'}`}>
-          Hàng tháng
+          Monthly
         </span>
         <Switch
           checked={billingCycle === 'yearly'}
@@ -132,11 +135,11 @@ export default function MembershipTab() {
           />
         </Switch>
         <span className={`text-sm font-medium ${billingCycle === 'yearly' ? 'text-amber-700' : 'text-gray-500'}`}>
-          Hàng năm
+          Yearly
         </span>
         {billingCycle === 'yearly' && (
           <span className="bg-gradient-to-r from-green-400 to-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-            Tiết kiệm 20%
+            Save 20%
           </span>
         )}
       </motion.div>
@@ -151,6 +154,8 @@ export default function MembershipTab() {
             billingCycle={billingCycle}
             onSelect={handleSelectPlan}
             isLoading={loadingPlanId === plan.id}
+            currentMembership={membershipData}
+            loadingMembership={loadingMembership}
           />
         ))}
       </div>

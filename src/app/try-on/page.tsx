@@ -154,7 +154,7 @@ function TryOnPageContent() {
       localStorage.removeItem('try-on-result-image')
     }
     
-    toast.success('Đã xóa tất cả ảnh', {
+    toast.success('All images cleared', {
       duration: 2000,
       icon: '🗑️',
       style: {
@@ -216,10 +216,10 @@ function TryOnPageContent() {
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4">
-                Thử Đồ với AI ✨
+                Try-On with AI ✨
               </h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Upload ảnh của bạn và ảnh trang phục muốn thử, để AI tạo ra hình ảnh bạn mặc trang phục đó
+                Upload your photo and the clothing you want to try on, and AI will create an image of you wearing that clothing
               </p>
             </div>
 
@@ -228,7 +228,7 @@ function TryOnPageContent() {
               {/* Select Model Section */}
               <div className="flex-1 bg-white rounded-xl shadow-sm border border-amber-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <h3 className="font-semibold text-gray-900">Chọn Model</h3>
+                  <h3 className="font-semibold text-gray-900">Select Model</h3>
                   <div className="relative">
                     <button 
                       onClick={() => setShowModelTooltip(!showModelTooltip)}
@@ -271,8 +271,8 @@ function TryOnPageContent() {
                           <svg className="w-12 h-12 mx-auto mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
-                          <p className="text-sm">Chưa chọn model</p>
-                          <p className="text-xs mt-1 text-amber-500">Nhấp để tải lên</p>
+                          <p className="text-sm">No model selected</p>
+                          <p className="text-xs mt-1 text-amber-500">Click to upload</p>
                         </div>
                       </label>
                     )}
@@ -319,7 +319,7 @@ function TryOnPageContent() {
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                     </svg>
-                    Tạo Model AI
+                    Generate AI Model
                   </button>
                   <button 
                     onClick={() => setShowMyModelsModal(true)}
@@ -328,7 +328,7 @@ function TryOnPageContent() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
                     </svg>
-                    Models Của Tôi
+                    My Models
                   </button>
                 </div>
                 
@@ -361,7 +361,7 @@ function TryOnPageContent() {
               {/* Select Garment Section */}
               <div className="flex-1 bg-white rounded-xl shadow-sm border border-amber-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <h3 className="font-semibold text-gray-900">Chọn Trang Phục</h3>
+                  <h3 className="font-semibold text-gray-900">Select Garment</h3>
                   <div className="relative">
                     <button 
                       onClick={() => setShowGarmentTooltip(!showGarmentTooltip)}
@@ -414,8 +414,8 @@ function TryOnPageContent() {
                         <svg className="w-12 h-12 mx-auto mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        <p className="text-sm text-amber-500">Chưa chọn trang phục</p>
-                        <p className="text-xs mt-1 text-amber-400">Nhấp để tải lên</p>
+                        <p className="text-sm text-amber-500">No garment selected</p>
+                        <p className="text-xs mt-1 text-amber-400">Click to upload</p>
                       </div>
                     </button>
                   )}
@@ -438,30 +438,30 @@ function TryOnPageContent() {
                       {showGarmentTypeTooltip && (
                         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setShowGarmentTypeTooltip(false)}>
                           <div className="bg-amber-50 rounded-lg p-6 max-w-md border border-amber-200" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="font-semibold text-gray-900 mb-3">Tác dụng của từng lựa chọn</h3>
+                            <h3 className="font-semibold text-gray-900 mb-3">What Each Option Does</h3>
                             <div className="space-y-3 text-sm text-gray-600">
                               <div className="p-3 bg-amber-100 rounded-lg">
-                                <p className="font-semibold text-amber-800">🤖 Tự động</p>
-                                <p className="text-amber-700">AI tự phân tích và quyết định cách thay đổi trang phục. Phù hợp khi không chắc chắn loại trang phục.</p>
+                                <p className="font-semibold text-amber-800">🤖 Auto</p>
+                                <p className="text-amber-700">AI automatically analyzes and decides how to change clothing. Suitable when unsure about clothing type.</p>
                               </div>
                               
                               <div className="p-3 bg-amber-100 rounded-lg">
-                                <p className="font-semibold text-amber-800">👕 Áo</p>
-                                <p className="text-amber-700">Chỉ thay đổi phần áo (tay áo, cổ áo, chất liệu). Giữ nguyên quần và phụ kiện khác. Tốt nhất khi muốn thay áo sơ mi, áo thun...</p>
+                                <p className="font-semibold text-amber-800">👕 Top</p>
+                                <p className="text-amber-700">Only changes the top part (sleeves, collar, material). Keeps pants and other accessories unchanged. Best when wanting to change shirts, t-shirts...</p>
                               </div>
                               
                               <div className="p-3 bg-amber-100 rounded-lg">
-                                <p className="font-semibold text-amber-800">👖 Quần</p>
-                                <p className="text-amber-700">Chỉ thay đổi phần quần. Giữ nguyên áo và phụ kiện. Tốt nhất khi muốn thay quần jean, quần tây...</p>
+                                <p className="font-semibold text-amber-800">👖 Bottom</p>
+                                <p className="text-amber-700">Only changes the bottom part. Keeps tops and accessories unchanged. Best when wanting to change jeans, trousers...</p>
                               </div>
                               
                               <div className="p-3 bg-amber-100 rounded-lg">
-                                <p className="font-semibold text-amber-800">👗 Toàn thân</p>
-                                <p className="text-amber-700">Thay đổi toàn bộ trang phục (đầm, jumpsuit, bộ đồ liền). Tốt nhất cho đầm, váy liền thân...</p>
+                                <p className="font-semibold text-amber-800">👗 Full-body</p>
+                                <p className="text-amber-700">Changes the entire outfit (dress, jumpsuit, one-piece). Best for dresses, full-body skirts...</p>
                               </div>
                               
                               <div className="p-2 bg-amber-200 rounded">
-                                <p className="text-amber-900 text-xs font-medium">💡 Mẹo: Lựa chọn chính xác giúp AI tạo kết quả tốt hơn!</p>
+                                <p className="text-amber-900 text-xs font-medium">💡 Tip: Accurate selection helps AI create better results!</p>
                               </div>
                             </div>
                           </div>
@@ -479,7 +479,7 @@ function TryOnPageContent() {
                           : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
                       }`}
                     >
-                      Tự động
+                      Auto
                     </button>
                     <button 
                       onClick={() => setSelectedGarmentType('top')}
@@ -492,7 +492,7 @@ function TryOnPageContent() {
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                       </svg>
-                      Áo
+                      Top
                     </button>
                     <button 
                       onClick={() => setSelectedGarmentType('bottom')}
@@ -505,7 +505,7 @@ function TryOnPageContent() {
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                       </svg>
-                      Quần
+                      Bottom
                     </button>
                     <button 
                       onClick={() => setSelectedGarmentType('full-body')}
@@ -518,7 +518,7 @@ function TryOnPageContent() {
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                       </svg>
-                      Toàn thân
+                      Full-body
                     </button>
                   </div>
                 </div>
@@ -564,7 +564,7 @@ function TryOnPageContent() {
                   className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                 >
                   <TrashIcon className="w-4 h-4" />
-                  <span className="text-sm font-medium">Xóa tất cả ảnh</span>
+                  <span className="text-sm font-medium">Clear All Images</span>
                 </motion.button>
               </div>
               )}
@@ -741,7 +741,7 @@ function TryOnPageContent() {
 
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4 pr-5">
-                  <h3 className="font-semibold text-gray-900 text-xl">Models Của Tôi</h3>
+                  <h3 className="font-semibold text-gray-900 text-xl">My Models</h3>
                   <div className="text-sm text-gray-500">
                     {models?.length || 0} models
                   </div>
@@ -819,7 +819,7 @@ function TryOnPageContent() {
                     }}
                     className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                   >
-                    Tạo Model AI
+                    Generate AI Model
                   </button>
                 </div>
               ) : (
