@@ -45,8 +45,9 @@ export default function CameraModal({ isOpen, onClose, onCapture, type }: Camera
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: type === 'person' ? 'user' : 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1080 },
+          height: { ideal: 1620 },
+          aspectRatio: 2/3
         }
       })
       
@@ -110,12 +111,26 @@ export default function CameraModal({ isOpen, onClose, onCapture, type }: Camera
 
     if (!context) return
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    // Force 2:3 (width:height) by center-cropping then drawing
+    const desiredRatio = 2 / 3
+    const frameWidth = video.videoWidth
+    const frameHeight = video.videoHeight
+    const currentRatio = frameWidth / frameHeight
 
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    let sx = 0, sy = 0, sWidth = frameWidth, sHeight = frameHeight
+    if (currentRatio > desiredRatio) {
+      // too wide -> crop left/right
+      sWidth = Math.floor(frameHeight * desiredRatio)
+      sx = Math.floor((frameWidth - sWidth) / 2)
+    } else if (currentRatio < desiredRatio) {
+      // too tall -> crop top/bottom
+      sHeight = Math.floor(frameWidth / desiredRatio)
+      sy = Math.floor((frameHeight - sHeight) / 2)
+    }
+
+    canvas.width = sWidth
+    canvas.height = sHeight
+    context.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height)
 
     // Convert to data URL
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8)
@@ -153,7 +168,7 @@ export default function CameraModal({ isOpen, onClose, onCapture, type }: Camera
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl overflow-hidden max-w-md w-full max-h-[90vh]"
+          className="bg-white rounded-2xl overflow-hidden w-full max-w-[80vw] md:max-w-[70vw] max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -188,7 +203,7 @@ export default function CameraModal({ isOpen, onClose, onCapture, type }: Camera
                 </div>
               </div>
             ) : (
-              <div className="relative aspect-video">
+              <div className="relative" style={{ aspectRatio: '2 / 3' }}>
                 <video
                   ref={videoRef}
                   autoPlay

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayOSPaymentInfo } from '../../../../../lib/payos'
 import { supabaseAdmin } from '../../../../../lib/supabase'
+import { APP_URL } from '../../../../../lib/config'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     if (!orderCode) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Thiếu thông tin đơn hàng')}`
+        `${APP_URL}/membership?error=${encodeURIComponent('Thiếu thông tin đơn hàng')}`
       )
     }
 
@@ -25,126 +26,92 @@ export async function GET(request: NextRequest) {
       // Thanh toán thành công
       console.log('Payment successful:', paymentInfo)
       
-      // Tìm payment order từ orderCode
-      const { data: paymentOrder, error: orderError } = await supabaseAdmin
+      // Tìm payment order từ orderCode (thử kiểu số trước, sau đó chuỗi)
+      console.log('[Return] orderCode:', orderCode)
+      let { data: paymentOrder, error: orderError } = await supabaseAdmin
         .from('payment_orders')
-        .select(`
-          *,
-          membership_plans (
-            id,
-            name,
-            tokens_monthly,
-            tokens_yearly
-          )
-        `)
-        .eq('external_order_code', orderCode.toString())
-        .single()
+        .select('*')
+        .eq('external_order_code', Number(orderCode))
+        .maybeSingle()
 
       if (orderError || !paymentOrder) {
-        console.error('Payment order not found:', orderError)
+          console.log('[Return] attempt1 external_order_code(number) not found. err:', orderError)
+        const attempt2 = await supabaseAdmin
+          .from('payment_orders')
+          .select('*')
+          .eq('external_order_code', orderCode.toString())
+          .maybeSingle()
+        paymentOrder = attempt2.data as any
+        if (!paymentOrder) {
+          console.log('[Return] attempt2 external_order_code(string) not found')
+          // Try alternative schema column name 'order_code' if present
+          const attempt3 = await supabaseAdmin
+            .from('payment_orders')
+            .select('*')
+            .eq('order_code', orderCode.toString())
+            .maybeSingle()
+          paymentOrder = attempt3.data as any
+        }
+        if (!paymentOrder) {
+          console.error('Payment order not found for orderCode:', orderCode)
+          return NextResponse.redirect(
+            `${APP_URL}/membership?error=${encodeURIComponent('Không tìm thấy thông tin đơn hàng')}`
+          )
+        }
+      }
+      console.log('[Return] Found order id:', paymentOrder.id, 'status:', paymentOrder.status, 'plan_id:', paymentOrder.plan_id, 'tokens_to_add:', paymentOrder.tokens_to_add)
+
+      // Nếu đã completed thì bỏ qua xử lý tiếp
+      if (paymentOrder.status !== 'completed') {
+        const { error: updateOrderError } = await supabaseAdmin
+          .from('payment_orders')
+          .update({ 
+            status: 'completed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', paymentOrder.id)
+
+        if (updateOrderError) {
+          console.error('Error updating payment order:', updateOrderError)
+        }
+      }
+
+      // updateOrderError is scoped inside the block above; no extra logging here
+
+      // Phân nhánh: nếu là đơn mua token (plan_id null và có tokens_to_add)
+      if (!paymentOrder.plan_id && paymentOrder.tokens_to_add) {
+        // Cộng tokens bằng RPC (nếu có)
+        try {
+          await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: paymentOrder.user_id, p_tokens: paymentOrder.tokens_to_add })
+        } catch (e) {
+          // fallback cộng thủ công
+          const { data: cur } = await supabaseAdmin.from('user_tokens').select('total_tokens').eq('user_id', paymentOrder.user_id).maybeSingle()
+          const total = (cur?.total_tokens || 0) + paymentOrder.tokens_to_add
+          await supabaseAdmin.from('user_tokens').upsert({ user_id: paymentOrder.user_id, total_tokens: total }, { onConflict: 'user_id' })
+        }
         return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Không tìm thấy thông tin đơn hàng')}`
+          `${APP_URL}/tokens/buy?success=${encodeURIComponent(`Thanh toán thành công! Đã cộng ${paymentOrder.tokens_to_add} tokens vào tài khoản.`)}`
         )
       }
 
-      // Cập nhật trạng thái payment order
-      const { error: updateOrderError } = await supabaseAdmin
-        .from('payment_orders')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', paymentOrder.id)
-
-      if (updateOrderError) {
-        console.error('Error updating payment order:', updateOrderError)
-      }
-
-      // Tính số tokens cần cộng
-      const tokensToAdd = paymentOrder.billing_cycle === 'monthly' 
-        ? paymentOrder.membership_plans.tokens_monthly 
-        : paymentOrder.membership_plans.tokens_yearly
-
-      // Cộng tokens cho user (sử dụng schema hiện tại)
-      console.log(`Successfully added ${tokensToAdd} tokens for user ${paymentOrder.user_id}`)
-      
-      // Lấy số token hiện có của người dùng
-      const { data: currentUserTokens, error: fetchTokenError } = await supabaseAdmin
-        .from('user_tokens')
-        .select('total_tokens')
-        .eq('user_id', paymentOrder.user_id)
-        .single()
-
-      if (fetchTokenError && fetchTokenError.code !== 'PGRST116') { // PGRST116 means no rows found
-        console.error('Error fetching current user tokens:', fetchTokenError)
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Có lỗi khi lấy thông tin tokens hiện tại')}`
-        )
-      }
-
-      const currentTotalTokens = currentUserTokens ? currentUserTokens.total_tokens : 0
-      const newTotalTokens = currentTotalTokens + tokensToAdd
-
-      const { error: tokenError } = await supabaseAdmin
-        .from('user_tokens')
-        .upsert({
-          user_id: paymentOrder.user_id,
-          total_tokens: newTotalTokens,
-          used_tokens: 0, // Cần xem xét lại giá trị này, có thể không reset về 0
-          last_reset_date: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        })
-
-      if (tokenError) {
-        console.error('Error updating user tokens:', tokenError)
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Có lỗi khi cập nhật tokens')}`
-        )
-      }
-
-      // Tạo user_memberships record
-      const { error: membershipError } = await supabaseAdmin
-        .from('user_memberships')
-        .insert({
-          user_id: paymentOrder.user_id,
-          plan_id: paymentOrder.plan_id,
-          status: 'active',
-          start_date: new Date().toISOString(),
-          end_date: paymentOrder.billing_cycle === 'monthly' 
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
-            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 365 days
-          billing_cycle: paymentOrder.billing_cycle,
-          auto_renew: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-
-      if (membershipError) {
-        console.error('Error creating user membership:', membershipError)
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Có lỗi khi tạo membership')}`
-        )
-      }
-
-      console.log(`Successfully added ${tokensToAdd} tokens for user ${paymentOrder.user_id}`)
-      console.log(`Successfully created membership for user ${paymentOrder.user_id}`)
-      
+      // Ngược lại: đơn membership (giữ logic cũ, nhưng fetch plan riêng)
+      const { data: plan } = await supabaseAdmin.from('membership_plans').select('*').eq('id', paymentOrder.plan_id).maybeSingle()
+      const tokensToAdd = paymentOrder.billing_cycle === 'monthly' ? plan?.tokens_monthly || 0 : plan?.tokens_yearly || 0
+      await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: paymentOrder.user_id, p_tokens: tokensToAdd })
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?success=${encodeURIComponent(`Thanh toán thành công! Đã cộng ${tokensToAdd} tokens vào tài khoản và kích hoạt gói ${paymentOrder.membership_plans.name}.`)}`
+        `${APP_URL}/membership?success=${encodeURIComponent(`Thanh toán thành công! Đã cộng ${tokensToAdd} tokens và kích hoạt gói ${plan?.name || ''}.`)}`
       )
     } else {
       // Thanh toán thất bại
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Thanh toán thất bại')}`
+        `${APP_URL}/membership?error=${encodeURIComponent('Thanh toán thất bại')}`
       )
     }
 
   } catch (error) {
     console.error('Error processing PayOS return:', error)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/membership?error=${encodeURIComponent('Có lỗi xảy ra khi xử lý thanh toán')}`
+      `${APP_URL}/membership?error=${encodeURIComponent('Có lỗi xảy ra khi xử lý thanh toán')}`
     )
   }
 }

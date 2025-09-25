@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
+import { APP_URL } from '../../../lib/config'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,12 +22,20 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ User authenticated:', user.id)
 
-    // Get user's wardrobe items
-    const { data: items, error } = await supabaseAdmin
+    // Pagination params
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(searchParams.get('pageSize') || '20', 10), 1), 50)
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    // Get user's wardrobe items with range
+    const { data: items, error, count } = await supabaseAdmin
       .from('user_wardrobe')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+      .range(from, to)
 
     if (error) {
       console.error('❌ Error fetching wardrobe items:', error)
@@ -35,10 +44,7 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Found wardrobe items:', items?.length || 0)
 
-    return NextResponse.json({
-      success: true,
-      items: items || []
-    })
+    return NextResponse.json({ success: true, items: items || [], page, pageSize, total: count || 0 })
 
   } catch (error) {
     console.error('❌ Wardrobe Error:', error)
@@ -165,7 +171,7 @@ export async function POST(request: NextRequest) {
     let classification = null
     try {
       console.log('🤖 Starting AI classification...')
-      const classifyResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/classify-clothing`, {
+      const classifyResponse = await fetch(`${APP_URL}/api/classify-clothing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

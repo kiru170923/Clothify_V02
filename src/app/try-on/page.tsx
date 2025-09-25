@@ -11,6 +11,7 @@ import MultipleClothingUpload from '../../components/MultipleClothingUpload'
 import TryOnButton from '../../components/TryOnButtonNew'
 import ResultModal from '../../components/ResultModal'
 import GarmentSelectionModal from '../../components/GarmentSelectionModal'
+import CameraModal from '../../components/CameraModal'
 import MiniWardrobeModal from '../../components/MiniWardrobeModal'
 import toast from 'react-hot-toast'
 import { useGenerateModel } from '../../hooks/useGenerateModel'
@@ -18,6 +19,7 @@ import { useMyModels } from '../../hooks/useMyModels'
 import { useSupabase } from '../../components/SupabaseProvider'
 import { ImageSkeleton, LoadingText, GridSkeleton } from '../../components/SkeletonLoader'
 import AuthGuard from '../../components/AuthGuard'
+import { useMembership } from '../../hooks/useMembership'
 
 function TryOnPageContent() {
   const searchParams = useSearchParams()
@@ -73,6 +75,14 @@ function TryOnPageContent() {
   const [showGarmentTooltip, setShowGarmentTooltip] = useState(false)
   const [showGarmentTypeTooltip, setShowGarmentTypeTooltip] = useState(false)
   const [showGarmentSelectionModal, setShowGarmentSelectionModal] = useState(false) // New state for garment selection modal
+  const [showCamera, setShowCamera] = useState(false)
+  const [cameraType, setCameraType] = useState<'person' | 'clothing'>('person')
+  const [showModelSelectionModal, setShowModelSelectionModal] = useState(false)
+  const { data: membershipData } = useMembership()
+  const isPremium = (membershipData?.membership?.plan?.name || '')
+    .toLowerCase()
+    .includes('premium')
+  const [fastMode, setFastMode] = useState(false)
   
   // Hooks for AI model generation and management
   const { session } = useSupabase()
@@ -205,28 +215,28 @@ function TryOnPageContent() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 overflow-x-hidden" style={{ backgroundColor: '#f6f1e9' }}>
         <Header />
         
         <div className="flex">
           <Sidebar />
         
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-28 md:pb-8 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-2 md:mb-4">
                 Try-On with AI ✨
               </h1>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto">
                 Upload your photo and the clothing you want to try on, and AI will create an image of you wearing that clothing
               </p>
             </div>
 
-            {/* Upload Section - New Layout Like Image */}
-            <div className="flex gap-6 mb-8">
+            {/* Upload Section - Responsive grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
               {/* Select Model Section */}
-              <div className="flex-1 bg-white rounded-xl shadow-sm border border-amber-100 p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 md:p-6 w-full overflow-hidden self-start">
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="font-semibold text-gray-900">Select Model</h3>
                   <div className="relative">
@@ -252,10 +262,66 @@ function TryOnPageContent() {
                   </div>
                 </div>
                 
+              {/* Fast Mode Toggle (always visible under Select Model title) */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-amber-800">Tạo Nhanh</span>
+                    <button
+                      onClick={() => {
+                        toast.custom((t) => (
+                          <div className="max-w-sm w-full rounded-xl border border-amber-200 bg-amber-50 shadow-lg p-4 flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center bg-amber-600 text-white">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-gray-900">Tạo Nhanh (Gemini)</p>
+                              <p className="text-xs mt-0.5 text-amber-800">Chế độ Tạo Nhanh giúp tạo ảnh nhanh hơn nhờ gọi API Gemini trực tiếp. Chỉ dành cho gói Premium.</p>
+                            </div>
+                          </div>
+                        ), { duration: 3000 })
+                      }}
+                      className="w-4 h-4 rounded-full bg-amber-200 text-amber-800 text-[10px] flex items-center justify-center"
+                      title="Thông tin Tạo Nhanh (Gemini)"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!isPremium) return
+                      setFastMode((v) => {
+                        const next = !v
+                        toast.custom((t) => (
+                          <div className={`max-w-sm w-full rounded-xl border ${next ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-white'} shadow-lg p-4 flex items-start gap-3`}>
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${next ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-gray-900">{next ? 'Tạo Nhanh: Bật' : 'Tạo Nhanh: Tắt'}</p>
+                              <p className={`text-xs mt-0.5 ${next ? 'text-amber-800' : 'text-gray-600'}`}>{next ? 'Sử dụng Google AI Studio (Gemini) để tạo nhanh.' : 'Quay về chế độ mặc định.'}</p>
+                            </div>
+                          </div>
+                        ), { duration: 2200 })
+                        return next
+                      })
+                    }}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${isPremium ? (fastMode ? 'bg-amber-600' : 'bg-amber-300') : 'bg-gray-300 cursor-not-allowed'}`}
+                    aria-disabled={!isPremium}
+                    title={isPremium ? (fastMode ? 'Đang bật Tạo Nhanh' : 'Bật Tạo Nhanh') : 'Chỉ khả dụng cho Premium'}
+                  >
+                    <span className={`absolute top-0.5 ${fastMode ? 'right-0.5' : 'left-0.5'} w-5 h-5 bg-white rounded-full shadow transition-all`} />
+                  </button>
+                </div>
+                {isPremium && (
+                  <p className="text-[11px] text-amber-700 mt-1">Khi bật, tính năng dùng Google AI Studio (Gemini) để tạo nhanh.</p>
+                )}
+              </div>
+
                 {/* Model Image */}
                 <div className="relative mb-4">
-                  <div className="aspect-[2/3] bg-amber-50 rounded-lg overflow-hidden border border-amber-200">
-                    {personImage ? (
+                  <div className="aspect-[2/3] bg-amber-50 rounded-lg overflow-hidden border border-amber-200 max-w-[320px] md:max-w-full mx-auto">
+                  {personImage ? (
                       <img
                         src={personImage}
                         alt="Model"
@@ -263,18 +329,19 @@ function TryOnPageContent() {
                         onClick={() => setZoomedImage(personImage)}
                       />
                     ) : (
-                      <label 
-                        htmlFor="model-upload"
-                        className="w-full h-full flex items-center justify-center text-amber-500 cursor-pointer hover:text-amber-700 transition-colors"
+                      <button 
+                        type="button"
+                        onClick={() => setShowModelSelectionModal(true)}
+                        className="w-full h-full flex items-center justify-center text-amber-500 hover:text-amber-700 transition-colors"
                       >
                         <div className="text-center">
                           <svg className="w-12 h-12 mx-auto mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
                           <p className="text-sm">No model selected</p>
-                          <p className="text-xs mt-1 text-amber-500">Click to upload</p>
+                          <p className="text-xs mt-1 text-amber-500">Tap to choose</p>
                         </div>
-                      </label>
+                      </button>
                     )}
                   </div>
                   
@@ -349,17 +416,8 @@ function TryOnPageContent() {
                 />
               </div>
 
-              {/* Separator */}
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                  </svg>
-                </div>
-              </div>
-
               {/* Select Garment Section */}
-              <div className="flex-1 bg-white rounded-xl shadow-sm border border-amber-100 p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 md:p-6 w-full overflow-hidden self-start">
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="font-semibold text-gray-900">Select Garment</h3>
                   <div className="relative">
@@ -386,7 +444,7 @@ function TryOnPageContent() {
                 </div>
                 
                 {/* Garment Upload Area */}
-                <div className="aspect-[3/4] bg-amber-50 rounded-lg border-2 border-dashed border-amber-300 relative overflow-hidden mb-4">
+                <div className="aspect-[3/4] bg-amber-50 rounded-lg border-2 border-dashed border-amber-300 relative overflow-hidden mb-2 max-w-[320px] md:max-w-full mx-auto">
                   {clothingItems.length > 0 ? (
                     <>
                       <img
@@ -404,6 +462,17 @@ function TryOnPageContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
+                      {clothingItems.length > 1 && (
+                        <button
+                          onClick={() => setClothingItems(prev => prev.length > 1 ? [...prev.slice(1), prev[0]] : prev)}
+                          className="absolute top-2 left-2 w-7 h-7 bg-white/80 hover:bg-white rounded-full flex items-center justify-center text-gray-700"
+                          title="Swap"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M10 11l-4 4 4 4M20 17h-8" />
+                          </svg>
+                        </button>
+                      )}
                     </>
                   ) : (
                     <button
@@ -415,7 +484,7 @@ function TryOnPageContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
                         <p className="text-sm text-amber-500">No garment selected</p>
-                        <p className="text-xs mt-1 text-amber-400">Click to upload</p>
+                        <p className="text-xs mt-1 text-amber-400">Tap to choose</p>
                       </div>
                     </button>
                   )}
@@ -423,7 +492,7 @@ function TryOnPageContent() {
                 
                 
                 {/* Garment Type Buttons */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-700">Loại trang phục:</span>
                     <div className="relative">
@@ -552,7 +621,7 @@ function TryOnPageContent() {
 
               {/* Clear Images Button */}
             {(personImage || clothingImage || clothingItems.length > 0) && (
-              <div className="flex justify-center mb-8">
+              <div className="hidden md:flex justify-center mb-8">
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -570,13 +639,14 @@ function TryOnPageContent() {
               )}
 
 
-              {/* Try On Button */}
-              <div className="flex justify-center">
+              {/* Try On Button (desktop) */}
+              <div className="hidden md:flex justify-center">
                 <TryOnButton
                   personImage={personImage}
-                clothingImage={clothingItems.length > 0 ? clothingItems[0]?.image : clothingImage}
-                clothingItems={clothingItems}
-                selectedGarmentType={selectedGarmentType}
+                  clothingImage={clothingItems.length > 0 ? clothingItems[0]?.image : clothingImage}
+                  clothingItems={clothingItems}
+                  selectedGarmentType={selectedGarmentType}
+                  fastMode={fastMode}
                   onResult={handleTryOnResult}
                 />
               </div>
@@ -584,6 +654,32 @@ function TryOnPageContent() {
 
         </main>
       </div>
+
+      {/* Sticky bottom bar (mobile) */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur border-t border-amber-100 p-3">
+        <div className="max-w-4xl mx-auto flex items-center gap-2">
+          {(personImage || clothingImage || clothingItems.length > 0) && (
+            <button
+              onClick={handleClearImages}
+              className="px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-600 border border-red-100"
+            >
+              Xóa ảnh
+            </button>
+          )}
+          <div className="flex-1 flex justify-end">
+            <TryOnButton
+              personImage={personImage}
+              clothingImage={clothingItems.length > 0 ? clothingItems[0]?.image : clothingImage}
+              clothingItems={clothingItems}
+              selectedGarmentType={selectedGarmentType}
+              fastMode={fastMode}
+              onResult={handleTryOnResult}
+            />
+          </div>
+        </div>
+      </div>
+
+      
 
       {/* Result Modal */}
       <ResultModal
@@ -683,27 +779,42 @@ function TryOnPageContent() {
                   <button 
                     onClick={async () => {
                       try {
+                        const loadingId = toast.loading('Đang tạo AI model...')
                         const result = await generateModelMutation.mutateAsync({
                           gender: selectedGender,
                           customPrompt: customPrompt.trim() || undefined
                         })
-                        
+                        toast.dismiss(loadingId)
                         if (result.success && result.modelImageUrl) {
+                          toast.success('Đã tạo model thành công!')
                           setPersonImage(result.modelImageUrl)
                           setCustomPrompt('')
                           setShowPromptModal(false)
+                        } else {
+                          toast.error(result.error || 'Tạo model thất bại')
                         }
                       } catch (error) {
+                        toast.dismiss()
                         console.error('Generate model error:', error)
+                        toast.error('Có lỗi khi tạo model')
                       }
                     }}
                     disabled={generateModelMutation.isPending}
                     className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-green-400 text-white rounded-lg font-medium flex items-center gap-2 mx-auto hover:from-yellow-500 hover:to-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                    </svg>
-                    Generate
+                    {generateModelMutation.isPending ? (
+                      <>
+                        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                        </svg>
+                        <span>Generate</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -953,6 +1064,27 @@ function TryOnPageContent() {
         onClose={() => setShowGarmentSelectionModal(false)}
         onSelectFromDevice={handleSelectGarmentFromDevice}
         onSelectFromWardrobe={handleSelectGarmentFromWardrobe}
+        onSelectFromCamera={() => {
+          setCameraType('clothing')
+          setShowCamera(true)
+        }}
+      />
+
+      {/* Model Selection Modal - same UI pattern as Garment */}
+      <GarmentSelectionModal
+        isOpen={showModelSelectionModal}
+        onClose={() => setShowModelSelectionModal(false)}
+        onSelectFromDevice={(file: File) => {
+          const reader = new FileReader()
+          reader.onload = (e) => setPersonImage(e.target?.result as string)
+          reader.readAsDataURL(file)
+        }}
+        onSelectFromCamera={() => {
+          setCameraType('person')
+          setShowCamera(true)
+        }}
+        title="Select Model"
+        showWardrobe={false}
       />
 
       {/* Mini Wardrobe Modal */}
@@ -960,6 +1092,27 @@ function TryOnPageContent() {
         isOpen={showMiniWardrobeModal}
         onClose={() => setShowMiniWardrobeModal(false)}
         onSelectGarment={handleGarmentFromMiniWardrobe}
+      />
+
+      {/* Camera Modal (dùng chung cho Model và Garment) */}
+      <CameraModal
+        isOpen={showCamera}
+        onClose={() => setShowCamera(false)}
+        onCapture={(imageDataUrl: string) => {
+          if (cameraType === 'person') {
+            setPersonImage(imageDataUrl)
+          } else {
+            const newItem = {
+              id: Date.now().toString(),
+              image: imageDataUrl,
+              type: 'top' as const,
+              label: 'Garment',
+              category: 'Auto detected'
+            }
+            setClothingItems([newItem])
+          }
+        }}
+        type={cameraType}
       />
       </div>
     </AuthGuard>
@@ -973,3 +1126,4 @@ export default function TryOnPage() {
     </Suspense>
   )
 }
+

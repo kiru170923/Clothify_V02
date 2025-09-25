@@ -16,13 +16,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch user's try-on history
-    const { data: history, error: dbError } = await supabaseAdmin
+    // Pagination params
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(searchParams.get('pageSize') || '20', 10), 1), 50)
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    // Fetch user's try-on history (paginated)
+    const { data: history, error: dbError, count } = await supabaseAdmin
       .from('images')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
+      .range(from, to)
 
     if (dbError) {
       console.error('Database error:', dbError)
@@ -33,7 +41,7 @@ export async function GET(request: NextRequest) {
     console.log('History API - Found records:', history?.length || 0)
     console.log('History API - Data:', history)
 
-    return NextResponse.json(history || [])
+    return NextResponse.json({ items: history || [], page, pageSize, total: count || 0 })
   } catch (error) {
     console.error('Error in history API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

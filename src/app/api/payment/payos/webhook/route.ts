@@ -29,14 +29,36 @@ export async function POST(request: NextRequest) {
 
       if (paymentInfo.code === '00' && paymentInfo.data.code === '00') {
         // Thanh toán thành công
-        
-        // TODO: Tìm payment order trong database
-        // TODO: Cập nhật trạng thái thành 'completed'
-        // TODO: Tạo membership cho user
-        // TODO: Cập nhật tokens cho user
-        
+        // 1) Tìm payment order
+        const { data: order } = await supabaseAdmin
+          .from('payment_orders')
+          .select('*')
+          .eq('external_order_code', String(orderCode))
+          .maybeSingle()
+
+        if (!order) {
+          console.warn('Order not found for orderCode:', orderCode)
+          return NextResponse.json({ success: true })
+        }
+
+        // 2) Nếu đã completed thì bỏ qua
+        if (order.status === 'completed') {
+          return NextResponse.json({ success: true })
+        }
+
+        // 3) Cập nhật trạng thái
+        await supabaseAdmin
+          .from('payment_orders')
+          .update({ status: 'completed' })
+          .eq('id', order.id)
+
+        // 4) Nếu là đơn mua tokens -> cộng token
+        if (order.tokens_to_add && order.user_id) {
+          // Tăng total_tokens cho user
+          await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: order.user_id, p_tokens: order.tokens_to_add })
+        }
+
         console.log('Payment completed successfully:', paymentInfo.data)
-        
         return NextResponse.json({ success: true })
       }
     }

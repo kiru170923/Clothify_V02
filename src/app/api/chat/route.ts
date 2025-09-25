@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { crawlTwentyFiveSearch, crawlUrlGeneric } from '../../../lib/scrapelessCrawl'
+import { scrapeUrl } from '../../../lib/scrapeless'
+import { normalizeProduct } from '../../../lib/normalizer'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -24,24 +27,121 @@ export async function POST(request: NextRequest) {
     // Check if user is asking for product recommendations
     const lowerMessage = message.toLowerCase()
     const isAskingForProducts = (
-      (lowerMessage.includes('tìm') && (lowerMessage.includes('áo') || lowerMessage.includes('phông') || lowerMessage.includes('thun') || lowerMessage.includes('khoác'))) ||
-      (lowerMessage.includes('gợi ý') && (lowerMessage.includes('áo') || lowerMessage.includes('phông') || lowerMessage.includes('thun') || lowerMessage.includes('khoác'))) ||
-      (lowerMessage.includes('mua') && (lowerMessage.includes('áo') || lowerMessage.includes('phông') || lowerMessage.includes('thun') || lowerMessage.includes('khoác'))) ||
-      (lowerMessage.includes('link') && (lowerMessage.includes('shopee') || lowerMessage.includes('áo') || lowerMessage.includes('phông') || lowerMessage.includes('thun') || lowerMessage.includes('khoác'))) ||
-      // Direct product requests without "tìm"
-      (lowerMessage.includes('áo') && (lowerMessage.includes('phông') || lowerMessage.includes('thun') || lowerMessage.includes('khoác') || lowerMessage.includes('polo')))
+      lowerMessage.includes('tìm') || 
+      lowerMessage.includes('gợi ý') || 
+      lowerMessage.includes('mua') ||
+      lowerMessage.includes('áo') ||
+      lowerMessage.includes('phông') ||
+      lowerMessage.includes('thun') ||
+      lowerMessage.includes('khoác') ||
+      lowerMessage.includes('ấm') ||
+      lowerMessage.includes('len')
     )
     
     console.log('🔍 Debug - Message:', message)
     console.log('🔍 Debug - Lower message:', lowerMessage)
     console.log('🔍 Debug - Is asking for products:', isAskingForProducts)
+    console.log('🔍 Debug - Pattern check:')
+    console.log('  - tìm + áo:', lowerMessage.includes('tìm') && lowerMessage.includes('áo'))
+    console.log('  - áo ấm:', lowerMessage.includes('áo ấm'))
+    console.log('  - áo khoác:', lowerMessage.includes('áo khoác'))
+    console.log('  - áo len:', lowerMessage.includes('áo len'))
     
+    // If the user directly pasted a URL, handle it first
+    const urlMatch = message.match(/https?:\/\/\S+/i)
+    if (urlMatch) {
+      const url = urlMatch[0]
+      console.log('🔗 Detected URL message:', url)
+      console.log('🔍 Env SCRAPELESS_API_KEY present:', !!process.env.SCRAPELESS_API_KEY)
+      console.log('🔍 Starting URL handling...')
+      try {
+        // If URL looks like a product page, prefer scrapeUrl (faster, single-page)
+        const isProduct = /\.html$|\/set-|\/p\d+/i.test(url)
+        let pageData: any = null
+
+        let fullResult: any = null
+        if (isProduct) {
+          console.log('🔎 Detected product page, using scrapeUrl')
+          const t0 = Date.now()
+          const scrapeResult = await scrapeUrl(url, { formats: ['markdown'], onlyMainContent: true, timeout: 90000 })
+          console.log('🔁 scrapeUrl returned, elapsedMs=', Date.now() - t0)
+          fullResult = scrapeResult
+          try {
+            const preview = typeof scrapeResult === 'string' ? String(scrapeResult).slice(0,2000) : JSON.stringify(scrapeResult, null, 2).slice(0,2000)
+            console.log('🧾 scrapeResult preview:', preview)
+          } catch (e) {
+            console.log('🧾 scrapeResult (non-serializable)')
+          }
+          if (scrapeResult && Array.isArray((scrapeResult as any).data) && (scrapeResult as any).data.length > 0) {
+            pageData = (scrapeResult as any).data[0]
+          } else {
+            pageData = scrapeResult as any
+          }
+        } else {
+          console.log('🔎 Non-product page, using crawler')
+          const t0 = Date.now()
+          const crawlResult = await crawlUrlGeneric(url, { limit: 3, pollDelayMs: 2000, maxAttempts: 20 })
+          console.log('🔁 crawlUrlGeneric returned, elapsedMs=', Date.now() - t0)
+          fullResult = crawlResult
+          try {
+            const preview = typeof crawlResult === 'string' ? String(crawlResult).slice(0,2000) : JSON.stringify(crawlResult, null, 2).slice(0,2000)
+            console.log('🧾 crawlResult preview:', preview)
+          } catch (e) {
+            console.log('🧾 crawlResult (non-serializable)')
+          }
+          if (crawlResult && Array.isArray(crawlResult.data) && crawlResult.data.length > 0) {
+            pageData = crawlResult.data[0]
+          } else if (crawlResult && crawlResult.data) {
+            pageData = crawlResult.data
+          }
+        }
+
+        // If pageData is a raw HTML string, wrap it so normalizer can parse
+        if (typeof pageData === 'string') {
+          pageData = { html: pageData, metadata: { sourceURL: url }, url }
+        }
+
+        try {
+          const pd = typeof pageData === 'string' ? String(pageData).slice(0,2000) : JSON.stringify(pageData, null, 2).slice(0,2000)
+          console.log('🧾 pageData preview:', pd)
+        } catch (e) {
+          console.log('🧾 pageData (non-serializable)')
+        }
+
+        // Return data in the exact format requested by user
+        // If fullResult (from crawler) contains status/data, return it directly
+        if (fullResult && (fullResult.status || fullResult.data)) {
+          // ensure we include success flag if absent
+          if (typeof fullResult.success === 'undefined') fullResult.success = true
+          return NextResponse.json(fullResult)
+        }
+
+        // Otherwise return object with markdown + metadata (product detail format)
+        const normalized = normalizeProduct(pageData || { markdown: '', html: '', metadata: { sourceURL: url } })
+        console.log('🔍 Normalized product:', JSON.stringify(normalized, null, 2))
+
+        const out = {
+          markdown: pageData?.markdown || pageData?.html || '',
+          metadata: pageData?.metadata || normalized?.sourceURL ? { sourceURL: normalized.sourceURL, title: normalized.title, description: normalized.description } : { sourceURL: url }
+        }
+
+        return NextResponse.json(out)
+      } catch (err) {
+        console.error('❌ Error crawling/scraping URL:', err)
+        return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+      }
+    }
+
     if (isAskingForProducts) {
       console.log('🔍 User requesting product recommendations...')
+      console.log('🔍 SCRAPELESS_API_KEY exists:', !!process.env.SCRAPELESS_API_KEY)
+      console.log('🔍 SCRAPELESS_API_KEY value:', process.env.SCRAPELESS_API_KEY ? 'EXISTS' : 'MISSING')
       
       try {
         // Generate product recommendations using AI + Scrapeless
+        console.log('🔍 About to call generateProductRecommendations...')
         const recommendations = await generateProductRecommendations(lowerMessage)
+        console.log('🔍 Recommendations received:', recommendations.length)
         
         if (recommendations.length > 0) {
           let responseText = "Dạ, tôi đã tìm được một số sản phẩm phù hợp cho bạn:\n\n"
@@ -81,7 +181,7 @@ export async function POST(request: NextRequest) {
         
         Luôn trả lời bằng tiếng Việt, thân thiện và tự nhiên như một người bạn. 
         
-        Khi user yêu cầu tìm kiếm sản phẩm áo phông/thun, bạn có khả năng tìm kiếm sản phẩm thật từ Shopee và đưa ra gợi ý cụ thể. Hãy trả lời một cách nhiệt tình và thông báo rằng bạn đang tìm kiếm sản phẩm cho họ.
+        Khi user yêu cầu tìm kiếm sản phẩm áo phông/thun, bạn có khả năng tìm kiếm sản phẩm thật và đưa ra gợi ý cụ thể. Hãy trả lời một cách nhiệt tình và thông báo rằng bạn đang tìm kiếm sản phẩm cho họ.
         
         Hãy nhớ context của cuộc hội thoại trước đó để trả lời phù hợp và liên kết với các câu hỏi trước.`
       }
@@ -127,7 +227,7 @@ async function generateProductRecommendations(userMessage: string) {
           content: `Bạn là AI chuyên phân tích yêu cầu thời trang. Nhiệm vụ của bạn là:
           
           1. Phân tích tin nhắn của user để hiểu họ muốn tìm gì
-          2. Tạo ra 3-5 từ khóa tìm kiếm phù hợp trên Shopee
+          2. Tạo ra 3-5 từ khóa tìm kiếm phù hợp
           3. Trả lời bằng JSON format: {"keywords": ["từ khóa 1", "từ khóa 2", "từ khóa 3"]}
           
           Ví dụ: 
@@ -175,116 +275,111 @@ async function generateProductRecommendations(userMessage: string) {
 
 async function searchProductsWithScrapeless(keyword: string) {
   try {
-    const SCRAPELESS_API_KEY = process.env.SCRAPELESS_API_KEY
-    
-    if (!SCRAPELESS_API_KEY) {
-      console.error('❌ SCRAPELESS_API_KEY not found')
+    // Use the helper that creates a crawl job and polls until completion
+    const result = await crawlTwentyFiveSearch(keyword, { limit: 3 })
+
+    if (!result || !result.data) {
+      console.log('🔍 No data returned from crawl')
       return []
     }
 
-    // Create a simple search URL
-    const encodedKeyword = encodeURIComponent(keyword)
-    const searchUrl = `https://shopee.vn/search?keyword=${encodedKeyword}&sortBy=sales`
-    
-    console.log('🔍 Searching with Scrapeless:', searchUrl)
-
-    // Use Scrapeless to scrape the search results
-    const response = await fetch('https://api.scrapeless.com/api/v1/request', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SCRAPELESS_API_KEY}`
-      },
-      body: JSON.stringify({
-        url: searchUrl,
-        wait_for_selector: '[data-testid="product-item"]',
-        wait_timeout: 15000
-      })
-    })
-
-    if (!response.ok) {
-      console.error('❌ Scrapeless API error:', response.statusText)
-      return []
-    }
-
-    const data = await response.json()
-    console.log('🔍 Scrapeless response received')
-
-    // Parse the results
-    const products = parseShopeeSearchResults(data)
-    
+    const products = parseSearchResults(result)
     return products
-
   } catch (error) {
-    console.error('❌ Error with Scrapeless:', error)
+    console.error('❌ Error with Scrapeless helper:', error)
     return []
   }
 }
 
-function parseShopeeSearchResults(data: any) {
-  try {
-    const products = []
+async function waitForCrawlCompletion(crawlId: string, apiKey: string) {
+  const maxAttempts = 10
+  const delay = 2000 // 2 seconds
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    console.log(`🔍 Checking crawl status (attempt ${attempt}/${maxAttempts})...`)
     
-    console.log('🔍 Parsing Shopee search results...')
-    
-    // Try to extract product data from the scraped HTML
-    if (data.data && data.data.html) {
-      const html = data.data.html
-      console.log('🔍 HTML length:', html.length)
-      
-      // Use regex to extract product links
-      const productLinkRegex = /href="([^"]*\/i\.\d+\.\d+[^"]*)"/g
-      const productNameRegex = /data-testid="product-item".*?title="([^"]+)"/g
-      const priceRegex = /(\d+\.?\d*)\s*₫/g
-      
-      let match
-      const links = []
-      const names = []
-      const prices = []
-      
-      // Extract links
-      while ((match = productLinkRegex.exec(html)) !== null) {
-        if (match[1] && !match[1].includes('seller')) {
-          links.push(match[1])
-        }
+    const statusResponse = await fetch(`https://api.scrapeless.com/api/v1/crawler/crawl/${crawlId}`, {
+      headers: {
+        'x-api-token': apiKey
       }
-      
-      // Extract product names
-      while ((match = productNameRegex.exec(html)) !== null) {
-        names.push(match[1])
-      }
-      
-      // Extract prices
-      while ((match = priceRegex.exec(html)) !== null) {
-        prices.push(match[1])
-      }
-      
-      console.log('🔍 Found links:', links.length)
-      console.log('🔍 Found names:', names.length)
-      console.log('🔍 Found prices:', prices.length)
-      
-      // Create product objects with the found data
-      for (let i = 0; i < Math.min(links.length, 3); i++) {
-        if (links[i]) {
-          const product = {
-            name: names[i] || `Sản phẩm ${i + 1}`,
-            price: prices[i] ? `₫${parseInt(prices[i]).toLocaleString('vi-VN')}` : `₫${(50000 + Math.random() * 200000).toLocaleString('vi-VN')}`,
-            rating: (4.5 + Math.random() * 0.5).toFixed(1),
-            sold: `${Math.floor(Math.random() * 50) + 5}K+`,
-            shop: "Shopee Seller",
-            url: links[i].startsWith('http') ? links[i] : `https://shopee.vn${links[i]}`,
-            image: `https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Product+${i+1}`
-          }
-          products.push(product)
-          console.log('🔍 Added product:', product.name)
-        }
-      }
-    } else {
-      console.log('❌ No HTML data found in response')
+    })
+
+    if (!statusResponse.ok) {
+      console.error('❌ Status check failed:', statusResponse.statusText)
+      return null
     }
-    
+
+    const statusResult = await statusResponse.json()
+    console.log('🔍 Status:', statusResult.status)
+
+    if (statusResult.status === 'completed') {
+      return statusResult
+    }
+
+    if (statusResult.status === 'failed') {
+      console.error('❌ Crawl failed:', statusResult.error)
+      return null
+    }
+
+    // Wait before next attempt
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+
+  console.error('❌ Crawl timeout after', maxAttempts, 'attempts')
+  return null
+}
+
+function parseSearchResults(data: any) {
+  try {
+    const products: any[] = []
+    console.log('🔍 Parsing search results...')
+
+    if (!data || !data.data || data.data.length === 0) {
+      console.log('❌ No HTML/markdown data found in response')
+      return products
+    }
+
+    // Combine markdown/html from all returned pages
+    const combined = data.data.map((d: any) => (d.markdown || d.html || '')).join('\n\n')
+    console.log('🔍 Combined length:', combined.length)
+
+    // Each product block typically starts with a header: ### [Title](URL)
+    const productBlockRe = /### \[([^\]]+)\]\((https?:\/\/[^)]+)\)([\s\S]*?)(?=### \[|$)/g
+    const priceRe = /(\d{1,3}(?:[.,]\d{3})*)\s*₫/i
+    const imgRe = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g
+
+    let m: RegExpExecArray | null
+    let idx = 0
+    while ((m = productBlockRe.exec(combined)) !== null && products.length < 10) {
+      idx++
+      const title = m[1].trim()
+      const url = m[2].trim()
+      const block = m[3] || ''
+
+      // price
+      const priceMatch = block.match(priceRe)
+      const price = priceMatch ? parseInt(priceMatch[1].replace(/[.,]/g, '')) : null
+
+      // images
+      const imgs: string[] = []
+      let im: RegExpExecArray | null
+      while ((im = imgRe.exec(block)) !== null) imgs.push(im[1])
+
+      const product = {
+        name: title || `Sản phẩm ${idx}`,
+        price: price ? `₫${price.toLocaleString('vi-VN')}` : undefined,
+        rating: (4.5 + Math.random() * 0.5).toFixed(1),
+        sold: `${Math.floor(Math.random() * 50) + 5}K+`,
+        shop: 'Twentyfive.vn',
+        url,
+        image: imgs.length > 0 ? imgs[0] : `https://via.placeholder.com/300x300?text=Product+${idx}`
+      }
+
+      products.push(product)
+      console.log('🔍 Parsed product:', product.name, product.url, product.price)
+    }
+
     return products
-    
   } catch (error) {
     console.error('❌ Error parsing search results:', error)
     return []

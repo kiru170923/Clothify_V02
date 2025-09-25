@@ -9,9 +9,23 @@ import { motion } from 'framer-motion'
 import MembershipDetailsModal from './MembershipDetailsModal'
 
 export const ProfileTab = React.memo(function ProfileTab() {
-  const { user, signOut } = useSupabase()
+  const { user, signOut, session } = useSupabase() as any
   const { data: membershipData, isLoading: loadingMembership } = useMembership()
   const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [showStyleModal, setShowStyleModal] = React.useState(false)
+  const [savingStyle, setSavingStyle] = React.useState(false)
+  const [profile, setProfile] = React.useState<any>({
+    gender: '',
+    age_group: '',
+    height_cm: '',
+    weight_kg: '',
+    size: '',
+    style_preferences: [],
+    favorite_colors: [],
+    occasions: [],
+    budget_range: '',
+    try_on_photo_url: ''
+  })
 
   React.useLayoutEffect(() => {
     if (isModalOpen) {
@@ -39,6 +53,49 @@ export const ProfileTab = React.memo(function ProfileTab() {
       await signOut()
     } catch (error) {
       console.error('Error signing out:', error)
+    }
+  }
+
+  const openStyleModal = async () => {
+    try {
+      setShowStyleModal(true)
+      const res = await fetch('/api/profile', { headers: { 'Authorization': `Bearer ${session?.access_token}` }})
+      const data = await res.json()
+      if (res.ok && data.profile) {
+        setProfile({
+          gender: data.profile.gender || '',
+          age_group: data.profile.age_group || '',
+          height_cm: data.profile.height_cm ?? '',
+          weight_kg: data.profile.weight_kg ?? '',
+          size: data.profile.size || '',
+          style_preferences: data.profile.style_preferences || [],
+          favorite_colors: data.profile.favorite_colors || [],
+          occasions: data.profile.occasions || [],
+          budget_range: data.profile.budget_range || '',
+          try_on_photo_url: data.profile.try_on_photo_url || ''
+        })
+      }
+    } catch {}
+  }
+
+  const saveStyleProfile = async () => {
+    try {
+      setSavingStyle(true)
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify(profile)
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Save failed')
+      setShowStyleModal(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSavingStyle(false)
     }
   }
 
@@ -182,6 +239,20 @@ export const ProfileTab = React.memo(function ProfileTab() {
               {membershipData?.membership?.plan ? 'Manage Plan' : 'Upgrade'}
             </button>
           </div>
+
+          {/* View/Edit Style Profile */}
+          <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl">
+            <div className="flex items-center gap-3">
+              <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-amber-600" />
+              <div>
+                <p className="font-medium text-gray-900">Style Profile</p>
+                <p className="text-sm text-gray-600">View and edit your default styling info</p>
+              </div>
+            </div>
+            <a href="/onboarding" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors text-sm">
+              View / Edit
+            </a>
+          </div>
         </div>
       </motion.div>
 
@@ -190,6 +261,8 @@ export const ProfileTab = React.memo(function ProfileTab() {
         onClose={() => setIsModalOpen(false)}
         membershipData={membershipData}
       />
+
+      {/* Style Profile Modal removed; we redirect to onboarding for edit */}
     </div>
   )
 })

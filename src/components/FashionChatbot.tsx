@@ -3,18 +3,32 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import { useSupabase } from './SupabaseProvider'
+
+// Generate unique message ID
+let messageIdCounter = 0
+const generateMessageId = () => {
+  messageIdCounter++
+  return `${Date.now()}-${messageIdCounter}-${Math.random().toString(36).substr(2, 9)}`
+}
+
+// Debounce function to prevent spam
+let searchTimeout: NodeJS.Timeout | null = null
 import { 
   PaperAirplaneIcon, 
   SparklesIcon,
-  LinkIcon,
   StarIcon,
-  ShoppingBagIcon,
   HeartIcon,
   ShareIcon,
-  TrashIcon
+  TrashIcon,
+  ShoppingBagIcon,
+  LinkIcon
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
+import { classifyIntent } from '../lib/nlu'
+import { debounce } from '../lib/debounce'
+import { parseResponseJson } from '../lib/parseResponse'
 
 interface Message {
   id: string
@@ -50,6 +64,7 @@ interface FashionAdvice {
 
 export default function FashionChatbot() {
   const router = useRouter()
+  const { session } = useSupabase() as any
   
   // Load messages from localStorage on component mount
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -72,7 +87,7 @@ export default function FashionChatbot() {
       {
         id: '1',
         type: 'bot',
-        content: '👋 Hello! I am AI Fashion Advisor. Please send a Shopee product link so I can analyze and give you fashion advice!',
+        content: '👋 Hello! I am AI Fashion Advisor. You can ask any fashion question or upload a clothing photo for analysis and advice.',
         timestamp: new Date()
       }
     ]
@@ -80,10 +95,13 @@ export default function FashionChatbot() {
   
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [pendingClarify, setPendingClarify] = useState<null | { type: 'price'|'color'|'size'|'occasion', originalQuery?: string, entities?: any }>(null)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isSubmittingRef = useRef(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -160,12 +178,36 @@ export default function FashionChatbot() {
     scrollToBottom()
   }, [messages])
 
+  // Persist conversation to server (debounced)
+  useEffect(() => {
+    const save = async () => {
+      if (!session?.access_token) return
+      try {
+        await fetch('/api/chat/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ messages })
+        })
+      } catch (e) {
+        console.error('Failed to save conversation:', e)
+      }
+    }
+    const deb = debounce(save, 2000)
+    deb()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, session?.access_token])
+
+  // Keep focus on input by default
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
   // Function to clear conversation
   const clearConversation = () => {
     const initialMessage: Message = {
       id: '1',
       type: 'bot',
-        content: '👋 Hello! I am AI Fashion Advisor. Please send a Shopee product link so I can analyze and give you fashion advice!',
+      content: '👋 Hello! I am AI Fashion Advisor. You can ask any fashion question or upload a clothing photo for analysis and advice.',
       timestamp: new Date()
     }
     setMessages([initialMessage])
@@ -179,13 +221,57 @@ export default function FashionChatbot() {
     })
   }
 
+  // Request personalized recommendations
+  const requestRecommendations = async () => {
+    if (!session?.access_token) return
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/recommend', { method: 'POST', headers: { 'Authorization': `Bearer ${session.access_token}` } })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Recommend failed')
+      const botMessage: Message = { id: generateMessageId(), type: 'bot', content: `Mình gợi ý một vài sản phẩm theo sở thích của bạn:`, timestamp: new Date() }
+      setMessages(prev => [...prev, botMessage])
+      for (const p of data.items || []) {
+        const prod: ProductData = {
+          name: p.normalized?.title || p.metadata?.title || 'Sản phẩm',
+          price: p.price ? String(p.price) : (p.normalized?.price ? String(p.normalized.price) : ''),
+          originalPrice: '',
+          discount: '',
+          rating: 4,
+          reviewCount: '0',
+          sold: '0',
+          description: p.normalized?.description || '',
+          images: p.normalized?.images || p.metadata?.images || [],
+          productUrl: p.source_url
+        }
+        const prodMessage: Message = { id: generateMessageId(), type: 'bot', content: '', timestamp: new Date(), product: prod }
+        setMessages(prev => [...prev, prodMessage])
+      }
+    } catch (e:any) {
+      console.error('Recommend error:', e)
+      toast.error('Không thể lấy gợi ý')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent event bubbling
+    
+    console.log('🔍 HandleSubmit called with:', { inputValue, selectedImage, isLoading, isSubmitting: isSubmittingRef.current })
+    
     if ((!inputValue.trim() && !selectedImage) || isLoading) return
+    
+    // Prevent double submission
+    if (isLoading || isSubmittingRef.current) return
+    
+    isSubmittingRef.current = true
+    console.log('🔍 Starting submission...')
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       type: 'user',
       content: inputValue || 'Image sent for analysis',
       timestamp: new Date(),
@@ -197,7 +283,19 @@ export default function FashionChatbot() {
     setIsLoading(true)
 
     try {
-      // Check if user sent an image
+      // Run NLU to detect intent for text-only messages
+      if (!selectedImage && inputValue.trim()) {
+        const nlu = classifyIntent(inputValue)
+        if (nlu.intent === 'search') {
+          // Use quick search path
+          await handleQuickSearch(inputValue)
+          return
+        }
+        if (nlu.intent === 'update_profile') {
+          // fall through to existing profile update logic below
+        }
+      }
+      // Prioritize uploaded image analysis
       if (selectedImage) {
         console.log('🔍 Analyzing uploaded image:', selectedImage.name, selectedImage.size, 'bytes')
         
@@ -207,30 +305,39 @@ export default function FashionChatbot() {
         
         console.log('🔍 Sending FormData to /api/chat...')
         
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 120000) // 120s timeout for Scrapeless
+        
         const response = await fetch('/api/chat', {
           method: 'POST',
-          body: formData
+          body: formData,
+          signal: controller.signal
         })
         
+        clearTimeout(timeoutId)
         console.log('🔍 Response status:', response.status)
         console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()))
         
+        // Read body once and validate
+        const bodyText = await response.text()
+        console.log('🔍 Response body (preview):', bodyText?.slice(0, 300))
         if (!response.ok) {
-          const errorText = await response.text()
-          console.error('❌ Response not ok:', response.status, errorText)
-          throw new Error(`Server error: ${response.status} - ${errorText}`)
+          console.error('❌ Response not ok:', response.status, bodyText)
+          throw new Error(`Server error: ${response.status} - ${bodyText}`)
         }
-        
         const contentType = response.headers.get('content-type')
         console.log('🔍 Content type:', contentType)
-        
         if (!contentType || !contentType.includes('application/json')) {
-          const responseText = await response.text()
-          console.error('❌ Non-JSON response:', responseText)
-          throw new Error(`Server returned incorrect format response: ${responseText.substring(0, 200)}...`)
+          console.error('❌ Non-JSON response:', bodyText)
+          throw new Error(`Server returned incorrect format response: ${bodyText.substring(0, 200)}...`)
         }
-        
-        const data = await response.json()
+        let data
+        try {
+          data = JSON.parse(bodyText)
+        } catch (err) {
+          console.error('❌ Invalid JSON response:', bodyText)
+          throw new Error('Invalid JSON response from server')
+        }
         console.log('✅ Image analysis response:', data)
         
         if (!data.success) {
@@ -238,7 +345,7 @@ export default function FashionChatbot() {
         }
         
         const botMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: generateMessageId(),
           type: 'bot',
           content: data.response || 'Sorry, I cannot analyze this image.',
           timestamp: new Date()
@@ -249,42 +356,46 @@ export default function FashionChatbot() {
         // Clear image after sending
         removeImage()
         
-      } else if (inputValue.includes('shopee.vn') || inputValue.includes('shopee.com')) {
-        console.log('Analyzing Shopee product:', inputValue)
-        
-        const response = await fetch('/api/shopee/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: inputValue })
-        })
-
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type')
-        if (!contentType || !contentType.includes('application/json')) {
-          const responseText = await response.text()
-          console.error('Non-JSON response:', responseText)
-          throw new Error(`Server returned incorrect format response: ${responseText.substring(0, 100)}...`)
-        }
-
-        const data = await response.json()
-        console.log('API response:', data)
-
-        if (data.success && data.product) {
-          const botMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            type: 'bot',
-            content: data.advice || 'I have analyzed this product! Here is detailed information and fashion advice:',
-            timestamp: new Date(),
-            product: data.product
-          }
-          setMessages(prev => [...prev, botMessage])
-          toast.success('Product analysis successful!')
-        } else {
-          throw new Error(data.error || 'Cannot analyze product')
-        }
       } else {
         // Regular chat response with context
         console.log('Sending chat message with context:', inputValue)
+
+        // Quick command: update size in user_profile (e.g., "size L", "mặc size M")
+        const sizeMatch = inputValue.toLowerCase().match(/size\s*(xs|s|m|l|xl)\b/)
+        if (sizeMatch && session?.access_token) {
+          try {
+            const newSize = sizeMatch[1].toUpperCase()
+        const res = await fetch('/api/profile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ size: newSize })
+            })
+            const data = await parseResponseJson(res)
+            if (!res.ok) throw new Error(data.error || 'Update failed')
+            const botMessage: Message = {
+              id: generateMessageId(),
+              type: 'bot',
+              content: `✅ Đã cập nhật size của bạn thành ${newSize}.`,
+              timestamp: new Date()
+            }
+            setMessages(prev => [...prev, botMessage])
+            setIsLoading(false)
+            return
+          } catch (err:any) {
+            const botMessage: Message = {
+              id: generateMessageId(),
+              type: 'bot',
+              content: `❌ Không cập nhật được size: ${err.message}`,
+              timestamp: new Date()
+            }
+            setMessages(prev => [...prev, botMessage])
+            setIsLoading(false)
+            return
+          }
+        }
         
         // Prepare conversation context (last 10 messages to optimize tokens)
         const recentMessages = messages.slice(-10).map(msg => ({
@@ -292,20 +403,28 @@ export default function FashionChatbot() {
           content: msg.content
         }))
         
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 120000) // 120s timeout for Scrapeless
+        
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             message: inputValue,
             context: recentMessages
-          })
+          }),
+          signal: controller.signal
         })
 
-        const data = await response.json()
-        console.log('Chat response:', data)
+        clearTimeout(timeoutId)
+        console.log('🔍 Response status:', response.status)
+        console.log('🔍 Response ok:', response.ok)
+        
+        const data = await parseResponseJson(response)
+        console.log('🔍 Chat response data:', data)
         
         const botMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: generateMessageId(),
           type: 'bot',
           content: data.response || 'Sorry, I do not understand your question.',
           timestamp: new Date()
@@ -314,19 +433,143 @@ export default function FashionChatbot() {
       }
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      let errorMessage = 'An error occurred'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - please try again'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast.error(errorMessage)
       
       const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateMessageId(),
         type: 'bot',
-        content: `❌ **Error**: ${errorMessage}\n\n💡 **Suggestions**:\n- Check if the Shopee link is correct\n- Try again in a few seconds\n- Contact support if the problem continues`,
+        content: `❌ Error: ${errorMessage}\n\n💡 Suggestions:\n- Try again in a few seconds\n- Upload a clearer clothing image\n- Contact support if the problem continues`,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, botMessage])
     } finally {
       setIsLoading(false)
+      isSubmittingRef.current = false
+      // Re-focus input after sending
+      requestAnimationFrame(() => inputRef.current?.focus())
     }
+  }
+
+  // Quick product search from chatbot UI (calls our search API)
+  const handleQuickSearch = async (query: string, entities?: any) => {
+    if (!query && !entities) return
+    if (isLoading || isSubmittingRef.current) return // Prevent concurrent searches
+    
+    // Clear previous timeout
+    if (searchTimeout) clearTimeout(searchTimeout)
+    
+    // Debounce search
+    searchTimeout = setTimeout(async () => {
+      isSubmittingRef.current = true
+      // add user message
+    const userMessage: Message = {
+      id: generateMessageId(),
+      type: 'user',
+      content: query,
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, userMessage])
+    setIsLoading(true)
+    try {
+      const body: any = { q: query || '' , limit: 6 }
+      if (entities) {
+        if (entities.price) body.priceMin = entities.price
+        if (entities.color) body.color = entities.color
+        if (entities.size) body.size = entities.size
+      }
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+      
+      const res = await fetch('/api/products/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      const data = await parseResponseJson(res)
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Search failed')
+      }
+
+      // Bot summary message
+      const botSummary: Message = {
+        id: generateMessageId(),
+        type: 'bot',
+        content: `Mình tìm thấy ${data.data?.length || 0} kết quả cho "${query}".`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, botSummary])
+
+      // Append each product as a bot message with product payload
+      for (const p of data.data || []) {
+        const prod: ProductData = {
+          name: p.title || (p.normalized?.title || 'Sản phẩm'),
+          price: p.price ? String(p.price) : (p.normalized?.price ? String(p.normalized.price) : ''),
+          originalPrice: '',
+          discount: '',
+          rating: 4,
+          reviewCount: '0',
+          sold: '0',
+          description: p.normalized?.description || '',
+          images: (p.normalized?.images && p.normalized.images.length) ? p.normalized.images : (p.metadata?.images || []),
+          productUrl: p.source_url
+        }
+        const prodMessage: Message = {
+          id: generateMessageId(),
+          type: 'bot',
+          content: '',
+          timestamp: new Date(),
+          product: prod
+        }
+        setMessages(prev => [...prev, prodMessage])
+      }
+      // clear any pending clarify
+      setPendingClarify(null)
+    } catch (err:any) {
+      console.error('Quick search error:', err)
+      const botMessage: Message = { id: generateMessageId(), type: 'bot', content: `❌ Lỗi tìm kiếm: ${err.message || err}`, timestamp: new Date() }
+      setMessages(prev => [...prev, botMessage])
+    } finally {
+      setIsLoading(false)
+      isSubmittingRef.current = false
+      requestAnimationFrame(() => inputRef.current?.focus())
+    }
+    }, 300) // 300ms debounce
+  }
+
+  const promptClarify = (type: 'price'|'color'|'size'|'occasion', originalQuery?: string, entities?: any) => {
+    setPendingClarify({ type, originalQuery, entities })
+    const botMessage: Message = { id: generateMessageId(), type: 'bot', content: type === 'price' ? 'Bạn muốn tầm giá bao nhiêu?' : type === 'color' ? 'Bạn thích màu nào?' : type === 'size' ? 'Bạn mặc size nào?' : 'Bạn dùng dịp nào?', timestamp: new Date() }
+    setMessages(prev => [...prev, botMessage])
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
+  const handleClarifyResponse = (value: string) => {
+    if (!pendingClarify) return
+    const { type, originalQuery, entities } = pendingClarify
+    const merged = { ...(entities||{} ) }
+    if (type === 'price') {
+      // simple mapping: preset buttons like 'Dưới 300k' -> price 300000
+      if (value.includes('300')) merged.price = 300000
+      else if (value.includes('500')) merged.price = 500000
+      else merged.price = parseInt(value.replace(/[^0-9]/g,'')) || undefined
+    } else if (type === 'color') merged.color = value
+    else if (type === 'size') merged.size = value
+
+    // call search with originalQuery (if exists) otherwise empty
+    handleQuickSearch(originalQuery || '', merged)
   }
 
   const formatPrice = (price: string) => {
@@ -373,6 +616,9 @@ export default function FashionChatbot() {
             <p className="text-sm text-gray-600">Smart fashion advice</p>
           </div>
         </div>
+      <div className="ml-4">
+        <button onClick={requestRecommendations} className="px-3 py-1 bg-amber-50 rounded text-amber-700 text-sm">Gợi ý cho tôi</button>
+      </div>
       </div>
 
       {/* Messages */}
@@ -550,7 +796,7 @@ export default function FashionChatbot() {
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
                 <span className="text-sm text-gray-600">
-                  {inputValue.includes('shopee') ? 'Analyzing Shopee product...' : 'AI is thinking...'}
+                  {selectedImage ? 'Analyzing your image...' : 'AI is thinking...'}
                 </span>
               </div>
             </div>
@@ -593,9 +839,10 @@ export default function FashionChatbot() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Enter Shopee product link, fashion questions or upload image..."
+              placeholder="Ask fashion questions or upload a clothing image for analysis..."
               className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={isLoading}
+              ref={inputRef}
             />
             <input
               ref={fileInputRef}
@@ -604,11 +851,7 @@ export default function FashionChatbot() {
               onChange={handleImageSelect}
               className="hidden"
             />
-            {inputValue.includes('shopee') && (
-              <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
-                <LinkIcon className="w-5 h-5 text-green-500" />
-              </div>
-            )}
+            {/* Hint icon removed since Shopee link feature is disabled */}
             
             <button
               type="button"
@@ -630,31 +873,50 @@ export default function FashionChatbot() {
           </button>
         </form>
 
-        {/* Example Links */}
+        {/* Example prompts (Shopee removed) */}
         <div className="mt-3">
-          <p className="text-xs text-gray-500 mb-2">Try with this Shopee link:</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setInputValue('https://shopee.vn/product/123456789')}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
-            >
-              Example Shopee link
-            </button>
+          <p className="text-xs text-gray-500 mb-2">Try these prompts:</p>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <button onClick={() => setInputValue('What should I wear for a date?')} className="text-xs text-blue-600 hover:text-blue-800 underline">Styling advice</button>
             <span className="text-xs text-gray-400">•</span>
-            <button
-              onClick={() => setInputValue('What should I wear for a date?')}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
-            >
-              Styling advice
-            </button>
+            <button onClick={() => setInputValue('Analyze this outfit and suggest improvements')} className="text-xs text-blue-600 hover:text-blue-800 underline">Analyze outfit</button>
             <span className="text-xs text-gray-400">•</span>
-            <button
-              onClick={() => setInputValue('Summer 2024 fashion trends')}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
-            >
-              Fashion trends
-            </button>
+            <button onClick={() => setInputValue('Latest fall fashion trends')} className="text-xs text-blue-600 hover:text-blue-800 underline">Fashion trends</button>
           </div>
+
+          <p className="text-xs text-gray-500 mb-2">Quick product searches:</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleQuickSearch('dưới 300k áo khoác len'); }} className="text-xs px-3 py-1 rounded bg-amber-50 text-amber-700">Dưới 300k</button>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleQuickSearch('áo khoác kem'); }} className="text-xs px-3 py-1 rounded bg-amber-50 text-amber-700">Màu kem</button>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleQuickSearch('váy đi tiệc'); }} className="text-xs px-3 py-1 rounded bg-amber-50 text-amber-700">Đi tiệc</button>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleQuickSearch('set đồ công sở'); }} className="text-xs px-3 py-1 rounded bg-amber-50 text-amber-700">Công sở</button>
+          </div>
+          {/* Clarify UI when pending */}
+          {pendingClarify && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {pendingClarify.type === 'price' && (
+                <>
+                  <button onClick={() => handleClarifyResponse('300k')} className="text-xs px-3 py-1 rounded bg-amber-50">Dưới 300k</button>
+                  <button onClick={() => handleClarifyResponse('300-500k')} className="text-xs px-3 py-1 rounded bg-amber-50">300k-500k</button>
+                  <button onClick={() => handleClarifyResponse('500k')} className="text-xs px-3 py-1 rounded bg-amber-50">Trên 500k</button>
+                </>
+              )}
+              {pendingClarify.type === 'color' && (
+                <>
+                  <button onClick={() => handleClarifyResponse('kem')} className="text-xs px-3 py-1 rounded bg-amber-50">Kem</button>
+                  <button onClick={() => handleClarifyResponse('hồng')} className="text-xs px-3 py-1 rounded bg-amber-50">Hồng</button>
+                  <button onClick={() => handleClarifyResponse('đen')} className="text-xs px-3 py-1 rounded bg-amber-50">Đen</button>
+                </>
+              )}
+              {pendingClarify.type === 'size' && (
+                <>
+                  <button onClick={() => handleClarifyResponse('S')} className="text-xs px-3 py-1 rounded bg-amber-50">S</button>
+                  <button onClick={() => handleClarifyResponse('M')} className="text-xs px-3 py-1 rounded bg-amber-50">M</button>
+                  <button onClick={() => handleClarifyResponse('L')} className="text-xs px-3 py-1 rounded bg-amber-50">L</button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

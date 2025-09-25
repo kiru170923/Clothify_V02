@@ -47,8 +47,8 @@ export default function UploadCard({ label, image, onChange, type, onZoom }: Upl
       const reader = new FileReader()
       reader.onload = async () => {
         try {
-          // Optimize image before setting
-          const optimizedImage = await optimizeImageForUpload(reader.result as string)
+          // Optimize image before setting (max 1200px, quality 0.8)
+          const optimizedImage = await optimizeImageForUpload(reader.result as string, { maxSize: 1200, quality: 0.8 })
           onChange(optimizedImage)
           toast.success('Tải ảnh thành công! (đã tối ưu hóa)')
         } catch (error) {

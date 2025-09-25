@@ -30,6 +30,9 @@ export interface WardrobeItem {
 export default function WardrobePage() {
   const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [page, setPage] = useState(1)
+  const pageSize = 15
+  const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false) // New state for upload loading
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -38,12 +41,12 @@ export default function WardrobePage() {
   const { session } = useSupabase()
 
   // Fetch wardrobe items
-  const fetchWardrobeItems = async () => {
+  const fetchWardrobeItems = async (nextPage = 1, reset = false) => {
     if (!session?.access_token) return
     
     setIsLoading(true)
     try {
-      const response = await fetch('/api/wardrobe', {
+      const response = await fetch(`/api/wardrobe?page=${nextPage}&pageSize=${pageSize}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -53,7 +56,12 @@ export default function WardrobePage() {
       const data = await response.json()
 
       if (response.ok) {
-        setWardrobeItems(data.items || [])
+        setTotal(data.total || 0)
+        if (reset || nextPage === 1) {
+          setWardrobeItems(data.items || [])
+        } else {
+          setWardrobeItems(prev => [...prev, ...(data.items || [])])
+        }
       } else {
         console.error('Failed to fetch wardrobe items:', data.error)
       }
@@ -65,7 +73,8 @@ export default function WardrobePage() {
   }
 
   useEffect(() => {
-    fetchWardrobeItems()
+    fetchWardrobeItems(1, true)
+    setPage(1)
   }, [session])
 
   // Delete wardrobe item
@@ -250,53 +259,14 @@ export default function WardrobePage() {
                         />
                       </div>
                       
-                      {/* Delete Button */}
+                      {/* Delete Button (no confirm) */}
                       <button
-                        onClick={() => {
-                          toast.custom((t) => (
-                            <motion.div
-                              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              className="bg-amber-50 border border-amber-200 rounded-lg p-4 shadow-lg flex flex-col items-center max-w-sm mx-auto"
-                            >
-                              <p className="text-lg font-semibold text-gray-900 mb-3">Xác nhận xóa Trang phục</p>
-                              <p className="text-sm text-gray-600 text-center mb-4">Bạn có chắc chắn muốn xóa trang phục này khỏi tủ đồ? Hành động này không thể hoàn tác.</p>
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => toast.dismiss(t.id)}
-                                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800 text-sm font-medium transition-colors"
-                                >
-                                  Hủy
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    toast.dismiss(t.id)
-                                    try {
-                                      await deleteWardrobeItem(item.id)
-                                      toast.success('🗑️ Đã xóa trang phục!')
-                                    } catch (error) {
-                                      console.error('Delete error:', error)
-                                      toast.error('❌ Lỗi xóa trang phục')
-                                    }
-                                  }}
-                                  className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium transition-colors"
-                                >
-                                  Xóa
-                                </button>
-                              </div>
-                            </motion.div>
-                          ), {
-                            duration: Infinity, // Keep the toast open until dismissed
-                            id: 'delete-wardrobe-confirm' // Unique ID to manage this toast
-                          })
-                        }}
+                        onClick={() => deleteWardrobeItem(item.id)}
                         className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all opacity-90 hover:opacity-100 shadow-lg"
                         title="Xóa trang phục"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                       
@@ -339,9 +309,37 @@ export default function WardrobePage() {
                 </div>
               )}
             </div>
+
+            {/* Pagination */}
+            {page * pageSize < total && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => {
+                    const next = page + 1
+                    setPage(next)
+                    fetchWardrobeItems(next)
+                  }}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                >
+                  Tải thêm
+                </button>
+              </div>
+            )}
           </div>
         </main>
       </div>
+
+      {/* Global uploading overlay */}
+      {isUploading && (
+        <div className="fixed inset-0 z-[90] bg-black/40 flex items-center justify-center">
+          <div className="bg-white rounded-lg px-5 py-4 shadow">
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm text-gray-800">Đang thêm trang phục...</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload Modal */}
       <AnimatePresence>

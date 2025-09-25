@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { generateAdvancedPrompt } from '../../../../lib/promptGenerator'
 import { createCompositeImage } from '../../../../lib/imageComposer'
@@ -261,7 +262,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ User authenticated:', user.id)
 
-    const { personImage, clothingImage, clothingImageUrls, selectedGarmentType, customModelPrompt } = await request.json()
+    const { personImage, clothingImage, clothingImageUrls, selectedGarmentType, customModelPrompt, fastMode } = await request.json()
 
     // Check if we have clothing image
     if (!personImage || !clothingImage) {
@@ -270,6 +271,65 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required images' },
         { status: 400 }
       )
+    }
+
+    // If fastMode with Gemini, try DIRECT base64 without uploading
+    if (fastMode === true) {
+      try {
+        console.log('⚡ Fast mode preflight: calling Gemini directly with base64 when possible')
+        const { callGoogleAI, generateTorsoMask } = await import('../../../../lib/googleAI')
+
+        // Build a generic prompt based on garment type if not provided yet
+        const promptFast = selectedGarmentType === 'top'
+          ? 'Replace the upper garment on the person in the first image with the garment from the second image. Ensure the output is photorealistic, fits naturally, and is visually different from the original person image. Do not return the original image unchanged.'
+          : selectedGarmentType === 'bottom'
+          ? 'Replace only the bottom garment on the person in the first image with the garment from the second image. Ensure the output is photorealistic, fits naturally, and is visually different from the original person image. Do not return the original image unchanged.'
+          : selectedGarmentType === 'full-body'
+          ? 'Replace the entire outfit of the person in the first image with the full-body garment from the second image. Ensure the output is photorealistic, fits naturally, and is visually different from the original person image. Do not return the original image unchanged.'
+          : 'Replace the clothing in the first image with the garment from the second image. Ensure the output is photorealistic, fits naturally, and is visually different from the original person image. Do not return the original image unchanged.'
+
+        // Ensure both inputs are base64 data URLs
+        const personBase64DataUrl = personImage && personImage.startsWith('data:image/')
+          ? personImage
+          : await processImage(personImage)
+        const clothingBase64DataUrl = clothingImage && clothingImage.startsWith('data:image/')
+          ? clothingImage
+          : await processImage(clothingImage)
+
+        // Generate a simple torso mask to guide Gemini editing
+        let mask: string | undefined
+        try {
+          mask = await generateTorsoMask(personBase64DataUrl as string)
+        } catch (mErr) {
+          console.log('ℹ️ Mask generation failed, proceeding without mask:', mErr)
+        }
+
+        const gResult = await callGoogleAI({ personImage: personBase64DataUrl as string, clothingImage: clothingBase64DataUrl as string, maskImage: mask, prompt: promptFast, isTextToImage: false })
+        if (gResult.success && gResult.resultImage) {
+          // Extra safety: if result is identical to input person image, treat as failure (Gemini ignored swap)
+          const md5 = (dataUrl: string) => {
+            const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
+            return crypto.createHash('md5').update(base64).digest('hex')
+          }
+          try {
+            const inHash = md5(personBase64DataUrl as string)
+            const outHash = md5(gResult.resultImage)
+            if (inHash === outHash) {
+              console.log('⚠️ Gemini returned image identical to input person image. Treating as failure for fast mode.')
+              return NextResponse.json({ error: 'Gemini produced an unchanged image. No swap detected.' }, { status: 502 })
+            }
+          } catch (hashErr) {
+            console.log('ℹ️ Hash compare skipped due to error:', hashErr)
+          }
+          console.log('✅ Gemini direct path succeeded (no upload)')
+          return NextResponse.json({ success: true, resultImageUrl: gResult.resultImage, provider: 'gemini' })
+        }
+        console.log('⚠️ Gemini returned no image in fast mode:', gResult.error)
+      } catch (e) {
+        console.log('⚠️ Gemini direct path error in fast mode:', e)
+      }
+      // In fast mode, do NOT fallback to KIE. Return error immediately for easier debugging
+      return NextResponse.json({ error: 'Gemini fast mode failed. No fallback in fast mode.' }, { status: 502 })
     }
 
     // Process images - person image needs to be uploaded, clothing image (composite)
@@ -288,17 +348,13 @@ export async function POST(request: NextRequest) {
         throw new Error('Person image must be base64 data URL or HTTP URL')
       }
       
-    // Process clothing image (should be composite from client)
+    // Process clothing image (prefer direct URL to save time)
     if (clothingImage) {
         if (clothingImage.startsWith('http')) {
-          console.log('🔄 Converting clothing image URL to base64 and uploading to Supabase...')
-          console.log('🔍 Original clothing URL:', clothingImage)
-          const processedImage = await processImage(clothingImage)
-          console.log('🔍 Processed image type:', processedImage.substring(0, 50) + '...')
-          clothingImageUrl = await uploadToSupabase(processedImage, 'clothing-images')
-          console.log('🔍 Final clothing URL:', clothingImageUrl)
+          console.log('🔗 Using clothing image URL directly (skip upload):', clothingImage)
+          clothingImageUrl = clothingImage
         } else if (clothingImage.startsWith('data:image/')) {
-          console.log('📤 Composite image detected - uploading to Supabase (KIE.AI needs URL)')
+          console.log('📤 Base64 clothing image - uploading once to Supabase (KIE.AI needs URL)')
           clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
         } else {
           throw new Error('Invalid clothing image format')
@@ -363,74 +419,13 @@ export async function POST(request: NextRequest) {
       parameters = result.parameters
     }
     
-    // Validate images before sending to KIE.AI
-    console.log('🔍 Validating images for KIE.AI...')
-    console.log('Person image URL:', personImageUrl)
-    console.log('Clothing image URL:', clothingImageUrl)
-    
-    // Test if images are accessible and validate format
-    try {
-      if (isComposite) {
-        // Only validate composite image
-        console.log(`🔍 Testing composite image:`, clothingImageUrl)
-        
-        if (clothingImageUrl.startsWith('data:image/')) {
-          // Base64 composite image - no need to fetch
-          console.log('✅ Composite image is base64 data URL - valid')
-        } else {
-          // URL composite image - test accessibility
-          const clothingTest = await fetch(clothingImageUrl)
-          if (!clothingTest.ok) {
-            throw new Error(`Composite image not accessible: ${clothingTest.status}`)
-          }
-          
-          const clothingContentType = clothingTest.headers.get('content-type')
-          if (!clothingContentType?.startsWith('image/')) {
-            throw new Error(`Invalid composite image format: ${clothingContentType}`)
-          }
-          
-          console.log(`✅ Composite image is accessible and valid`)
-          console.log(`Composite image type:`, clothingContentType)
-        }
-      } else {
-        // Validate separate images
-        // Test person image
-        const personTest = await fetch(personImageUrl)
-        if (!personTest.ok) {
-          throw new Error(`Person image not accessible: ${personTest.status}`)
-        }
-        
-        const personContentType = personTest.headers.get('content-type')
-        if (!personContentType?.startsWith('image/')) {
-          throw new Error(`Invalid person image format: ${personContentType}`)
-        }
-        
-        console.log('✅ Person image is accessible and valid')
-        console.log('Person image type:', personContentType)
-        
-        // Test clothing image
-        console.log(`🔍 Testing clothing image:`, clothingImageUrl)
-        
-        const clothingTest = await fetch(clothingImageUrl)
-        if (!clothingTest.ok) {
-          throw new Error(`Clothing image not accessible: ${clothingTest.status}`)
-        }
-        
-        const clothingContentType = clothingTest.headers.get('content-type')
-        if (!clothingContentType?.startsWith('image/')) {
-          throw new Error(`Invalid clothing image format: ${clothingContentType}`)
-        }
-        
-        console.log(`✅ Clothing image is accessible and valid`)
-        console.log(`Clothing image type:`, clothingContentType)
-      }
-      
-    } catch (error) {
-      console.error('❌ Image validation failed:', error)
-      return NextResponse.json({ 
-        error: `Image validation failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
-      }, { status: 400 })
+    // If fastMode was requested, we should have already returned above. Guard here just in case.
+    if (fastMode === true) {
+      return NextResponse.json({ error: 'Gemini fast mode failed earlier. No fallback in fast mode.' }, { status: 502 })
     }
+
+    // Skip pre-validation fetch to reduce latency; rely on KIE.AI validation
+    console.log('⏭️ Skipping pre-validation to speed up request')
     
     let imageUrls: string[]
     
@@ -493,141 +488,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message, code: kieaiData.code }, { status })
     }
 
-    // Try to get result immediately
+    // Return 202 Accepted immediately and let client poll /api/clothify/status
     const taskId = kieaiData.data.taskId
     console.log('✅ Task created with ID:', taskId)
-    
-    // Poll for results using status API with exponential backoff
-    let attempts = 0
-    const maxAttempts = 60 // 60 seconds timeout
-    
-    while (attempts < maxAttempts) {
-      // Exponential backoff: 250ms, 500ms, 1s, 2s, 4s...
-      const delay = Math.min(250 * Math.pow(2, Math.floor(attempts / 5)), 4000);
-      await new Promise(resolve => setTimeout(resolve, delay))
-      
-      try {
-        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-          },
-        })
-        
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json()
-          
-          // Check if task is still processing or generating
-          if (statusData.code === 200 && (statusData.data.state === 'processing' || statusData.data.state === 'generating')) {
-            attempts++
-            continue
-          }
-          
-          if (statusData.code === 200 && statusData.data.state === 'success') {
-            console.log('🎉 Task completed successfully!')
-            const resultJson = JSON.parse(statusData.data.resultJson)
-            const tempResultImageUrl = resultJson.resultUrls[0]
-            
-            // Download and save result image to Supabase Storage
-            const resultImageResponse = await fetch(tempResultImageUrl)
-            if (!resultImageResponse.ok) {
-              console.log('❌ Failed to download result image')
-              throw new Error('Failed to download result image')
-            }
-            
-            const resultImageBuffer = await resultImageResponse.arrayBuffer()
-            const resultImageFilename = `result-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
-            
-            const { data: resultUploadData, error: resultUploadError } = await supabaseAdmin.storage
-              .from('result-images')
-              .upload(resultImageFilename, resultImageBuffer, {
-                contentType: 'image/jpeg',
-              })
-            
-            if (resultUploadError) {
-              throw new Error(`Failed to upload result image: ${resultUploadError.message}`)
-            }
-            
-            // Get public URL for result image
-            const { data: resultUrlData } = supabaseAdmin.storage
-              .from('result-images')
-              .getPublicUrl(resultImageFilename)
-            
-            const finalResultImageUrl = resultUrlData.publicUrl
-            
-            // Save to database
-            const insertData = {
-              user_id: user.id,
-            person_image_url: personImageUrl as string,
-            clothing_image_url: clothingImageUrl as string,
-              result_image_url: finalResultImageUrl,
-              status: 'completed',
-              processing_time: (attempts + 1) * 1000, // Convert to milliseconds
-              created_at: new Date().toISOString()
-            }
-            
-            const { data: insertResult, error: dbError } = await supabaseAdmin
-              .from('images')
-              .insert(insertData)
-              .select()
-
-            if (dbError) {
-              console.error('Database error:', dbError)
-            }
-
-            return NextResponse.json({
-              success: true,
-              resultImageUrl: finalResultImageUrl,
-              taskId: taskId,
-              processingTime: `${attempts + 1}s`
-            })
-          } else if (statusData.code === 200 && statusData.data.state === 'fail') {
-            console.log('❌ KIE.AI generation failed:', statusData.data.failMsg)
-            
-            // If it's an E006 error, try with fallback
-            if (statusData.data.failMsg && statusData.data.failMsg.includes('E006')) {
-              console.log('🔄 E006 error detected, trying with fallback images...')
-              return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
-            }
-            
-            return NextResponse.json({ error: `KIE.AI generation failed: ${statusData.data.failMsg}` }, { status: 502 })
-          } else {
-            // Handle other states - try fallback for unknown states
-            if (statusData.data.state === 'error' || statusData.data.error) {
-              console.log('🔄 KIE.AI error state, trying fallback...')
-              return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
-            }
-            
-            // For other unknown states, continue polling
-            attempts++
-            continue
-          }
-        } else {
-          console.log('❌ Status check failed:', statusResponse.status, statusResponse.statusText)
-          attempts++
-          continue
-        }
-      } catch (error) {
-        // Continue polling on error
-      }
-      
-      attempts++
-    }
-    
-    // Timeout - but return taskId for callback approach
-    console.log('⏰ Task timeout after', maxAttempts, 'attempts')
-    return NextResponse.json({ 
-      success: true, 
-      taskId: taskId,
-      message: 'Task created successfully. Processing may take longer than expected. Please check back later.',
-      timeout: true
-    }, { status: 202 }) // 202 Accepted - processing
-    
-    // Fallback to callback approach
-    return NextResponse.json({
-      success: true,
-      taskId: taskId,
-      message: 'Task created successfully. Processing...'
-    })
+    return NextResponse.json({ success: true, taskId, provider: 'kieai' }, { status: 202 })
 
   } catch (error: any) {
     console.error('💥 Error in try-on API:', error)

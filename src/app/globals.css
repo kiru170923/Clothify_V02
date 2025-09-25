@@ -93,7 +93,12 @@ html.lenis body {
 
 /* Focus styles */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white;
+  outline: none;
+}
+
+/* Generic focus ring helper */
+.focus-ring:focus {
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.12), 0 0 0 2px rgba(59,130,246,0.24);
 }
 
 /* Button styles */

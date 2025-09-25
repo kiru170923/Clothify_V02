@@ -11,6 +11,7 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
+import { optimizeImageForUpload } from '../lib/imageOptimization'
 
 interface ClothingItem {
   id: string
@@ -101,7 +102,7 @@ export default function MultipleClothingUpload({
       const reader = new FileReader()
       reader.onload = async () => {
         try {
-          const optimizedImage = await optimizeImageForUpload(reader.result as string)
+          const optimizedImage = await optimizeImageForUpload(reader.result as string, { maxSize: 1200, quality: 0.8 })
           
           // Auto-detect clothing type
           setIsDetecting(true)
@@ -271,48 +272,4 @@ export default function MultipleClothingUpload({
       )}
     </div>
   )
-}
-
-// Image optimization function
-async function optimizeImageForUpload(imageDataUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'))
-        return
-      }
-
-      // Calculate optimal size (max 1024px on longest side)
-      const maxSize = 1024
-      let { width, height } = img
-      
-      if (width > height && width > maxSize) {
-        height = (height * maxSize) / width
-        width = maxSize
-      } else if (height > maxSize) {
-        width = (width * maxSize) / height
-        height = maxSize
-      }
-
-      canvas.width = width
-      canvas.height = height
-
-      // Draw and compress
-      ctx.drawImage(img, 0, 0, width, height)
-      
-      try {
-        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
-        resolve(optimizedDataUrl)
-      } catch (error) {
-        reject(error)
-      }
-    }
-    
-    img.onerror = () => reject(new Error('Could not load image'))
-    img.src = imageDataUrl
-  })
 }

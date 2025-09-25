@@ -1,0 +1,31 @@
+name: Cron Crawl
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # every 6 hours
+  workflow_dispatch: {}
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call scrape batch endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          SCRAPE_JOB_SECRET: ${{ secrets.SCRAPE_JOB_SECRET }}
+          CRAWL_URLS: ${{ secrets.CRAWL_URLS }} # newline separated URLs or JSON array
+        run: |
+          set -e
+          if [ -z "$CRAWL_URLS" ]; then
+            echo "No CRAWL_URLS provided in secrets"
+            exit 1
+          fi
+          # Convert newline-separated into JSON array
+          urls_json=$(printf '%s' "$CRAWL_URLS" | jq -R -s -c 'split("\n") | map(select(length>0))')
+          echo "Calling $APP_URL/api/scrape/batch with $urls_json"
+          curl -X POST "$APP_URL/api/scrape/batch" \
+            -H "Content-Type: application/json" \
+            -H "x-scrape-secret: $SCRAPE_JOB_SECRET" \
+            -d "{\"urls\": $urls_json }" | jq '.'
+
+

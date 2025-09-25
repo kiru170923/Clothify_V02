@@ -15,14 +15,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCoins, faUser, faCreditCard, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useSupabase } from './SupabaseProvider'
 import React from 'react'
+import Link from 'next/link'
 import { UserTokens } from '../types/membership'
 import { useTokens } from '../hooks/useTokens'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import { useSidebar } from './SidebarProvider'
 
 export default function Header() {
   const { user, signOut } = useSupabase()
   const router = useRouter()
+  const { toggle } = useSidebar()
   
   // Use React Query for tokens
   const { data: tokenData, isLoading: loadingTokens, error } = useTokens()
@@ -43,6 +46,16 @@ export default function Header() {
         {/* Logo and Navigation */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
+            {/* Hamburger for mobile */}
+            <button
+              onClick={toggle}
+              className="md:hidden mr-2 p-2 rounded-lg border border-amber-200 bg-white/70 text-amber-700 hover:bg-white"
+              aria-label="Toggle sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-sm">C</span>
             </div>
@@ -58,12 +71,12 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {/* Token Display */}
           {user && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg">
+            <button onClick={()=>router.push('/tokens/buy')} title="Buy tokens" className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg hover:shadow">
               <FontAwesomeIcon icon={faCoins} className="w-4 h-4 text-amber-600" />
               <span className="text-sm font-medium text-amber-700">
                 {loadingTokens ? '...' : displayTokens}
               </span>
-            </div>
+            </button>
           )}
 
           {/* Notifications */}
@@ -117,7 +130,7 @@ export default function Header() {
                   
                   <Menu.Item>
                     {({ active }) => (
-                      <a
+                      <Link
                         href="/profile"
                         className={`${
                           active ? 'bg-amber-50' : ''
@@ -125,13 +138,27 @@ export default function Header() {
                       >
                         <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-amber-500" />
                         Personal Profile
-                      </a>
+                      </Link>
                     )}
                   </Menu.Item>
 
                   <Menu.Item>
                     {({ active }) => (
                       <a
+                        href="/onboarding"
+                        className={`${
+                          active ? 'bg-amber-50' : ''
+                        } group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-amber-700 transition-colors`}
+                      >
+                        <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-amber-500" />
+                        View/Edit Style Profile
+                      </a>
+                    )}
+                  </Menu.Item>
+
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link
                         href="/membership"
                         className={`${
                           active ? 'bg-amber-50' : ''
@@ -139,7 +166,7 @@ export default function Header() {
                       >
                         <FontAwesomeIcon icon={faCreditCard} className="w-5 h-5 text-amber-500" />
                         Membership
-                      </a>
+                      </Link>
                     )}
                   </Menu.Item>
                   

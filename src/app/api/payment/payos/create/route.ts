@@ -4,8 +4,9 @@ import { supabaseAdmin } from '../../../../../lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('authorization')
     const body = await request.json()
-    const { planId, billingCycle, userId } = body
+    let { planId, billingCycle, userId } = body
 
     if (!planId || !billingCycle || !userId) {
       return NextResponse.json(
@@ -28,18 +29,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Lấy thông tin user
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Không tìm thấy thông tin user' },
-        { status: 404 }
-      )
+    // Lấy user từ token nếu có, tránh phụ thuộc bảng profiles
+    if (!userId && authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: auth } = await supabaseAdmin.auth.getUser(token)
+      userId = auth.user?.id
+    }
+    if (!userId) {
+      return NextResponse.json({ error: 'Thiếu userId' }, { status: 400 })
     }
 
     // Tính số tiền thanh toán

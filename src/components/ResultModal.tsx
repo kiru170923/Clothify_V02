@@ -42,7 +42,11 @@ export default function ResultModal({
     }
     
     try {
-      const response = await fetch(resultImage)
+      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(resultImage)}`
+      const response = await fetch(proxyUrl, { cache: 'no-store' })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')

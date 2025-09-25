@@ -45,7 +45,7 @@ export default function MembershipCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
-      className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 ${
+      className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 h-full flex flex-col ${
         isCurrentPlan
           ? 'border-green-500 shadow-green-100'
           : isLowerPlan
@@ -82,7 +82,7 @@ export default function MembershipCard({
         </div>
       )}
 
-      <div className="p-8">
+      <div className="p-8 flex flex-col h-full">
         {/* Plan name and description */}
         <div className="text-center mb-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
@@ -121,7 +121,7 @@ export default function MembershipCard({
         </div>
 
         {/* Features */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-8 flex-1">
           {plan.features.map((feature, index) => (
             <motion.div
               key={index}

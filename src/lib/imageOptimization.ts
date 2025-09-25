@@ -1,14 +1,14 @@
 // Image optimization utilities
-export function compressImage(base64Image: string, quality: number = 0.8): Promise<string> {
+export function compressImage(base64Image: string, quality: number = 0.8, maxSize: number = 1200): Promise<string> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     const img = new Image()
     
     img.onload = () => {
-      // Calculate new dimensions (max 800px width for faster processing)
-      const maxWidth = 800
-      const maxHeight = 800
+      // Calculate new dimensions (max side length)
+      const maxWidth = maxSize
+      const maxHeight = maxSize
       let { width, height } = img
       
       if (width > maxWidth || height > maxHeight) {
@@ -44,16 +44,18 @@ export function getImageSize(base64Image: string): Promise<{ width: number; heig
 }
 
 // Optimize image before upload
-export async function optimizeImageForUpload(base64Image: string): Promise<string> {
+export async function optimizeImageForUpload(base64Image: string, options?: { maxSize?: number; quality?: number }): Promise<string> {
   try {
     // Get original size
     const originalSize = await getImageSize(base64Image)
     console.log('Original image size:', originalSize)
     
     // Compress if too large (optimized for speed)
-    if (originalSize.width > 800 || originalSize.height > 800) {
-      console.log('Compressing large image...')
-      return await compressImage(base64Image, 0.75) // Lower quality for faster processing
+    const maxSize = options?.maxSize ?? 1200
+    const quality = options?.quality ?? 0.8
+    if (originalSize.width > maxSize || originalSize.height > maxSize) {
+      console.log(`Compressing large image to max ${maxSize}px...`)
+      return await compressImage(base64Image, quality, maxSize)
     }
     
     return base64Image

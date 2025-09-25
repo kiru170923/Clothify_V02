@@ -4,6 +4,10 @@ import React, { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCamera, faUpload, faPlus, faTag } from '@fortawesome/free-solid-svg-icons'
 import UploadCard from './UploadCard'
+import { useWardrobe, useDeleteWardrobe } from '../hooks/useWardrobe'
+import { useSupabase } from './SupabaseProvider'
+import toast from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface WardrobeItem {
   id: string
@@ -14,9 +18,18 @@ interface WardrobeItem {
 }
 
 export const WardrobeTab = React.memo(function WardrobeTab() {
-  const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
+  const { session } = useSupabase() as any
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+  const { data, isLoading } = useWardrobe(page, pageSize)
+  const items = data?.items || []
+  const total = data?.total || 0
+  const hasMore = page * pageSize < total
+  const deleteMutation = useDeleteWardrobe()
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [isUploading, setIsUploading] = useState(false)
 
   const categories = [
     { id: 'all', label: 'Tất cả' },
@@ -30,8 +43,8 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
   ]
 
   const filteredItems = selectedCategory === 'all' 
-    ? wardrobeItems 
-    : wardrobeItems.filter(item => item.category === selectedCategory)
+    ? items 
+    : items.filter((item: any) => item.category === selectedCategory)
 
   return (
     <div className="space-y-6">
@@ -43,10 +56,20 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="btn btn-primary flex items-center gap-2"
+          disabled={isUploading}
+          className={`btn btn-primary flex items-center gap-2 ${isUploading ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
-          <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
-          Thêm đồ
+          {isUploading ? (
+            <>
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Đang thêm...
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
+              Thêm đồ
+            </>
+          )}
         </button>
       </div>
 
@@ -68,7 +91,9 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
       </div>
 
       {/* Wardrobe Grid */}
-      {filteredItems.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-16">Đang tải tủ đồ...</div>
+      ) : filteredItems.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <FontAwesomeIcon icon={faCamera} className="w-8 h-8 text-gray-400" />
@@ -81,17 +106,25 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
           </p>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="btn btn-primary"
+            disabled={isUploading}
+            className={`btn btn-primary ${isUploading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
-            Thêm đồ đầu tiên
+            {isUploading ? (
+              <span className="inline-flex items-center gap-2">
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Đang thêm...
+              </span>
+            ) : (
+              'Thêm đồ đầu tiên'
+            )}
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item: any) => (
             <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <img
-                src={item.image}
+                src={item.image_url}
                 alt={item.name}
                 className="w-full aspect-square object-cover"
               />
@@ -101,9 +134,18 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
                   <span className="text-xs text-gray-500">{item.category}</span>
                 </div>
                 <h4 className="font-medium text-gray-900 truncate">{item.name}</h4>
+                <div className="mt-2 text-right">
+                  <button onClick={() => deleteMutation.mutate(item.id)} className="text-xs text-red-600">Xoá</button>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <button onClick={() => setPage((p)=>p+1)} className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors">Tải thêm</button>
         </div>
       )}
 
@@ -118,17 +160,31 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
                 label="Upload ảnh quần áo"
                 image={null}
                 onChange={(image) => {
-                  if (image) {
-                    const newItem: WardrobeItem = {
-                      id: Date.now().toString(),
-                      image,
-                      category: 'shirt',
-                      name: 'Quần áo mới',
-                      createdAt: new Date().toISOString(),
+                  if (!image || !session?.access_token) return
+                  setIsUploading(true)
+                  ;(async () => {
+                    try {
+                      const res = await fetch('/api/wardrobe', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${session.access_token}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ imageUrl: image, name: 'Quần áo mới' })
+                      })
+                      if (!res.ok) {
+                        const txt = await res.text()
+                        throw new Error(txt || 'Upload failed')
+                      }
+                      toast.success('Đã thêm trang phục vào tủ đồ')
+                      setShowUploadModal(false)
+                      queryClient.invalidateQueries({ queryKey: ['wardrobe'] })
+                    } catch (e: any) {
+                      toast.error('Lỗi upload trang phục')
+                    } finally {
+                      setIsUploading(false)
                     }
-                    setWardrobeItems(prev => [...prev, newItem])
-                    setShowUploadModal(false)
-                  }
+                  })()
                 }}
                 type="clothing"
               />
@@ -141,6 +197,17 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
               >
                 Hủy
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isUploading && (
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center">
+          <div className="bg-white rounded-lg px-5 py-4 shadow">
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-sm text-gray-800">Đang thêm trang phục...</span>
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ interface TryOnButtonProps {
     confidence?: number
   }>
   selectedGarmentType?: 'auto' | 'top' | 'bottom' | 'full-body'
+  fastMode?: boolean
   onResult?: (resultImageUrl: string) => void
 }
 
@@ -28,6 +29,7 @@ export default function TryOnButton({
   clothingImage, 
   clothingItems,
   selectedGarmentType,
+  fastMode,
   onResult
 }: TryOnButtonProps) {
   const tryOnMutation = useTryOn()
@@ -65,7 +67,8 @@ export default function TryOnButton({
         personImage,
         clothingImage: hasClothing,
         clothingItems,
-        selectedGarmentType
+        selectedGarmentType,
+        fastMode
       })
 
       toast.dismiss(loadingToast)

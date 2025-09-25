@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSupabase } from '../components/SupabaseProvider'
 import { supabase } from '../lib/supabase'
+import { parseResponseJson } from '../lib/parseResponse'
 // Remove client-side composite import
 import toast from 'react-hot-toast'
 
@@ -18,6 +19,7 @@ interface TryOnRequest {
     confidence?: number
   }>
   selectedGarmentType?: 'auto' | 'top' | 'bottom' | 'full-body'
+  fastMode?: boolean
 }
 
 interface TryOnResponse {
@@ -33,7 +35,7 @@ export function useTryOn() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ personImage, clothingImage, clothingItems, selectedGarmentType }: TryOnRequest): Promise<TryOnResponse> => {
+    mutationFn: async ({ personImage, clothingImage, clothingItems, selectedGarmentType, fastMode }: TryOnRequest): Promise<TryOnResponse> => {
       if (!session?.access_token) {
         throw new Error('No session token')
       }
@@ -53,7 +55,7 @@ export function useTryOn() {
       })
 
       if (!tokenResponse.ok) {
-        const tokenData = await tokenResponse.json()
+        const tokenData = await parseResponseJson(tokenResponse)
         if (tokenData.error === 'Insufficient tokens') {
           throw new Error(`Không đủ tokens! Bạn còn ${tokenData.availableTokens} tokens.`)
         }
@@ -65,45 +67,6 @@ export function useTryOn() {
       
       if (clothingItems && clothingItems.length > 0) {
         finalClothingImage = clothingItems[0].image
-      } else if (false) { // Disable composite creation
-        console.log('🎨 Creating clothing-only composite image...')
-        console.log('Clothing items count:', clothingItems?.length || 0)
-        
-        try {
-          // Create clothing composite image (no person)
-          console.log('🎨 Creating clothing composite...')
-          const testResponse = await fetch('/api/test-composite', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`,
-            },
-            body: JSON.stringify({
-              personImageUrl: personImage,
-              clothingImageUrls: clothingItems?.map(item => item.image) || []
-            })
-          })
-          
-          const testData = await testResponse.json()
-          console.log('🧪 Test composite response:', testData)
-          console.log('🧪 Response status:', testResponse.status)
-          
-          if (testData.success && testData.compositeImage) {
-            console.log('✅ Test composite successful, using it')
-            console.log('✅ Composite image length:', testData.compositeImage.length)
-            finalClothingImage = testData.compositeImage
-            console.log('✅ Using base64 composite image directly')
-          } else {
-            console.log('❌ Test composite failed:', testData.error)
-            console.log('❌ Test composite details:', testData)
-            throw new Error(`Composite creation failed: ${testData.error || 'Unknown error'}`)
-          }
-        } catch (error) {
-          console.error('❌ Failed to create server-side composite:', error)
-          console.error('❌ Error details:', error)
-          toast.error('Không thể tạo ảnh ghép - VUI LÒNG THỬ LẠI')
-          throw new Error('Composite creation failed - cannot proceed without composite image')
-        }
       }
 
       // Then generate image
@@ -118,17 +81,62 @@ export function useTryOn() {
           clothingImage: finalClothingImage,
           clothingImageUrls: clothingItems?.map(item => item.image) || [],
           selectedGarmentType: selectedGarmentType || 'auto',
+          fastMode: !!fastMode
         }),
       })
 
-      const data = await response.json()
+      const data = await parseResponseJson(response)
 
-      if (response.status === 202) {
-        // Task is processing
-        return {
-          success: true,
-          taskId: data.taskId,
+      // If API returned error after token deduction, try to refund automatically
+      if (!response.ok || (data && data.error)) {
+        try {
+          await fetch('/api/membership/tokens/refund', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ tokensToRefund: 1, reason: data?.error || 'Generation failed' })
+          })
+        } catch {}
+      }
+
+      if (response.status === 202 && data.taskId) {
+        // Poll status endpoint until success/fail or timeout (~60s)
+        const taskId = data.taskId as string
+        const start = Date.now()
+        const timeoutMs = 60000
+        const pollDelay = async (attempt: number) => {
+          const delay = Math.min(500 * Math.pow(1.5, Math.floor(attempt / 3)), 4000)
+          await new Promise(r => setTimeout(r, delay))
         }
+
+        let attempt = 0
+        while (Date.now() - start < timeoutMs) {
+          await pollDelay(attempt++)
+          const statusRes = await fetch(`/api/clothify/status?taskId=${encodeURIComponent(taskId)}`, { cache: 'no-store' })
+          if (!statusRes.ok) continue
+          const status = await parseResponseJson(statusRes)
+          if (status.state === 'success' && status.resultImageUrl) {
+            return { success: true, resultImageUrl: status.resultImageUrl }
+          }
+          if (status.state === 'failed') {
+            // Auto refund token
+            try {
+              await fetch('/api/membership/tokens/refund', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ tokensToRefund: 1, reason: status.message || 'Generation failed' })
+              })
+            } catch {}
+            throw new Error(status.message || 'Generation failed')
+          }
+        }
+        // Timed out but task created
+        return { success: true, taskId }
       }
 
       if (data.success && data.resultImageUrl) {

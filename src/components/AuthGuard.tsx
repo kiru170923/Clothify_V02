@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSupabase } from './SupabaseProvider'
 import LoginModal from './LoginModal'
@@ -10,8 +11,12 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useSupabase()
+  const router = useRouter()
+  const pathname = usePathname()
+  const supa = useSupabase() as any
+  const { user, loading, session } = supa
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [checkedProfile, setCheckedProfile] = useState(false)
 
   // Auto show login modal if not authenticated
   useEffect(() => {
@@ -20,31 +25,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [loading, user])
 
-  // Show loading screen while checking auth
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center" style={{ backgroundColor: '#f6f1e9' }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-2">Clothify</h2>
-          <p className="text-amber-600">Checking login...</p>
-        </motion.div>
-      </div>
-    )
-  }
-
-  // Show login screen if not authenticated
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+  const renderLogin = (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-40" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
@@ -174,9 +156,48 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           onClose={() => setShowLoginModal(false)} 
         />
       </div>
-    )
-  }
+  )
 
-  // User is authenticated, show the app
-  return <>{children}</>
+  // Redirect to onboarding if profile missing
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!user || !session?.access_token || pathname === '/onboarding') return
+      try {
+        const res = await fetch('/api/profile', {
+          headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        })
+        const data = await res.json()
+        if (res.ok && !data.hasProfile) {
+          router.replace('/onboarding')
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setCheckedProfile(true)
+      }
+    }
+    checkProfile()
+  }, [user, pathname, session?.access_token, router])
+
+  return (
+    <>
+      {loading ? (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 flex items-center justify-center" style={{ backgroundColor: '#f6f1e9' }}>
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent mb-2">Clothify</h2>
+            <p className="text-amber-600">Checking login...</p>
+          </motion.div>
+        </div>
+      ) : !user ? (
+        renderLogin
+      ) : (
+        <>{children}</>
+      )}
+    </>
+  )
 }

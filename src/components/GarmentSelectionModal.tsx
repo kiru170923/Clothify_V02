@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, FolderOpenIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, FolderOpenIcon, ComputerDesktopIcon, CameraIcon } from '@heroicons/react/24/outline'
 import React, { useRef } from 'react'
 import { toast } from 'react-hot-toast'
 
@@ -9,7 +9,10 @@ interface GarmentSelectionModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectFromDevice: (file: File) => void
-  onSelectFromWardrobe: () => void
+  onSelectFromWardrobe?: () => void
+  onSelectFromCamera?: () => void
+  title?: string
+  showWardrobe?: boolean
 }
 
 export default function GarmentSelectionModal({
@@ -17,6 +20,9 @@ export default function GarmentSelectionModal({
   onClose,
   onSelectFromDevice,
   onSelectFromWardrobe,
+  onSelectFromCamera,
+  title = 'Select Garment',
+  showWardrobe = true,
 }: GarmentSelectionModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -31,8 +37,10 @@ export default function GarmentSelectionModal({
   }
 
   const handleSelectWardrobe = () => {
-    onSelectFromWardrobe()
-    onClose()
+    if (onSelectFromWardrobe) {
+      onSelectFromWardrobe()
+      onClose()
+    }
   }
 
   return (
@@ -65,19 +73,35 @@ export default function GarmentSelectionModal({
 
             {/* Content */}
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Select Garment</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-6">{title}</h3>
 
               <div className="space-y-4">
-                {/* Chọn từ Tủ đồ */}
+                {/* Chụp ảnh bằng Camera */}
                 <button
-                  onClick={handleSelectWardrobe}
+                  onClick={() => {
+                    onSelectFromCamera?.()
+                    onClose()
+                  }}
                   className="w-full flex items-center gap-4 p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:border-amber-300 transition-all"
                 >
                   <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <FolderOpenIcon className="w-6 h-6 text-amber-600" />
+                    <CameraIcon className="w-6 h-6 text-amber-600" />
                   </div>
-                  <span className="font-semibold text-gray-900">Choose from Wardrobe</span>
+                  <span className="font-semibold text-gray-900">Capture with Camera</span>
                 </button>
+
+                {/* Chọn từ Tủ đồ */}
+                {showWardrobe && onSelectFromWardrobe && (
+                  <button
+                    onClick={handleSelectWardrobe}
+                    className="w-full flex items-center gap-4 p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:border-amber-300 transition-all"
+                  >
+                    <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                      <FolderOpenIcon className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <span className="font-semibold text-gray-900">Choose from Wardrobe</span>
+                  </button>
+                )}
 
                 {/* Chọn từ Máy */}
                 <button

@@ -42,12 +42,13 @@ export default function NotificationProvider() {
           error: {
             duration: 5000,
             style: {
-              background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-              color: '#fff',
+              // Unified to amber theme like success/loading
+              background: 'linear-gradient(135deg, #FACC15, #F59E0B)',
+              color: '#333',
             },
             iconTheme: {
-              primary: '#fff',
-              secondary: '#EF4444',
+              primary: '#333',
+              secondary: '#F59E0B',
             },
           },
           loading: {

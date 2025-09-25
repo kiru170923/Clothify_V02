@@ -26,7 +26,12 @@ export const HistoryTab = React.memo(function HistoryTab() {
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   
   // Use React Query hooks
-  const { data: historyItems = [], isLoading: loading, error } = useHistory()
+  const [page, setPage] = useState(1)
+  const pageSize = 15
+  const { data, isLoading: loading, error } = useHistory(page, pageSize)
+  const historyItems: HistoryItem[] = (data?.items as any) || []
+  const total = data?.total || 0
+  const hasMore = page * pageSize < total
   const deleteHistoryMutation = useDeleteHistory()
   const queryClient = useQueryClient()
 
@@ -136,7 +141,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Try-On History</h2>
-          <p className="text-amber-600 mt-1 text-sm">{filteredHistoryItems.length} images created</p>
+          <p className="text-amber-600 mt-1 text-sm">{total} images created</p>
         </div>
         
         {/* Date Filter */}
@@ -292,6 +297,18 @@ export const HistoryTab = React.memo(function HistoryTab() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => setPage(prev => prev + 1)}
+            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+          >
+            Tải thêm
+          </button>
         </div>
       )}
 

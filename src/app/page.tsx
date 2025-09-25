@@ -8,7 +8,7 @@ import FashionChatbot from '../components/FashionChatbot'
 import { useSupabase } from '../components/SupabaseProvider'
 
 export default function HomePage() {
-  const { user, loading } = useSupabase()
+  const { user, loading, session } = useSupabase() as any
   const router = useRouter()
 
   useEffect(() => {
@@ -17,6 +17,22 @@ export default function HomePage() {
       router.push('/landing')
     }
   }, [user, loading, router])
+
+  // Redirect to onboarding if missing profile
+  useEffect(() => {
+    const run = async () => {
+      if (!loading && user && session?.access_token) {
+        try {
+          const res = await fetch('/api/profile', { headers: { 'Authorization': `Bearer ${session.access_token}` }})
+          const data = await res.json()
+          if (res.ok && !data.hasProfile) {
+            router.replace('/onboarding')
+          }
+        } catch {}
+      }
+    }
+    run()
+  }, [loading, user, session?.access_token, router])
 
   // Show loading while checking auth
   if (loading) {
