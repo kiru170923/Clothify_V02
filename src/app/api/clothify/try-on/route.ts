@@ -328,8 +328,9 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.log('⚠️ Gemini direct path error in fast mode:', e)
       }
-      // In fast mode, do NOT fallback to KIE. Return error immediately for easier debugging
-      return NextResponse.json({ error: 'Gemini fast mode failed. No fallback in fast mode.' }, { status: 502 })
+      // In fast mode, try fallback to KIE.AI if Gemini fails
+      console.log('🔄 Fast mode Gemini failed, trying KIE.AI fallback...')
+      // Continue to KIE.AI processing below instead of returning error
     }
 
     // Process images - person image needs to be uploaded, clothing image (composite)
@@ -419,10 +420,7 @@ export async function POST(request: NextRequest) {
       parameters = result.parameters
     }
     
-    // If fastMode was requested, we should have already returned above. Guard here just in case.
-    if (fastMode === true) {
-      return NextResponse.json({ error: 'Gemini fast mode failed earlier. No fallback in fast mode.' }, { status: 502 })
-    }
+    // Fast mode fallback: if Gemini failed, continue with KIE.AI processing
 
     // Skip pre-validation fetch to reduce latency; rely on KIE.AI validation
     console.log('⏭️ Skipping pre-validation to speed up request')
