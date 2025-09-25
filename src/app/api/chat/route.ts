@@ -11,9 +11,11 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get('content-type')
+    console.log('🔍 Request content-type:', contentType)
     
     // Handle multipart form data (with image)
     if (contentType && contentType.includes('multipart/form-data')) {
+      console.log('🔍 Detected multipart form data, handling image message...')
       return await handleImageMessage(request)
     }
     
@@ -461,26 +463,30 @@ async function analyzeImageWithGPT4Vision(imageFile: File, userMessage: string) 
           content: [
             {
               type: "text",
-              text: `Bạn là chuyên gia thời trang. Hãy phân tích trang phục trong ảnh và đưa ra lời khuyên thời trang.
+              text: `Bạn là chuyên gia thời trang AI. Hãy phân tích trang phục trong ảnh và đưa ra lời khuyên chi tiết.
 
 YÊU CẦU: ${userMessage || 'Phân tích trang phục và gợi ý cải thiện'}
 
-NHIỆM VỤ: Chỉ tập trung vào trang phục, phụ kiện, màu sắc và phong cách thời trang. KHÔNG nhận diện người.
+NHIỆM VỤ: 
+- Phân tích trang phục, phụ kiện, màu sắc, chất liệu
+- Đánh giá phong cách và phù hợp với hoàn cảnh
+- Đưa ra gợi ý cải thiện cụ thể
+- KHÔNG nhận diện người, chỉ tập trung vào thời trang
 
 FORMAT TRẢ LỜI:
-**TRANG PHỤC**: [Mô tả màu sắc, kiểu dáng chính]
-**PHONG CÁCH**: [Casual/Formal/Sporty + hoàn cảnh phù hợp]
-**ĐIỂM TÍCH CỰC**: [2-3 điểm mạnh]
-**CẦN CẢI THIỆN**: [1-2 điểm cụ thể]
+**👗 TRANG PHỤC**: [Mô tả chi tiết màu sắc, kiểu dáng, chất liệu]
+**🎯 PHONG CÁCH**: [Casual/Formal/Sporty/Street + hoàn cảnh phù hợp]
+**✨ ĐIỂM TÍCH CỰC**: [2-3 điểm mạnh của outfit]
+**🔧 CẦN CẢI THIỆN**: [1-2 điểm cụ thể cần thay đổi]
 
-**GỢI Ý**:
-• [Phụ kiện + màu sắc]
-• [Item thay thế]
-• [Tip styling]
+**💡 GỢI Ý STYLING**:
+• [Phụ kiện phù hợp + màu sắc]
+• [Item thay thế tốt hơn]
+• [Tip styling chuyên nghiệp]
 
-**SHOPEE**: [2 sản phẩm - tên + màu + lý do]
+**🛍️ SẢN PHẨM GỢI Ý**: [2-3 sản phẩm cụ thể với tên, màu, lý do phù hợp]
 
-Trả lời ngắn gọn, chuyên nghiệp. Kết thúc bằng câu hỏi.`
+Trả lời chi tiết, chuyên nghiệp và hữu ích. Kết thúc bằng câu hỏi để tương tác.`
             },
             {
               type: "image_url",
@@ -491,7 +497,7 @@ Trả lời ngắn gọn, chuyên nghiệp. Kết thúc bằng câu hỏi.`
           ]
         }
       ],
-      max_tokens: 1200,
+      max_tokens: 2000,
       temperature: 0.7
     })
 

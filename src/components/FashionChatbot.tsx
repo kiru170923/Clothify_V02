@@ -339,6 +339,8 @@ export default function FashionChatbot() {
           throw new Error('Invalid JSON response from server')
         }
         console.log('✅ Image analysis response:', data)
+        console.log('🔍 Response content:', data.response)
+        console.log('🔍 Response type:', data.type)
         
         if (!data.success) {
           throw new Error(data.error || 'Cannot analyze image')
@@ -350,6 +352,7 @@ export default function FashionChatbot() {
           content: data.response || 'Sorry, I cannot analyze this image.',
           timestamp: new Date()
         }
+        console.log('🔍 Created bot message:', botMessage)
         setMessages(prev => [...prev, botMessage])
         toast.success('Image analysis successful!')
         
