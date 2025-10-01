@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,14 +8,14 @@ export async function POST(req: NextRequest) {
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/vay-di-tiec-1',
-        raw_markdown: '# Váy đi tiệc đẹp\n\n**Giá:** 450,000₫\n\n**Mô tả:** Váy đi tiệc sang trọng, phù hợp cho các dịp đặc biệt',
-        raw_html: '<h1>Váy đi tiệc đẹp</h1><p><strong>Giá:</strong> 450,000₫</p>',
-        metadata: { title: 'Váy đi tiệc đẹp', description: 'Váy đi tiệc sang trọng' },
+        raw_markdown: '# VÃ¡y Ä‘i tiá»‡c Ä‘áº¹p\n\n**GiÃ¡:** 450,000â‚«\n\n**MÃ´ táº£:** VÃ¡y Ä‘i tiá»‡c sang trá»ng, phÃ¹ há»£p cho cÃ¡c dá»‹p Ä‘áº·c biá»‡t',
+        raw_html: '<h1>VÃ¡y Ä‘i tiá»‡c Ä‘áº¹p</h1><p><strong>GiÃ¡:</strong> 450,000â‚«</p>',
+        metadata: { title: 'VÃ¡y Ä‘i tiá»‡c Ä‘áº¹p', description: 'VÃ¡y Ä‘i tiá»‡c sang trá»ng' },
         normalized: {
-          title: 'Váy đi tiệc đẹp',
+          title: 'VÃ¡y Ä‘i tiá»‡c Ä‘áº¹p',
           price: 450000,
-          description: 'Váy đi tiệc sang trọng, phù hợp cho các dịp đặc biệt',
-          colors: ['đen', 'đỏ'],
+          description: 'VÃ¡y Ä‘i tiá»‡c sang trá»ng, phÃ¹ há»£p cho cÃ¡c dá»‹p Ä‘áº·c biá»‡t',
+          colors: ['Ä‘en', 'Ä‘á»'],
           sizes: ['S', 'M', 'L']
         },
         price: 450000
@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/vay-di-tiec-2',
-        raw_markdown: '# Váy đi tiệc cao cấp\n\n**Giá:** 650,000₫\n\n**Mô tả:** Váy đi tiệc cao cấp, thiết kế tinh tế',
-        raw_html: '<h1>Váy đi tiệc cao cấp</h1><p><strong>Giá:</strong> 650,000₫</p>',
-        metadata: { title: 'Váy đi tiệc cao cấp', description: 'Váy đi tiệc cao cấp, thiết kế tinh tế' },
+        raw_markdown: '# VÃ¡y Ä‘i tiá»‡c cao cáº¥p\n\n**GiÃ¡:** 650,000â‚«\n\n**MÃ´ táº£:** VÃ¡y Ä‘i tiá»‡c cao cáº¥p, thiáº¿t káº¿ tinh táº¿',
+        raw_html: '<h1>VÃ¡y Ä‘i tiá»‡c cao cáº¥p</h1><p><strong>GiÃ¡:</strong> 650,000â‚«</p>',
+        metadata: { title: 'VÃ¡y Ä‘i tiá»‡c cao cáº¥p', description: 'VÃ¡y Ä‘i tiá»‡c cao cáº¥p, thiáº¿t káº¿ tinh táº¿' },
         normalized: {
-          title: 'Váy đi tiệc cao cấp',
+          title: 'VÃ¡y Ä‘i tiá»‡c cao cáº¥p',
           price: 650000,
-          description: 'Váy đi tiệc cao cấp, thiết kế tinh tế',
-          colors: ['xanh', 'hồng'],
+          description: 'VÃ¡y Ä‘i tiá»‡c cao cáº¥p, thiáº¿t káº¿ tinh táº¿',
+          colors: ['xanh', 'há»“ng'],
           sizes: ['M', 'L', 'XL']
         },
         price: 650000
@@ -38,14 +38,14 @@ export async function POST(req: NextRequest) {
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/ao-khoac-len-1',
-        raw_markdown: '# Áo khoác len đẹp\n\n**Giá:** 350,000₫\n\n**Mô tả:** Áo khoác len ấm áp, phù hợp mùa đông',
-        raw_html: '<h1>Áo khoác len đẹp</h1><p><strong>Giá:</strong> 350,000₫</p>',
-        metadata: { title: 'Áo khoác len đẹp', description: 'Áo khoác len ấm áp, phù hợp mùa đông' },
+        raw_markdown: '# Ão khoÃ¡c len Ä‘áº¹p\n\n**GiÃ¡:** 350,000â‚«\n\n**MÃ´ táº£:** Ão khoÃ¡c len áº¥m Ã¡p, phÃ¹ há»£p mÃ¹a Ä‘Ã´ng',
+        raw_html: '<h1>Ão khoÃ¡c len Ä‘áº¹p</h1><p><strong>GiÃ¡:</strong> 350,000â‚«</p>',
+        metadata: { title: 'Ão khoÃ¡c len Ä‘áº¹p', description: 'Ão khoÃ¡c len áº¥m Ã¡p, phÃ¹ há»£p mÃ¹a Ä‘Ã´ng' },
         normalized: {
-          title: 'Áo khoác len đẹp',
+          title: 'Ão khoÃ¡c len Ä‘áº¹p',
           price: 350000,
-          description: 'Áo khoác len ấm áp, phù hợp mùa đông',
-          colors: ['kem', 'nâu'],
+          description: 'Ão khoÃ¡c len áº¥m Ã¡p, phÃ¹ há»£p mÃ¹a Ä‘Ã´ng',
+          colors: ['kem', 'nÃ¢u'],
           sizes: ['S', 'M', 'L']
         },
         price: 350000
@@ -72,3 +72,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
+

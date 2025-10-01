@@ -1,20 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
-    // Kiểm tra bảng membership_plans
+    // Kiá»ƒm tra báº£ng membership_plans
     const { data: plans, error: plansError } = await supabaseAdmin
       .from('membership_plans')
       .select('*')
 
-    // Kiểm tra bảng payment_orders
+    // Kiá»ƒm tra báº£ng payment_orders
     const { data: orders, error: ordersError } = await supabaseAdmin
       .from('payment_orders')
       .select('*')
       .limit(5)
 
-    // Kiểm tra bảng user_tokens
+    // Kiá»ƒm tra báº£ng user_tokens
     const { data: tokens, error: tokensError } = await supabaseAdmin
       .from('user_tokens')
       .select('*')
@@ -41,8 +41,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error in debug:', error)
     return NextResponse.json(
-      { error: 'Có lỗi xảy ra', details: error },
+      { error: 'CÃ³ lá»—i xáº£y ra', details: error },
       { status: 500 }
     )
   }
 }
+

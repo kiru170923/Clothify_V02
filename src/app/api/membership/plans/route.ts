@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,3 +20,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+

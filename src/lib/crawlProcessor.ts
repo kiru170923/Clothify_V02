@@ -1,6 +1,6 @@
-import { scrapeUrl } from './scrapeless'
+﻿import { scrapeUrl } from './scrapeless'
 import { normalizeProduct } from './normalizer'
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin } from './supabaseAdmin'
 
 export async function processUrl(url: string) {
   const result = await scrapeUrl(url, { formats: ['markdown', 'html', 'metadata'] })

@@ -6,6 +6,7 @@ import { QueryProvider } from '@/components/QueryProvider'
 import AuthGuard from '@/components/AuthGuard'
 import NotificationProvider from '@/components/NotificationProvider'
 import { SidebarProvider } from '@/components/SidebarProvider'
+import ChatbotProvider from '../components/ChatbotProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,16 +29,20 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <head>
+        <meta charSet="utf-8" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet" />
+        <link rel="icon" href="./favicon.ico.png" />
       </head>
       <body className={inter.className}>
         <QueryProvider>
           <SupabaseProvider>
             <SidebarProvider>
-              {children}
-              <NotificationProvider />
+              <ChatbotProvider>
+                {children}
+                <NotificationProvider />
+              </ChatbotProvider>
             </SidebarProvider>
           </SupabaseProvider>
         </QueryProvider>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, ArrowDownTrayIcon, ShareIcon, ArrowPathIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import { useSupabase } from './SupabaseProvider'
 
 interface ResultModalProps {
   isOpen: boolean
@@ -35,6 +36,38 @@ export default function ResultModal({
   onTryAgain,
   onZoom
 }: ResultModalProps) {
+  const { session } = useSupabase() as any
+  
+  const saveAsModel = async () => {
+    if (!resultImage) {
+      toast.error('Không có ảnh để lưu')
+      return
+    }
+    if (!session?.access_token) {
+      toast.error('Bạn cần đăng nhập')
+      return
+    }
+    const loadingId = toast.loading('Đang lưu vào My Models...')
+    try {
+      const res = await fetch('/api/my-models', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ imageUrl: resultImage, name: 'Result Model' })
+      })
+      const data = await res.json()
+      toast.dismiss(loadingId)
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Save failed')
+      }
+      toast.success('Đã lưu vào My Models!')
+    } catch (e) {
+      toast.dismiss(loadingId)
+      toast.error('Lưu thất bại')
+    }
+  }
   const downloadImage = async () => {
     if (!resultImage) {
       toast.error('Không có ảnh để tải xuống')
@@ -244,6 +277,17 @@ export default function ResultModal({
               >
                 <ShareIcon className="w-3 h-3" />
                 Chia sẻ
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={saveAsModel}
+                className="btn btn-accent btn-sm flex items-center gap-1 flex-1 text-xs"
+                title="Giữ ảnh thành model mới"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                Giữ ảnh
               </motion.button>
 
               <motion.button

@@ -134,8 +134,19 @@ export const WardrobeTab = React.memo(function WardrobeTab() {
                   <span className="text-xs text-gray-500">{item.category}</span>
                 </div>
                 <h4 className="font-medium text-gray-900 truncate">{item.name}</h4>
-                <div className="mt-2 text-right">
+                <div className="mt-2 flex items-center justify-between gap-2">
                   <button onClick={() => deleteMutation.mutate(item.id)} className="text-xs text-red-600">Xoá</button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Build a simple description block for chatbot
+                        const desc = `Phân tích trang phục trong tủ đồ:\n- Tên: ${item.name}\n- Loại: ${item.category}\n- Ảnh: ${item.image_url}\n\nHãy tư vấn cách phối đồ từ các sản phẩm trong tủ đồ (ưu tiên matching style/occasion).`
+                        localStorage.setItem('simple-chatbot-incoming', JSON.stringify({ role: 'user', content: desc }))
+                        window.open('/simple-chat', '_blank')
+                      } catch {}
+                    }}
+                    className="text-xs text-amber-700 hover:underline"
+                  >Phân tích & tư vấn</button>
                 </div>
               </div>
             </div>

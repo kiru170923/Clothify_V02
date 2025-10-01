@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { supabaseAdmin } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 import { generateAdvancedPrompt } from '../../../../lib/promptGenerator'
 import { createCompositeImage } from '../../../../lib/imageComposer'
 
 async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: string, apiKey: string) {
-  console.log('🔄 Attempting fallback with different image processing...')
+  console.log('ðŸ”„ Attempting fallback with different image processing...')
   
   try {
     // Try with a simpler prompt and different parameters
@@ -22,7 +22,7 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
       }
     }
     
-    console.log('📤 Sending fallback request to KIE.AI...')
+    console.log('ðŸ“¤ Sending fallback request to KIE.AI...')
     
     const fallbackResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
@@ -34,7 +34,7 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
     })
     
     const fallbackData = await fallbackResponse.json()
-    console.log('📡 Fallback KIE.AI Response:', fallbackData)
+    console.log('ðŸ“¡ Fallback KIE.AI Response:', fallbackData)
     
     if (fallbackData.code !== 200) {
       throw new Error(`Fallback failed: ${fallbackData.msg || fallbackData.message}`)
@@ -42,16 +42,16 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
     
     // Continue with the fallback task
     const taskId = fallbackData.data.taskId
-    console.log('✅ Fallback task created with ID:', taskId)
+    console.log('âœ… Fallback task created with ID:', taskId)
     
     // Return the same polling logic but with fallback task
     return await pollForKieaiResult(taskId, apiKey)
     
   } catch (error) {
-    console.error('❌ Fallback also failed:', error)
+    console.error('âŒ Fallback also failed:', error)
     
     // Try one more time with even simpler approach
-    console.log('🔄 Trying final fallback with minimal parameters...')
+    console.log('ðŸ”„ Trying final fallback with minimal parameters...')
     try {
       const finalFallbackRequestBody = {
         model: 'google/nano-banana-edit',
@@ -77,11 +77,11 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
       
       const finalData = await finalResponse.json()
       if (finalData.code === 200) {
-        console.log('✅ Final fallback task created:', finalData.data.taskId)
+        console.log('âœ… Final fallback task created:', finalData.data.taskId)
         return await pollForKieaiResult(finalData.data.taskId, apiKey)
       }
     } catch (finalError) {
-      console.error('❌ Final fallback also failed:', finalError)
+      console.error('âŒ Final fallback also failed:', finalError)
     }
     
     return NextResponse.json({ 
@@ -91,7 +91,7 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
 }
 
 async function pollForKieaiResult(taskId: string, apiKey: string) {
-  console.log('🔄 Polling for KIE.AI result...')
+  console.log('ðŸ”„ Polling for KIE.AI result...')
   
   let attempts = 0
   const maxAttempts = 60 // 60 seconds timeout
@@ -117,7 +117,7 @@ async function pollForKieaiResult(taskId: string, apiKey: string) {
         
         if (statusData.code === 200 && statusData.data.state === 'completed') {
           const resultImageUrl = statusData.data.resultImageUrl
-          console.log('✅ KIE.AI completed successfully')
+          console.log('âœ… KIE.AI completed successfully')
           return NextResponse.json({
             success: true,
             resultImageUrl: resultImageUrl
@@ -131,7 +131,7 @@ async function pollForKieaiResult(taskId: string, apiKey: string) {
       
       attempts++
     } catch (error) {
-      console.error('❌ Polling error:', error)
+      console.error('âŒ Polling error:', error)
       attempts++
     }
   }
@@ -139,17 +139,39 @@ async function pollForKieaiResult(taskId: string, apiKey: string) {
   throw new Error('KIE.AI task timeout')
 }
 
+// Server-side image compression using Node.js built-in modules
+async function compressImageServerSide(base64Image: string, maxSize: number = 1024, quality: number = 0.8): Promise<string> {
+  try {
+    // Extract base64 data
+    const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image
+    const buffer = Buffer.from(base64Data, 'base64')
+    
+    // Simple size check - if already small enough, return as is
+    if (buffer.length < 500 * 1024) { // Less than 500KB
+      console.log('ðŸ“ Image already small enough, skipping compression')
+      return base64Image
+    }
+    
+    // For now, just return original - compression would need sharp library
+    console.log('ðŸ“ Image size:', Math.round(buffer.length / 1024), 'KB - using original')
+    return base64Image
+  } catch (error) {
+    console.error('âŒ Server-side compression failed:', error)
+    return base64Image // Return original if compression fails
+  }
+}
+
 async function processImage(imageData: string): Promise<string> {
   // If it's already a base64 data URL, validate and return
   if (imageData.startsWith('data:image/')) {
-    console.log('✅ Image is already base64 data URL')
+    console.log('âœ… Image is already base64 data URL')
     return imageData
   }
   
   // If it's a URL, convert to base64 with validation
   if (imageData.startsWith('http')) {
     try {
-      console.log('🔄 Converting URL to base64:', imageData)
+      console.log('ðŸ”„ Converting URL to base64:', imageData)
       const response = await fetch(imageData, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -169,8 +191,8 @@ async function processImage(imageData: string): Promise<string> {
       
       // Clean content-type (remove charset for KIE.AI compatibility)
       const cleanContentType = contentType.split(';')[0]
-      console.log(`🔍 Original content-type: ${contentType}`)
-      console.log(`🔍 Cleaned content-type: ${cleanContentType}`)
+      console.log(`ðŸ” Original content-type: ${contentType}`)
+      console.log(`ðŸ” Cleaned content-type: ${cleanContentType}`)
       
       const buffer = await response.arrayBuffer()
       if (buffer.byteLength === 0) {
@@ -179,29 +201,29 @@ async function processImage(imageData: string): Promise<string> {
       
       // Check if image is too large (KIE.AI might have size limits)
       if (buffer.byteLength > 10 * 1024 * 1024) { // 10MB limit
-        console.log(`⚠️ Image too large: ${buffer.byteLength} bytes, resizing...`)
+        console.log(`âš ï¸ Image too large: ${buffer.byteLength} bytes, resizing...`)
         // Could add image resizing here if needed
       }
       
       const base64 = Buffer.from(buffer).toString('base64')
       const result = `data:${cleanContentType};base64,${base64}`
       
-      console.log(`✅ Successfully converted URL to base64 (${buffer.byteLength} bytes, ${contentType})`)
-      console.log(`🔍 Base64 length: ${base64.length} characters`)
+      console.log(`âœ… Successfully converted URL to base64 (${buffer.byteLength} bytes, ${contentType})`)
+      console.log(`ðŸ” Base64 length: ${base64.length} characters`)
       return result
     } catch (error) {
-      console.error('❌ Failed to convert URL to base64:', error)
+      console.error('âŒ Failed to convert URL to base64:', error)
       throw new Error(`Failed to process image URL: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
   
   // If it's already base64 without data URL prefix, add it
   if (imageData.includes('base64')) {
-    console.log('✅ Adding data URL prefix to base64')
+    console.log('âœ… Adding data URL prefix to base64')
     return `data:image/jpeg;base64,${imageData}`
   }
   
-  console.log('⚠️ Unknown image format, returning as is')
+  console.log('âš ï¸ Unknown image format, returning as is')
   return imageData
 }
 
@@ -236,13 +258,13 @@ async function uploadToSupabase(base64Image: string, bucket: string): Promise<st
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 Try-on API called')
+    console.log('ðŸš€ Try-on API called')
     
     // Check authentication
     const authHeader = request.headers.get('authorization')
     
     if (!authHeader) {
-      console.log('❌ Missing authorization header')
+      console.log('âŒ Missing authorization header')
       return NextResponse.json({ error: 'Missing authorization header' }, { status: 401 })
     }
 
@@ -251,22 +273,22 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
     
     if (error) {
-      console.log('❌ Invalid token:', error.message)
+      console.log('âŒ Invalid token:', error.message)
       return NextResponse.json({ error: 'Invalid token: ' + error.message }, { status: 401 })
     }
     
     if (!user) {
-      console.log('❌ No user found')
+      console.log('âŒ No user found')
       return NextResponse.json({ error: 'No user found' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
+    console.log('âœ… User authenticated:', user.id)
 
     const { personImage, clothingImage, clothingImageUrls, selectedGarmentType, customModelPrompt, fastMode } = await request.json()
 
     // Check if we have clothing image
     if (!personImage || !clothingImage) {
-      console.log('❌ Missing required images')
+      console.log('âŒ Missing required images')
       return NextResponse.json(
         { error: 'Missing required images' },
         { status: 400 }
@@ -276,7 +298,7 @@ export async function POST(request: NextRequest) {
     // If fastMode with Gemini, try DIRECT base64 without uploading
     if (fastMode === true) {
       try {
-        console.log('⚡ Fast mode preflight: calling Gemini directly with base64 when possible')
+        console.log('âš¡ Fast mode preflight: calling Gemini directly with base64 when possible')
         const { callGoogleAI, generateTorsoMask } = await import('../../../../lib/googleAI')
 
         // Build a generic prompt based on garment type if not provided yet
@@ -289,20 +311,16 @@ export async function POST(request: NextRequest) {
           : 'Replace the clothing in the first image with the garment from the second image. Ensure the output is photorealistic, fits naturally, and is visually different from the original person image. Do not return the original image unchanged.'
 
         // Ensure both inputs are base64 data URLs
+        // NÃ©n áº£nh trÆ°á»›c khi gá»­i tá»›i Gemini Ä‘á»ƒ giáº£m payload (server-side)
         const personBase64DataUrl = personImage && personImage.startsWith('data:image/')
-          ? personImage
+          ? await compressImageServerSide(personImage, 1024, 0.8)
           : await processImage(personImage)
         const clothingBase64DataUrl = clothingImage && clothingImage.startsWith('data:image/')
-          ? clothingImage
+          ? await compressImageServerSide(clothingImage, 1024, 0.8)
           : await processImage(clothingImage)
 
-        // Generate a simple torso mask to guide Gemini editing
-        let mask: string | undefined
-        try {
-          mask = await generateTorsoMask(personBase64DataUrl as string)
-        } catch (mErr) {
-          console.log('ℹ️ Mask generation failed, proceeding without mask:', mErr)
-        }
+        // Fast mode: bá» mask Ä‘á»ƒ giáº£m Ä‘á»™ trá»…
+        let mask: string | undefined = undefined
 
         const gResult = await callGoogleAI({ personImage: personBase64DataUrl as string, clothingImage: clothingBase64DataUrl as string, maskImage: mask, prompt: promptFast, isTextToImage: false })
         if (gResult.success && gResult.resultImage) {
@@ -315,21 +333,21 @@ export async function POST(request: NextRequest) {
             const inHash = md5(personBase64DataUrl as string)
             const outHash = md5(gResult.resultImage)
             if (inHash === outHash) {
-              console.log('⚠️ Gemini returned image identical to input person image. Treating as failure for fast mode.')
+              console.log('âš ï¸ Gemini returned image identical to input person image. Treating as failure for fast mode.')
               return NextResponse.json({ error: 'Gemini produced an unchanged image. No swap detected.' }, { status: 502 })
             }
           } catch (hashErr) {
-            console.log('ℹ️ Hash compare skipped due to error:', hashErr)
+            console.log('â„¹ï¸ Hash compare skipped due to error:', hashErr)
           }
-          console.log('✅ Gemini direct path succeeded (no upload)')
+          console.log('âœ… Gemini direct path succeeded (no upload)')
           return NextResponse.json({ success: true, resultImageUrl: gResult.resultImage, provider: 'gemini' })
         }
-        console.log('⚠️ Gemini returned no image in fast mode:', gResult.error)
+        console.log('âš ï¸ Gemini returned no image in fast mode:', gResult.error)
       } catch (e) {
-        console.log('⚠️ Gemini direct path error in fast mode:', e)
+        console.log('âš ï¸ Gemini direct path error in fast mode:', e)
       }
       // In fast mode, try fallback to KIE.AI if Gemini fails
-      console.log('🔄 Fast mode Gemini failed, trying KIE.AI fallback...')
+      console.log('ðŸ”„ Fast mode Gemini failed, trying KIE.AI fallback...')
       // Continue to KIE.AI processing below instead of returning error
     }
 
@@ -340,10 +358,10 @@ export async function POST(request: NextRequest) {
     try {
       // Person image: upload to Supabase (user upload or generated model)
       if (personImage.startsWith('data:image/')) {
-        console.log('📤 Uploading person image (base64) to Supabase...')
+        console.log('ðŸ“¤ Uploading person image (base64) to Supabase...')
         personImageUrl = await uploadToSupabase(personImage, 'person-images')
       } else if (personImage.startsWith('http')) {
-        console.log('📤 Person image is already a URL (generated model):', personImage)
+        console.log('ðŸ“¤ Person image is already a URL (generated model):', personImage)
         personImageUrl = personImage
       } else {
         throw new Error('Person image must be base64 data URL or HTTP URL')
@@ -352,10 +370,10 @@ export async function POST(request: NextRequest) {
     // Process clothing image (prefer direct URL to save time)
     if (clothingImage) {
         if (clothingImage.startsWith('http')) {
-          console.log('🔗 Using clothing image URL directly (skip upload):', clothingImage)
+          console.log('ðŸ”— Using clothing image URL directly (skip upload):', clothingImage)
           clothingImageUrl = clothingImage
         } else if (clothingImage.startsWith('data:image/')) {
-          console.log('📤 Base64 clothing image - uploading once to Supabase (KIE.AI needs URL)')
+          console.log('ðŸ“¤ Base64 clothing image - uploading once to Supabase (KIE.AI needs URL)')
           clothingImageUrl = await uploadToSupabase(clothingImage, 'clothing-images')
         } else {
           throw new Error('Invalid clothing image format')
@@ -364,11 +382,11 @@ export async function POST(request: NextRequest) {
         throw new Error('No clothing image provided')
       }
       
-      console.log('✅ Images processed successfully')
+      console.log('âœ… Images processed successfully')
       console.log('Person image URL:', personImageUrl)
       console.log('Clothing image URL:', clothingImageUrl)
     } catch (error) {
-      console.error('❌ Image processing failed:', error)
+      console.error('âŒ Image processing failed:', error)
       return NextResponse.json({ 
         error: `Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
       }, { status: 400 })
@@ -379,23 +397,23 @@ export async function POST(request: NextRequest) {
     const apiKey = rawKey.trim()
     
     if (!apiKey) {
-      console.log('❌ KIE.AI API key missing')
+      console.log('âŒ KIE.AI API key missing')
       return NextResponse.json({ error: 'KIE.AI API key missing' }, { status: 500 })
     }
 
-    console.log('✅ KIE.AI API key found, calling API...')
+    console.log('âœ… KIE.AI API key found, calling API...')
 
     // Always treat as separate images now - person + clothing composite
     const isComposite = false
     
-    console.log('🔍 Image type check:', isComposite ? 'Composite' : 'Separate')
+    console.log('ðŸ” Image type check:', isComposite ? 'Composite' : 'Separate')
 
     // Generate advanced prompt for better results (composite image)
     let prompt, negativePrompt, parameters
     
     if (customModelPrompt) {
       // Use custom model prompt for model generation
-      console.log('🎨 Using custom model prompt:', customModelPrompt)
+      console.log('ðŸŽ¨ Using custom model prompt:', customModelPrompt)
       prompt = `${customModelPrompt}, high quality, detailed, studio lighting, clean background, full body shot, 2:3 aspect ratio, photorealistic`
       negativePrompt = 'blurry, low quality, distorted, multiple people, bad anatomy, deformed, ugly, clothing items'
       parameters = {
@@ -423,18 +441,18 @@ export async function POST(request: NextRequest) {
     // Fast mode fallback: if Gemini failed, continue with KIE.AI processing
 
     // Skip pre-validation fetch to reduce latency; rely on KIE.AI validation
-    console.log('⏭️ Skipping pre-validation to speed up request')
+    console.log('â­ï¸ Skipping pre-validation to speed up request')
     
     let imageUrls: string[]
     
     // Send images based on type
     if (customModelPrompt) {
       // For model generation, we don't need clothing images
-      console.log('🎨 Model generation mode - using placeholder image')
+      console.log('ðŸŽ¨ Model generation mode - using placeholder image')
       imageUrls = [clothingImageUrl as string] // Just use one placeholder image
     } else {
       // Normal clothing swap mode
-      console.log('🎨 Sending separate images: person + clothing composite')
+      console.log('ðŸŽ¨ Sending separate images: person + clothing composite')
       imageUrls = [personImageUrl as string, clothingImageUrl as string]
     }
     
@@ -450,7 +468,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('📤 Sending to KIE.AI:', JSON.stringify(requestBody, null, 2))
+    console.log('ðŸ“¤ Sending to KIE.AI:', JSON.stringify(requestBody, null, 2))
     
     const kieaiResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
@@ -464,19 +482,19 @@ export async function POST(request: NextRequest) {
     let kieaiData: any
     try {
       kieaiData = await kieaiResponse.json()
-      console.log('📡 KIE.AI Response:', kieaiData)
+      console.log('ðŸ“¡ KIE.AI Response:', kieaiData)
     } catch (e) {
-      console.log('❌ KIE.AI API JSON parse error:', e)
+      console.log('âŒ KIE.AI API JSON parse error:', e)
       return NextResponse.json({ error: `KIE.AI API error: ${kieaiResponse.statusText}` }, { status: 502 })
     }
     
     if (kieaiData.code !== 200) {
       const message = kieaiData.msg || kieaiData.message || 'Unknown error'
-      console.log('❌ KIE.AI API error:', message, 'Code:', kieaiData.code)
+      console.log('âŒ KIE.AI API error:', message, 'Code:', kieaiData.code)
       
       // If it's an input validation error, try with fallback images
       if (message.includes('invalid') || message.includes('E006')) {
-        console.log('🔄 Trying with fallback images...')
+        console.log('ðŸ”„ Trying with fallback images...')
         return await tryWithFallbackImages(personImageUrl as string, clothingImageUrl as string, apiKey)
       }
       
@@ -488,16 +506,16 @@ export async function POST(request: NextRequest) {
 
     // Return 202 Accepted immediately and let client poll /api/clothify/status
     const taskId = kieaiData.data.taskId
-    console.log('✅ Task created with ID:', taskId)
+    console.log('âœ… Task created with ID:', taskId)
     return NextResponse.json({ success: true, taskId, provider: 'kieai' }, { status: 202 })
 
   } catch (error: any) {
-    console.error('💥 Error in try-on API:', error)
-    console.error('💥 Error stack:', error?.stack)
-    console.error('💥 Error details:', error)
+    console.error('ðŸ’¥ Error in try-on API:', error)
+    console.error('ðŸ’¥ Error stack:', error?.stack)
+    console.error('ðŸ’¥ Error details:', error)
     
     const message = typeof error?.message === 'string' ? error.message : 'Internal server error'
-    console.error('💥 Returning error message:', message)
+    console.error('ðŸ’¥ Returning error message:', message)
     
     return NextResponse.json({ 
       error: message,
@@ -505,3 +523,4 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+

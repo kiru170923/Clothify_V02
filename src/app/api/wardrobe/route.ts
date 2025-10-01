@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 import { APP_URL } from '../../../lib/config'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📋 Wardrobe API called')
+    console.log('ðŸ“‹ Wardrobe API called')
 
     // Get user session
     const authHeader = request.headers.get('authorization')
@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
-      console.log('❌ Auth error:', authError)
+      console.log('âŒ Auth error:', authError)
       return NextResponse.json({ error: 'No user found' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
+    console.log('âœ… User authenticated:', user.id)
 
     // Pagination params
     const { searchParams } = new URL(request.url)
@@ -38,16 +38,16 @@ export async function GET(request: NextRequest) {
       .range(from, to)
 
     if (error) {
-      console.error('❌ Error fetching wardrobe items:', error)
+      console.error('âŒ Error fetching wardrobe items:', error)
       return NextResponse.json({ error: 'Failed to fetch wardrobe items' }, { status: 500 })
     }
 
-    console.log('✅ Found wardrobe items:', items?.length || 0)
+    console.log('âœ… Found wardrobe items:', items?.length || 0)
 
     return NextResponse.json({ success: true, items: items || [], page, pageSize, total: count || 0 })
 
   } catch (error) {
-    console.error('❌ Wardrobe Error:', error)
+    console.error('âŒ Wardrobe Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch wardrobe items' },
       { status: 500 }
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📤 Add Wardrobe Item API called')
+    console.log('ðŸ“¤ Add Wardrobe Item API called')
 
     // Get user session
     const authHeader = request.headers.get('authorization')
@@ -69,11 +69,11 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
-      console.log('❌ Auth error:', authError)
+      console.log('âŒ Auth error:', authError)
       return NextResponse.json({ error: 'No user found' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
+    console.log('âœ… User authenticated:', user.id)
 
     const { imageUrl, name = 'Wardrobe Item' } = await request.json()
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // If it's base64, upload to Supabase first
     if (imageUrl.startsWith('data:image/')) {
-      console.log('📤 Uploading base64 image to Supabase...')
+      console.log('ðŸ“¤ Uploading base64 image to Supabase...')
       
       // Convert base64 to buffer
       const base64Data = imageUrl.split(',')[1]
@@ -107,34 +107,34 @@ export async function POST(request: NextRequest) {
           
           if (!uploadResponse.error) {
             bucketName = bucket
-            console.log(`✅ Uploaded to bucket: ${bucket}`)
+            console.log(`âœ… Uploaded to bucket: ${bucket}`)
             break
           }
         } catch (error) {
-          console.log(`❌ Bucket ${bucket} not available, trying next...`)
+          console.log(`âŒ Bucket ${bucket} not available, trying next...`)
           continue
         }
       }
       
       if (!uploadResponse || uploadResponse.error) {
-        console.error('❌ All buckets failed, creating user-uploads bucket...')
+        console.error('âŒ All buckets failed, creating user-uploads bucket...')
         
         // Try to create bucket
         try {
-          console.log('🔄 Creating user-uploads bucket...')
+          console.log('ðŸ”„ Creating user-uploads bucket...')
           const createBucketResponse = await supabaseAdmin.storage.createBucket('user-uploads', {
             public: true,
             allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
             fileSizeLimit: 10485760 // 10MB
           })
           
-          console.log('📦 Bucket creation response:', createBucketResponse)
+          console.log('ðŸ“¦ Bucket creation response:', createBucketResponse)
           
           if (createBucketResponse.error) {
-            console.error('❌ Bucket creation error:', createBucketResponse.error)
+            console.error('âŒ Bucket creation error:', createBucketResponse.error)
             bucketName = 'user-uploads'
           } else {
-            console.log('✅ Bucket created successfully')
+            console.log('âœ… Bucket created successfully')
             bucketName = 'user-uploads'
           }
           
@@ -146,16 +146,16 @@ export async function POST(request: NextRequest) {
               upsert: false
             })
             
-          console.log('🔄 Retry upload response:', uploadResponse)
+          console.log('ðŸ”„ Retry upload response:', uploadResponse)
             
         } catch (createError) {
-          console.error('❌ Failed to create bucket:', createError)
+          console.error('âŒ Failed to create bucket:', createError)
           bucketName = 'user-uploads'
         }
       }
 
       if (!uploadResponse || uploadResponse.error) {
-        console.error('❌ Upload error:', uploadResponse?.error)
+        console.error('âŒ Upload error:', uploadResponse?.error)
         return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
       }
 
@@ -164,13 +164,13 @@ export async function POST(request: NextRequest) {
         .from(bucketName)
         .getPublicUrl(uploadResponse.data.path).data.publicUrl
 
-      console.log('✅ Image uploaded to Supabase:', finalImageUrl)
+      console.log('âœ… Image uploaded to Supabase:', finalImageUrl)
     }
 
     // Classify clothing using AI
     let classification = null
     try {
-      console.log('🤖 Starting AI classification...')
+      console.log('ðŸ¤– Starting AI classification...')
       const classifyResponse = await fetch(`${APP_URL}/api/classify-clothing`, {
         method: 'POST',
         headers: {
@@ -181,20 +181,20 @@ export async function POST(request: NextRequest) {
       
       if (classifyResponse.ok) {
         const classifyData = await classifyResponse.json()
-        console.log('📡 Classification API response:', classifyData)
+        console.log('ðŸ“¡ Classification API response:', classifyData)
         if (classifyData.success) {
           classification = classifyData.classification
-          console.log('✅ AI Classification successful:', classification)
+          console.log('âœ… AI Classification successful:', classification)
         } else {
-          console.log('⚠️ Classification API returned success=false:', classifyData.error)
+          console.log('âš ï¸ Classification API returned success=false:', classifyData.error)
         }
       } else {
-        console.log('⚠️ Classification failed with status:', classifyResponse.status)
+        console.log('âš ï¸ Classification failed with status:', classifyResponse.status)
         const errorText = await classifyResponse.text()
-        console.log('❌ Classification error response:', errorText)
+        console.log('âŒ Classification error response:', errorText)
       }
     } catch (classifyError) {
-      console.log('⚠️ Classification error, using default:', classifyError)
+      console.log('âš ï¸ Classification error, using default:', classifyError)
     }
 
     // Save wardrobe item to database with classification
@@ -212,17 +212,17 @@ export async function POST(request: NextRequest) {
         season: classification?.season || 'all-season',
         gender: classification?.gender || 'unisex',
         confidence: classification?.confidence || 50,
-        description: classification?.description || 'Trang phục được thêm vào tủ đồ'
+        description: classification?.description || 'Trang phá»¥c Ä‘Æ°á»£c thÃªm vÃ o tá»§ Ä‘á»“'
       })
       .select()
       .single()
 
     if (saveError) {
-      console.error('❌ Error saving wardrobe item:', saveError)
+      console.error('âŒ Error saving wardrobe item:', saveError)
       return NextResponse.json({ error: 'Failed to save wardrobe item' }, { status: 500 })
     }
 
-    console.log('✅ Wardrobe item saved:', savedItem.id)
+    console.log('âœ… Wardrobe item saved:', savedItem.id)
 
     return NextResponse.json({
       success: true,
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Wardrobe POST Error:', error)
+    console.error('âŒ Wardrobe POST Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to add wardrobe item' },
       { status: 500 }
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('🗑️ Delete Wardrobe Item API called')
+    console.log('ðŸ—‘ï¸ Delete Wardrobe Item API called')
 
     // Get user session
     const authHeader = request.headers.get('authorization')
@@ -252,11 +252,11 @@ export async function DELETE(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
-      console.log('❌ Auth error:', authError)
+      console.log('âŒ Auth error:', authError)
       return NextResponse.json({ error: 'No user found' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
+    console.log('âœ… User authenticated:', user.id)
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -273,11 +273,11 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', user.id) // Ensure user can only delete their own items
 
     if (deleteError) {
-      console.error('❌ Error deleting wardrobe item:', deleteError)
+      console.error('âŒ Error deleting wardrobe item:', deleteError)
       return NextResponse.json({ error: 'Failed to delete wardrobe item' }, { status: 500 })
     }
 
-    console.log('✅ Wardrobe item deleted:', id)
+    console.log('âœ… Wardrobe item deleted:', id)
 
     return NextResponse.json({
       success: true,
@@ -285,10 +285,11 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Wardrobe DELETE Error:', error)
+    console.error('âŒ Wardrobe DELETE Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to delete wardrobe item' },
       { status: 500 }
     )
   }
 }
+

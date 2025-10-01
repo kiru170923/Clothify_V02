@@ -6,6 +6,8 @@ import { Sparkles, Zap, Users, Star, MessageCircle, Palette, Camera, Wand2, Arro
 import Link from 'next/link'
 import Image from 'next/image'
 import { ImageSkeleton } from '../../components/SkeletonLoader'
+import ShimmerButton from '../../components/ui/ShimmerButton'
+import GlowCard from '../../components/ui/GlowCard'
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState('clothing-tryon')
@@ -51,9 +53,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
+              <img src="./favicon.ico.png" alt="Clothify" className="w-16 h-16 rounded-lg object-cover" />
               <span className="text-xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">CLOTHIFY</span>
             </div>
 
@@ -75,13 +75,9 @@ export default function LandingPage() {
 
             {/* CTA */}
             <Link href="/try-on">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-6 py-2 rounded-full font-semibold hover:from-amber-500 hover:to-yellow-500 transition-all shadow-lg inline-flex items-center gap-2"
-              >
+              <ShimmerButton>
                 Get Started
-              </motion.button>
+              </ShimmerButton>
             </Link>
           </div>
         </div>
@@ -180,45 +176,51 @@ export default function LandingPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
+                  className="overflow-hidden"
                 >
-                  <Image 
-                    src="/images/1.png" 
-                    alt="Clothing Try-On Example 1" 
-                    width={300} 
-                    height={400} 
-                    className="w-full h-full object-cover"
-                  />
+                  <GlowCard>
+                    <Image 
+                      src="/images/1.png" 
+                      alt="Clothing Try-On Example 1" 
+                      width={300} 
+                      height={400} 
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                  </GlowCard>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
-                  className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
+                  className="overflow-hidden"
                 >
-                  <Image 
-                    src="/images/2.png" 
-                    alt="Clothing Try-On Example 2" 
-                    width={300} 
-                    height={400} 
-                    className="w-full h-full object-cover"
-                  />
+                  <GlowCard>
+                    <Image 
+                      src="/images/2.png" 
+                      alt="Clothing Try-On Example 2" 
+                      width={300} 
+                      height={400} 
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                  </GlowCard>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.3, delay: 0.2, ease: "easeOut" }}
-                  className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
+                  className="overflow-hidden"
                 >
-                  <Image 
-                    src="/images/3.png" 
-                    alt="Clothing Try-On Example 3" 
-                    width={300} 
-                    height={400} 
-                    className="w-full h-full object-cover"
-                  />
+                  <GlowCard>
+                    <Image 
+                      src="/images/3.png" 
+                      alt="Clothing Try-On Example 3" 
+                      width={300} 
+                      height={400} 
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                  </GlowCard>
                 </motion.div>
               </motion.div>
             )}
@@ -493,9 +495,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
+              <img src="./favicon.ico.png" alt="Clothify" className="w-16 h-16 rounded-lg object-cover" />
               <span className="text-xl font-bold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">CLOTHIFY</span>
             </div>
 

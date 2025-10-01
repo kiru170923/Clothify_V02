@@ -56,10 +56,7 @@ export default function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-            <div>
+            <div className="pl-12">
               <span className="font-bold text-xl bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Clothify</span>
               <span className="text-xs text-amber-600 font-medium ml-2">AI Fashion Studio</span>
             </div>

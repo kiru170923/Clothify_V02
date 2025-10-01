@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createPayOSPayment, getClientIP } from '../../../../../lib/payos'
-import { supabaseAdmin } from '../../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,12 +10,12 @@ export async function POST(request: NextRequest) {
 
     if (!planId || !billingCycle || !userId) {
       return NextResponse.json(
-        { error: 'Thiếu thông tin bắt buộc' },
+        { error: 'Thiáº¿u thÃ´ng tin báº¯t buá»™c' },
         { status: 400 }
       )
     }
 
-    // Lấy thông tin gói membership
+    // Láº¥y thÃ´ng tin gÃ³i membership
     const { data: plan, error: planError } = await supabaseAdmin
       .from('membership_plans')
       .select('*')
@@ -24,43 +24,43 @@ export async function POST(request: NextRequest) {
 
     if (planError || !plan) {
       return NextResponse.json(
-        { error: 'Không tìm thấy gói membership' },
+        { error: 'KhÃ´ng tÃ¬m tháº¥y gÃ³i membership' },
         { status: 404 }
       )
     }
 
-    // Lấy user từ token nếu có, tránh phụ thuộc bảng profiles
+    // Láº¥y user tá»« token náº¿u cÃ³, trÃ¡nh phá»¥ thuá»™c báº£ng profiles
     if (!userId && authHeader) {
       const token = authHeader.replace('Bearer ', '')
       const { data: auth } = await supabaseAdmin.auth.getUser(token)
       userId = auth.user?.id
     }
     if (!userId) {
-      return NextResponse.json({ error: 'Thiếu userId' }, { status: 400 })
+      return NextResponse.json({ error: 'Thiáº¿u userId' }, { status: 400 })
     }
 
-    // Tính số tiền thanh toán
+    // TÃ­nh sá»‘ tiá»n thanh toÃ¡n
     const amount = billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly
 
-    // Tạo order ID duy nhất
+    // Táº¡o order ID duy nháº¥t
     const orderId = `MEMBERSHIP_${userId}_${Date.now()}`
 
-    // Tạo thông tin đơn hàng (tối đa 25 ký tự theo yêu cầu PayOS)
-    const orderInfo = `${plan.name} ${billingCycle === 'monthly' ? 'tháng' : 'năm'}`
+    // Táº¡o thÃ´ng tin Ä‘Æ¡n hÃ ng (tá»‘i Ä‘a 25 kÃ½ tá»± theo yÃªu cáº§u PayOS)
+    const orderInfo = `${plan.name} ${billingCycle === 'monthly' ? 'thÃ¡ng' : 'nÄƒm'}`
 
-    // Tạo payment với PayOS (không truyền buyer info theo documentation)
+    // Táº¡o payment vá»›i PayOS (khÃ´ng truyá»n buyer info theo documentation)
     const paymentResponse = await createPayOSPayment({
       amount,
       orderInfo,
       orderId
     })
 
-    // PayOS SDK trả về trực tiếp payment link object
+    // PayOS SDK tráº£ vá» trá»±c tiáº¿p payment link object
     if (!paymentResponse.checkoutUrl) {
-      throw new Error('Có lỗi xảy ra khi tạo thanh toán')
+      throw new Error('CÃ³ lá»—i xáº£y ra khi táº¡o thanh toÃ¡n')
     }
 
-    // Lưu payment order vào database để track
+    // LÆ°u payment order vÃ o database Ä‘á»ƒ track
     const { error: paymentError } = await supabaseAdmin
       .from('payment_orders')
       .insert({
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (paymentError) {
       console.error('Error saving payment order:', paymentError)
       return NextResponse.json(
-        { error: 'Có lỗi xảy ra khi tạo đơn thanh toán' },
+        { error: 'CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘Æ¡n thanh toÃ¡n' },
         { status: 500 }
       )
     }
@@ -97,8 +97,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating PayOS payment:', error)
     return NextResponse.json(
-      { error: 'Có lỗi xảy ra khi tạo thanh toán' },
+      { error: 'CÃ³ lá»—i xáº£y ra khi táº¡o thanh toÃ¡n' },
       { status: 500 }
     )
   }
 }
+

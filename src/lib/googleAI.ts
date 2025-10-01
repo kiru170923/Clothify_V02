@@ -27,7 +27,9 @@ export async function generateImageFromText(prompt: string): Promise<GoogleAIRes
     const headers: HeadersInit = { 'x-goog-api-key': apiKey as string, 'Content-Type': 'application/json' };
 
     const postOnce = async (includeGenConfig: boolean) => {
-      return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -40,16 +42,20 @@ export async function generateImageFromText(prompt: string): Promise<GoogleAIRes
             }
           ],
           ...(includeGenConfig ? { generationConfig: { responseMimeType: 'image/png' } } : {})
-        })
+        }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+      return res;
     };
 
-    let response = await postOnce(true);
+    // Try without generationConfig first to avoid API rejection round-trip
+    let response = await postOnce(false);
     if (!response.ok) {
       const errText = await response.text();
-      // Retry without generationConfig if API rejects response_mime_type
+      // Retry WITH generationConfig only if API requires explicit mime type
       if (errText.includes('response_mime_type') || errText.includes('response mime')) {
-        response = await postOnce(false);
+        response = await postOnce(true);
       } else {
         throw new Error(`Google AI API error: ${response.status} - ${errText}`);
       }
@@ -117,7 +123,9 @@ export async function editImageWithText(personImage: string, clothingImage: stri
     const headers: HeadersInit = { 'x-goog-api-key': apiKey as string, 'Content-Type': 'application/json' };
 
     const postOnce = async (includeGenConfig: boolean) => {
-      return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -133,15 +141,19 @@ export async function editImageWithText(personImage: string, clothingImage: stri
             }
           ],
           ...(includeGenConfig ? { generationConfig: { responseMimeType: 'image/png' } } : {})
-        })
+        }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+      return res;
     };
 
-    let response = await postOnce(true);
+    // Try without generationConfig first
+    let response = await postOnce(false);
     if (!response.ok) {
       const errText = await response.text();
       if (errText.includes('response_mime_type') || errText.includes('response mime')) {
-        response = await postOnce(false);
+        response = await postOnce(true);
       } else {
         throw new Error(`Google AI API error: ${response.status} - ${errText}`);
       }

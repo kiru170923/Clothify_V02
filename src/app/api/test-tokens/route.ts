@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { userId, planId, billingCycle } = body
 
-    // Lấy thông tin gói membership
+    // Láº¥y thÃ´ng tin gÃ³i membership
     const { data: plan, error: planError } = await supabaseAdmin
       .from('membership_plans')
       .select('*')
@@ -15,19 +15,19 @@ export async function POST(request: NextRequest) {
 
     if (planError || !plan) {
       return NextResponse.json(
-        { error: 'Không tìm thấy gói membership' },
+        { error: 'KhÃ´ng tÃ¬m tháº¥y gÃ³i membership' },
         { status: 404 }
       )
     }
 
-    // Tính số tokens cần cộng
+    // TÃ­nh sá»‘ tokens cáº§n cá»™ng
     const tokensToAdd = billingCycle === 'monthly' 
       ? plan.tokens_monthly 
       : plan.tokens_yearly
 
     console.log(`Adding ${tokensToAdd} tokens for user ${userId}`)
 
-    // Cộng tokens cho user
+    // Cá»™ng tokens cho user
     const { data: tokenResult, error: tokenError } = await supabaseAdmin
       .from('user_tokens')
       .upsert({
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (tokenError) {
       console.error('Error updating user tokens:', tokenError)
       return NextResponse.json(
-        { error: 'Có lỗi khi cập nhật tokens', details: tokenError },
+        { error: 'CÃ³ lá»—i khi cáº­p nháº­t tokens', details: tokenError },
         { status: 500 }
       )
     }
@@ -64,8 +64,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in test tokens:', error)
     return NextResponse.json(
-      { error: 'Có lỗi xảy ra', details: error },
+      { error: 'CÃ³ lá»—i xáº£y ra', details: error },
       { status: 500 }
     )
   }
 }
+

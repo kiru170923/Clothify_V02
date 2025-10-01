@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎨 Generate AI Model API called (using try-on API)')
+    console.log('ðŸŽ¨ Generate AI Model API called (using try-on API)')
 
     // Get user session
     const authHeader = request.headers.get('authorization')
@@ -15,11 +15,11 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
-      console.log('❌ Auth error:', authError)
+      console.log('âŒ Auth error:', authError)
       return NextResponse.json({ error: 'No user found' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
+    console.log('âœ… User authenticated:', user.id)
 
     const { gender, customPrompt } = await request.json()
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('🎨 Model prompt:', modelPrompt)
+    console.log('ðŸŽ¨ Model prompt:', modelPrompt)
 
     // Use google/nano-banana for TEXT TO IMAGE (exact API structure)
     const kieaiRequestBody = {
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('📤 Sending TEXT TO IMAGE to KIE.AI:', JSON.stringify(kieaiRequestBody, null, 2))
+    console.log('ðŸ“¤ Sending TEXT TO IMAGE to KIE.AI:', JSON.stringify(kieaiRequestBody, null, 2))
 
     const kieaiResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
     })
 
     const kieaiData = await kieaiResponse.json()
-    console.log('📡 KIE.AI Response:', kieaiData)
+    console.log('ðŸ“¡ KIE.AI Response:', kieaiData)
 
     if (kieaiData.code !== 200) {
       throw new Error(`KIE.AI failed: ${kieaiData.msg || kieaiData.message}`)
     }
 
     const taskId = kieaiData.data.taskId
-    console.log('✅ Task created with ID:', taskId)
+    console.log('âœ… Task created with ID:', taskId)
 
     // Poll for result
     let attempts = 0
@@ -89,16 +89,16 @@ export async function POST(request: NextRequest) {
       })
 
       const statusData = await statusResponse.json()
-      console.log(`📊 Status check ${attempts + 1}:`, statusData)
+      console.log(`ðŸ“Š Status check ${attempts + 1}:`, statusData)
 
       if (statusData.code === 200) {
-        console.log(`🔍 Current state: ${statusData.data.state}`)
+        console.log(`ðŸ” Current state: ${statusData.data.state}`)
         if (statusData.data.state === 'success') {
           // Parse resultJson to get image URL
           const resultJson = JSON.parse(statusData.data.resultJson)
           resultImageUrl = resultJson.resultUrls[0]
-          console.log('✅ Model generated successfully:', resultImageUrl)
-          console.log('🚀 Breaking out of polling loop...')
+          console.log('âœ… Model generated successfully:', resultImageUrl)
+          console.log('ðŸš€ Breaking out of polling loop...')
           break
         } else if (statusData.data.state === 'fail') {
           throw new Error(`Generation failed: ${statusData.data.failMsg || 'Unknown error'}`)
@@ -130,10 +130,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (saveError) {
-      console.error('❌ Error saving model:', saveError)
+      console.error('âŒ Error saving model:', saveError)
       // Still return the image even if save fails
     } else {
-      console.log('✅ Model saved to database successfully:', savedModel?.id)
+      console.log('âœ… Model saved to database successfully:', savedModel?.id)
     }
 
     return NextResponse.json({
@@ -144,10 +144,11 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Generate Model Error:', error)
+    console.error('âŒ Generate Model Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate model' },
       { status: 500 }
     )
   }
 }
+

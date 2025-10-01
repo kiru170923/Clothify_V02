@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,5 +35,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: e.message || 'Server error' }, { status: 500 })
   }
 }
+
 
 

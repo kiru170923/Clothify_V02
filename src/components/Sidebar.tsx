@@ -88,14 +88,14 @@ export default function Sidebar() {
       >
         {/* Logo */}
         <div className="flex items-center justify-center py-4">
-          <motion.div
+          <motion.img
             whileHover={{ scale: 1.1, rotate: 5 }}
             whileTap={{ scale: 0.95 }}
-            className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg cursor-pointer"
+            src="./favicon.ico.png"
+            alt="Clothify"
+            className="w-16 h-16 rounded-lg shadow-lg cursor-pointer object-cover"
             onClick={() => { router.push('/'); close() }}
-          >
-            <SparklesIcon className="w-4 h-4 text-white" />
-          </motion.div>
+          />
         </div>
 
         {/* Navigation */}

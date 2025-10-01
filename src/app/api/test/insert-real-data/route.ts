@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,105 +11,105 @@ export async function POST(req: NextRequest) {
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/set-ao-khoac-len-5087-kem-ao-gile-len-cao-co-nhe-nhang-don-gian-p39105480.html',
-        raw_markdown: '# Set áo khoác len 5087 kèm áo gile len cao cổ nhẹ nhàng đơn giản\n\n**Giá:** 395,000₫\n\n**Mô tả:** Set áo khoác len 5087 kèm áo gile len cao cổ nhẹ nhàng đơn giản',
-        raw_html: '<h1>Set áo khoác len 5087</h1><p><strong>Giá:</strong> 395,000₫</p>',
+        raw_markdown: '# Set Ã¡o khoÃ¡c len 5087 kÃ¨m Ã¡o gile len cao cá»• nháº¹ nhÃ ng Ä‘Æ¡n giáº£n\n\n**GiÃ¡:** 395,000â‚«\n\n**MÃ´ táº£:** Set Ã¡o khoÃ¡c len 5087 kÃ¨m Ã¡o gile len cao cá»• nháº¹ nhÃ ng Ä‘Æ¡n giáº£n',
+        raw_html: '<h1>Set Ã¡o khoÃ¡c len 5087</h1><p><strong>GiÃ¡:</strong> 395,000â‚«</p>',
         metadata: { 
-          title: 'Set áo khoác len 5087 kèm áo gile len cao cổ nhẹ nhàng đơn giản', 
-          description: 'Set áo khoác len 5087 kèm áo gile len cao cổ nhẹ nhàng đơn giản',
-          status: 'HẾT HÀNG'
+          title: 'Set Ã¡o khoÃ¡c len 5087 kÃ¨m Ã¡o gile len cao cá»• nháº¹ nhÃ ng Ä‘Æ¡n giáº£n', 
+          description: 'Set Ã¡o khoÃ¡c len 5087 kÃ¨m Ã¡o gile len cao cá»• nháº¹ nhÃ ng Ä‘Æ¡n giáº£n',
+          status: 'Háº¾T HÃ€NG'
         },
         normalized: {
-          title: 'Set áo khoác len 5087 kèm áo gile len cao cổ nhẹ nhàng đơn giản',
+          title: 'Set Ã¡o khoÃ¡c len 5087 kÃ¨m Ã¡o gile len cao cá»• nháº¹ nhÃ ng Ä‘Æ¡n giáº£n',
           price: 395000,
-          description: 'Set áo khoác len 5087 kèm áo gile len cao cổ nhẹ nhàng đơn giản',
-          colors: ['Đa dạng'],
+          description: 'Set Ã¡o khoÃ¡c len 5087 kÃ¨m Ã¡o gile len cao cá»• nháº¹ nhÃ ng Ä‘Æ¡n giáº£n',
+          colors: ['Äa dáº¡ng'],
           sizes: ['S', 'M', 'L'],
           images: ['https://pos.nvncdn.com/b153ea-53436/ps/20230921_rBhe9IXwMw.jpeg?v=1695289815'],
-          status: 'HẾT HÀNG'
+          status: 'Háº¾T HÃ€NG'
         },
         price: 395000
       },
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/ao-khoac-len-6532329-p39118263.html',
-        raw_markdown: '# Áo khoác len 6532-329\n\n**Giá:** 329,000₫\n\n**Mô tả:** Áo khoác len 6532-329',
-        raw_html: '<h1>Áo khoác len 6532-329</h1><p><strong>Giá:</strong> 329,000₫</p>',
+        raw_markdown: '# Ão khoÃ¡c len 6532-329\n\n**GiÃ¡:** 329,000â‚«\n\n**MÃ´ táº£:** Ão khoÃ¡c len 6532-329',
+        raw_html: '<h1>Ão khoÃ¡c len 6532-329</h1><p><strong>GiÃ¡:</strong> 329,000â‚«</p>',
         metadata: { 
-          title: 'Áo khoác len 6532-329', 
-          description: 'Áo khoác len 6532-329',
-          status: 'HẾT HÀNG'
+          title: 'Ão khoÃ¡c len 6532-329', 
+          description: 'Ão khoÃ¡c len 6532-329',
+          status: 'Háº¾T HÃ€NG'
         },
         normalized: {
-          title: 'Áo khoác len 6532-329',
+          title: 'Ão khoÃ¡c len 6532-329',
           price: 329000,
-          description: 'Áo khoác len 6532-329',
-          colors: ['Đa dạng'],
+          description: 'Ão khoÃ¡c len 6532-329',
+          colors: ['Äa dáº¡ng'],
           sizes: ['S', 'M', 'L'],
           images: ['https://pos.nvncdn.com/b153ea-53436/ps/20250109_s3PEtZRDfy.jpeg?v=1736390557'],
-          status: 'HẾT HÀNG'
+          status: 'Háº¾T HÃ€NG'
         },
         price: 329000
       },
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/ao-khoac-len-6471259-p39117695.html',
-        raw_markdown: '# Áo khoác len 6471-259\n\n**Giá:** 259,000₫\n\n**Mô tả:** Áo khoác len 6471-259',
-        raw_html: '<h1>Áo khoác len 6471-259</h1><p><strong>Giá:</strong> 259,000₫</p>',
+        raw_markdown: '# Ão khoÃ¡c len 6471-259\n\n**GiÃ¡:** 259,000â‚«\n\n**MÃ´ táº£:** Ão khoÃ¡c len 6471-259',
+        raw_html: '<h1>Ão khoÃ¡c len 6471-259</h1><p><strong>GiÃ¡:</strong> 259,000â‚«</p>',
         metadata: { 
-          title: 'Áo khoác len 6471-259', 
-          description: 'Áo khoác len 6471-259',
-          status: 'HẾT HÀNG'
+          title: 'Ão khoÃ¡c len 6471-259', 
+          description: 'Ão khoÃ¡c len 6471-259',
+          status: 'Háº¾T HÃ€NG'
         },
         normalized: {
-          title: 'Áo khoác len 6471-259',
+          title: 'Ão khoÃ¡c len 6471-259',
           price: 259000,
-          description: 'Áo khoác len 6471-259',
-          colors: ['Đa dạng'],
+          description: 'Ão khoÃ¡c len 6471-259',
+          colors: ['Äa dáº¡ng'],
           sizes: ['S', 'M', 'L'],
           images: ['https://pos.nvncdn.com/b153ea-53436/ps/20250109_ULQemubt1W.jpeg?v=1736389978'],
-          status: 'HẾT HÀNG'
+          status: 'Háº¾T HÃ€NG'
         },
         price: 259000
       },
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/ao-khoac-len-cardigan-dai-tay-6432-dieu-da-nhe-nhang-289-p39116995.html',
-        raw_markdown: '# Áo khoác len cardigan dài tay 6432 điệu đà nhẹ nhàng -289\n\n**Giá:** 289,000₫\n\n**Mô tả:** Áo khoác len cardigan dài tay 6432 điệu đà nhẹ nhàng',
-        raw_html: '<h1>Áo khoác len cardigan dài tay 6432</h1><p><strong>Giá:</strong> 289,000₫</p>',
+        raw_markdown: '# Ão khoÃ¡c len cardigan dÃ i tay 6432 Ä‘iá»‡u Ä‘Ã  nháº¹ nhÃ ng -289\n\n**GiÃ¡:** 289,000â‚«\n\n**MÃ´ táº£:** Ão khoÃ¡c len cardigan dÃ i tay 6432 Ä‘iá»‡u Ä‘Ã  nháº¹ nhÃ ng',
+        raw_html: '<h1>Ão khoÃ¡c len cardigan dÃ i tay 6432</h1><p><strong>GiÃ¡:</strong> 289,000â‚«</p>',
         metadata: { 
-          title: 'Áo khoác len cardigan dài tay 6432 điệu đà nhẹ nhàng -289', 
-          description: 'Áo khoác len cardigan dài tay 6432 điệu đà nhẹ nhàng',
-          status: 'CÒN HÀNG'
+          title: 'Ão khoÃ¡c len cardigan dÃ i tay 6432 Ä‘iá»‡u Ä‘Ã  nháº¹ nhÃ ng -289', 
+          description: 'Ão khoÃ¡c len cardigan dÃ i tay 6432 Ä‘iá»‡u Ä‘Ã  nháº¹ nhÃ ng',
+          status: 'CÃ’N HÃ€NG'
         },
         normalized: {
-          title: 'Áo khoác len cardigan dài tay 6432 điệu đà nhẹ nhàng -289',
+          title: 'Ão khoÃ¡c len cardigan dÃ i tay 6432 Ä‘iá»‡u Ä‘Ã  nháº¹ nhÃ ng -289',
           price: 289000,
-          description: 'Áo khoác len cardigan dài tay 6432 điệu đà nhẹ nhàng',
-          colors: ['Đa dạng'],
+          description: 'Ão khoÃ¡c len cardigan dÃ i tay 6432 Ä‘iá»‡u Ä‘Ã  nháº¹ nhÃ ng',
+          colors: ['Äa dáº¡ng'],
           sizes: ['S', 'M', 'L'],
           images: ['https://pos.nvncdn.com/b153ea-53436/ps/20250109_fRhJIdZIME.jpeg?v=1736390637'],
-          status: 'CÒN HÀNG'
+          status: 'CÃ’N HÃ€NG'
         },
         price: 289000
       },
       {
         source_site: 'twentyfive.vn',
         source_url: 'https://twentyfive.vn/ao-khoac-len-6381269-p39116450.html',
-        raw_markdown: '# Áo khoác len 6381-269\n\n**Giá:** 269,000₫\n\n**Mô tả:** Áo khoác len 6381-269',
-        raw_html: '<h1>Áo khoác len 6381-269</h1><p><strong>Giá:</strong> 269,000₫</p>',
+        raw_markdown: '# Ão khoÃ¡c len 6381-269\n\n**GiÃ¡:** 269,000â‚«\n\n**MÃ´ táº£:** Ão khoÃ¡c len 6381-269',
+        raw_html: '<h1>Ão khoÃ¡c len 6381-269</h1><p><strong>GiÃ¡:</strong> 269,000â‚«</p>',
         metadata: { 
-          title: 'Áo khoác len 6381-269', 
-          description: 'Áo khoác len 6381-269',
-          status: 'CÒN HÀNG'
+          title: 'Ão khoÃ¡c len 6381-269', 
+          description: 'Ão khoÃ¡c len 6381-269',
+          status: 'CÃ’N HÃ€NG'
         },
         normalized: {
-          title: 'Áo khoác len 6381-269',
+          title: 'Ão khoÃ¡c len 6381-269',
           price: 269000,
-          description: 'Áo khoác len 6381-269',
-          colors: ['Đa dạng'],
+          description: 'Ão khoÃ¡c len 6381-269',
+          colors: ['Äa dáº¡ng'],
           sizes: ['S', 'M', 'L'],
           images: ['https://pos.nvncdn.com/b153ea-53436/ps/20241031_qe55MEDmVS.jpeg?v=1730369914'],
-          status: 'CÒN HÀNG'
+          status: 'CÃ’N HÃ€NG'
         },
         price: 269000
       }
@@ -135,3 +135,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
+

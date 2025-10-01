@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    console.log('🔍 User ID:', user.id)
+    console.log('ðŸ” User ID:', user.id)
 
     // Get user tokens
     const { data: userTokens, error: tokensError } = await supabaseAdmin
@@ -112,12 +112,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Update user tokens - trừ trực tiếp từ total_tokens
+    // Update user tokens - trá»« trá»±c tiáº¿p tá»« total_tokens
     const { error: updateError } = await supabaseAdmin
       .from('user_tokens')
       .update({
         total_tokens: userTokens.total_tokens - tokensToUse,
-        used_tokens: userTokens.used_tokens + tokensToUse, // Vẫn track used_tokens để thống kê
+        used_tokens: userTokens.used_tokens + tokensToUse, // Váº«n track used_tokens Ä‘á»ƒ thá»‘ng kÃª
         updated_at: new Date().toISOString()
       })
       .eq('user_id', user.id)
@@ -160,3 +160,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+

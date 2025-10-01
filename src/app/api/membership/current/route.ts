@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    console.log('🔍 Getting membership for user:', user.id)
+    console.log('ðŸ” Getting membership for user:', user.id)
 
     // Get user's current active membership with plan details
     const { data: membership, error: membershipError } = await supabaseAdmin
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       
       // If it's a foreign key relationship error, return null membership (Free plan)
       if (membershipError.code === 'PGRST200') {
-        console.log('⚠️ Foreign key relationship error, returning null membership (Free plan)')
+        console.log('âš ï¸ Foreign key relationship error, returning null membership (Free plan)')
         return NextResponse.json({
           membership: null,
           isNewUser: true
@@ -64,3 +64,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+

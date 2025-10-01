@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { scrapeUrl, crawlUrl } from '../../../../lib/scrapeless'
 import { initSentry } from '../../../../lib/sentry'
 
 initSentry()
 import { normalizeProduct } from '../../../../lib/normalizer'
-import { supabaseAdmin } from '../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,13 +12,13 @@ export async function POST(req: NextRequest) {
     const { url, mode = 'scrape', formats, limit = 5 } = body
     if (!url) return NextResponse.json({ success: false, error: 'Missing url' }, { status: 400 })
 
-    console.log('🚀 Scrapeless request:', { url, mode, formats, limit })
+    console.log('ðŸš€ Scrapeless request:', { url, mode, formats, limit })
 
     const start = Date.now()
     let result: any
     
     if (mode === 'crawl') {
-      console.log('🕷️ Using CRAWL mode')
+      console.log('ðŸ•·ï¸ Using CRAWL mode')
       result = await crawlUrl(url, { 
         limit,
         formats: formats || ['markdown'],
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         timeout: 30000
       })
     } else {
-      console.log('📄 Using SCRAPE mode')
+      console.log('ðŸ“„ Using SCRAPE mode')
       result = await scrapeUrl(url, { 
         formats: formats || ['markdown'],
         onlyMainContent: true,
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     const duration = Date.now() - start
-    console.log('⏱️ Scrapeless duration:', duration + 'ms')
+    console.log('â±ï¸ Scrapeless duration:', duration + 'ms')
 
     // Handle different result formats
     let pages = []
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       pages = [result]
     }
 
-    console.log('📊 Found pages:', pages.length)
+    console.log('ðŸ“Š Found pages:', pages.length)
 
     const products = []
     
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       const metadata = page?.metadata || { title: page?.title || null }
       const pageUrl = page?.url || url
 
-      console.log('🔍 Processing page:', pageUrl)
+      console.log('ðŸ” Processing page:', pageUrl)
 
       // Normalize product using heuristics
       const normalized = normalizeProduct({ 
@@ -83,18 +83,18 @@ export async function POST(req: NextRequest) {
 
     // Insert all products
     if (products.length > 0) {
-      console.log('💾 Inserting products:', products.length)
+      console.log('ðŸ’¾ Inserting products:', products.length)
       
       const insert = await supabaseAdmin
         .from('products')
         .upsert(products, { onConflict: 'source_url' })
 
       if (insert.error) {
-        console.error('❌ Insert product error:', insert.error)
+        console.error('âŒ Insert product error:', insert.error)
         return NextResponse.json({ success: false, error: insert.error.message }, { status: 500 })
       }
 
-      console.log('✅ Inserted products:', products.length)
+      console.log('âœ… Inserted products:', products.length)
     }
 
     return NextResponse.json({ 
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       result: result
     })
   } catch (error: any) {
-    console.error('❌ Scrapeless API error:', error)
+    console.error('âŒ Scrapeless API error:', error)
     return NextResponse.json({ 
       success: false, 
       error: error.message || String(error),
@@ -113,5 +113,6 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
 
 

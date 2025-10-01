@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 import { initSentry } from '../../../lib/sentry'
 
 initSentry()
@@ -50,5 +50,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: e.message || String(e) }, { status: 500 })
   }
 }
+
 
 

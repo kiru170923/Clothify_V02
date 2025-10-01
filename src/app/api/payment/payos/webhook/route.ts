@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getPayOSPaymentInfo, verifyPayOSWebhook } from '../../../../../lib/payos'
-import { supabaseAdmin } from '../../../../../lib/supabase'
+import { supabaseAdmin } from '../../../../../lib/supabaseAdmin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
     }
 
-    // Xác thực webhook
+    // XÃ¡c thá»±c webhook
     if (!verifyPayOSWebhook(body, signature)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
@@ -24,12 +24,12 @@ export async function POST(request: NextRequest) {
     console.log('- Status:', status)
 
     if (status === 'PAID') {
-      // Lấy thông tin payment chi tiết
+      // Láº¥y thÃ´ng tin payment chi tiáº¿t
       const paymentInfo = await getPayOSPaymentInfo(orderCode)
 
       if (paymentInfo.code === '00' && paymentInfo.data.code === '00') {
-        // Thanh toán thành công
-        // 1) Tìm payment order
+        // Thanh toÃ¡n thÃ nh cÃ´ng
+        // 1) TÃ¬m payment order
         const { data: order } = await supabaseAdmin
           .from('payment_orders')
           .select('*')
@@ -41,20 +41,20 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: true })
         }
 
-        // 2) Nếu đã completed thì bỏ qua
+        // 2) Náº¿u Ä‘Ã£ completed thÃ¬ bá» qua
         if (order.status === 'completed') {
           return NextResponse.json({ success: true })
         }
 
-        // 3) Cập nhật trạng thái
+        // 3) Cáº­p nháº­t tráº¡ng thÃ¡i
         await supabaseAdmin
           .from('payment_orders')
           .update({ status: 'completed' })
           .eq('id', order.id)
 
-        // 4) Nếu là đơn mua tokens -> cộng token
+        // 4) Náº¿u lÃ  Ä‘Æ¡n mua tokens -> cá»™ng token
         if (order.tokens_to_add && order.user_id) {
-          // Tăng total_tokens cho user
+          // TÄƒng total_tokens cho user
           await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: order.user_id, p_tokens: order.tokens_to_add })
         }
 
@@ -70,3 +70,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+

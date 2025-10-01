@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { crawlTwentyFiveSearch, crawlUrlGeneric } from '../../../lib/scrapelessCrawl'
 import { scrapeUrl } from '../../../lib/scrapeless'
@@ -50,9 +50,13 @@ export async function POST(request: NextRequest) {
     console.log('  - áo len:', lowerMessage.includes('áo len'))
     
     // If the user directly pasted a URL, handle it first
-    const urlMatch = message.match(/https?:\/\/\S+/i)
+    // Robust extraction: handle duplicated/concatenated URLs (no whitespace)
+    const urlMatch = message.match(/(https?:\/\/[^\s]+?)(?=https?:\/\/|\s|$)/i)
     if (urlMatch) {
-      const url = urlMatch[0]
+      let url = urlMatch[1] || urlMatch[0]
+      // Safety: if still contains a second http within the same string, cut it
+      const secondHttp = url.indexOf('http', 5)
+      if (secondHttp > 0) url = url.slice(0, secondHttp)
       console.log('🔗 Detected URL message:', url)
       console.log('🔍 Env SCRAPELESS_API_KEY present:', !!process.env.SCRAPELESS_API_KEY)
       console.log('🔍 Starting URL handling...')
@@ -110,21 +114,91 @@ export async function POST(request: NextRequest) {
           console.log('🧾 pageData (non-serializable)')
         }
 
-        // Return data in the exact format requested by user
-        // If fullResult (from crawler) contains status/data, return it directly
-        if (fullResult && (fullResult.status || fullResult.data)) {
-          // ensure we include success flag if absent
-          if (typeof fullResult.success === 'undefined') fullResult.success = true
-          return NextResponse.json(fullResult)
+        // Check if Scrapeless failed (success: true but status: failed or data: null)
+        if (fullResult && (fullResult.status === 'failed' || !fullResult.data)) {
+          return NextResponse.json({
+            success: true,
+            response: `❌ Không thể phân tích sản phẩm từ link này.\n\n🔍 Lý do: ${fullResult.error || 'URL không khả dụng hoặc đã bị thay đổi'}\n\n💡 Gợi ý:\n- Kiểm tra lại link có đúng không\n- Thử link sản phẩm khác\n- Hoặc mô tả sản phẩm bạn muốn tìm, mình sẽ tìm giúp bạn!`,
+            result: fullResult,
+            error: true
+          })
         }
 
-        // Otherwise return object with markdown + metadata (product detail format)
+        // Always build a friendly response text for the chatbot UI
         const normalized = normalizeProduct(pageData || { markdown: '', html: '', metadata: { sourceURL: url } })
         console.log('🔍 Normalized product:', JSON.stringify(normalized, null, 2))
 
+        // Fallback: parse info from raw markdown if normalizeProduct fails
+        const rawMarkdown = (pageData as any)?.markdown || ''
+        const sourceURL = (normalized as any)?.sourceURL || (pageData as any)?.url || url
+        
+        // Extract images from markdown
+        const imageMatches = rawMarkdown.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/g) || []
+        const images = imageMatches.map((match: string) => {
+          const urlMatch = match.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/)
+          return urlMatch ? urlMatch[1] : null
+        }).filter(Boolean)
+
+        // Title fallback strategy: normalized.title -> metadata.title -> slug from URL
+        let title = (normalized as any)?.title || (pageData as any)?.metadata?.title
+        if (!title && sourceURL) {
+          try {
+            const u = new URL(sourceURL)
+            const lastSeg = u.pathname.split('/').filter(Boolean).pop() || ''
+            // remove query/hash, replace dashes with spaces, strip product code suffix like -p123456.html
+            const cleaned = lastSeg
+              .replace(/\.html?.*$/i, '')
+              .replace(/-p\d+$/i, '')
+              .replace(/[-_]+/g, ' ')
+              .trim()
+            if (cleaned) title = cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+          } catch {}
+        }
+        if (!title) title = 'Sản phẩm'
+
+        // Build response with available info
+        let responseText = `Mình vừa phân tích sản phẩm: ${title}.`
+        
+        // Add images if found
+        if (images.length > 0) {
+          const topImages = images.slice(0, 3)
+          responseText += `\n🖼️ Ảnh sản phẩm: ${topImages.length} ảnh`
+        }
+        
+        // Add link
+        if (sourceURL) responseText += `\n🔗 Link: ${sourceURL}`
+        
+        // Add note about analysis
+        responseText += `\n\n📋 Mình đã phân tích chi tiết sản phẩm này. Bạn có muốn mình gợi ý cách phối đồ với sản phẩm này không?`
+
+        // Build parsed object for UI to consume directly
+        const parsed = {
+          title,
+          images,
+          source_url: sourceURL
+        }
+        // Also append pretty JSON for immediate visibility in chat
+        responseText += `\n\nJSON:\n${JSON.stringify(parsed, null, 2)}`
+
+        // If fullResult (from crawler) exists, include it but ensure UI-friendly response
+        if (fullResult && (fullResult.status || fullResult.data)) {
+          return NextResponse.json({
+            success: true,
+            response: responseText,
+            result: fullResult,
+            product: normalized,
+            parsed
+          })
+        }
+
+        // Otherwise return object with markdown + metadata (product detail format) and response
         const out = {
-          markdown: pageData?.markdown || pageData?.html || '',
-          metadata: pageData?.metadata || normalized?.sourceURL ? { sourceURL: normalized.sourceURL, title: normalized.title, description: normalized.description } : { sourceURL: url }
+          success: true,
+          response: responseText,
+          markdown: (pageData as any)?.markdown || (pageData as any)?.html || '',
+          metadata: (pageData as any)?.metadata || ((normalized as any)?.sourceURL ? { sourceURL: (normalized as any).sourceURL, title: (normalized as any).title, description: (normalized as any).description } : { sourceURL: url }),
+          product: normalized,
+          parsed
         }
 
         return NextResponse.json(out)
@@ -134,10 +208,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (isAskingForProducts) {
+    // Optional: disable text-based product scraping to keep UX consistent with stylist/search pipeline
+    const allowTextProductRecs = process.env.ENABLE_CHAT_PRODUCT_RECS === '1'
+    if (isAskingForProducts && allowTextProductRecs) {
       console.log('🔍 User requesting product recommendations...')
       console.log('🔍 SCRAPELESS_API_KEY exists:', !!process.env.SCRAPELESS_API_KEY)
-      console.log('🔍 SCRAPELESS_API_KEY value:', process.env.SCRAPELESS_API_KEY ? 'EXISTS' : 'MISSING')
       
       try {
         // Generate product recommendations using AI + Scrapeless
@@ -201,10 +276,10 @@ export async function POST(request: NextRequest) {
     })
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Use cheaper model for better performance
+      model: "gpt-4o-mini-2024-07-18",
       messages: messages as any,
-      max_tokens: 300, // Reduced tokens for optimization
-      temperature: 0.7
+      max_tokens: 220,
+      temperature: 0.6
     })
 
     return NextResponse.json({
@@ -222,7 +297,7 @@ async function generateProductRecommendations(userMessage: string) {
   try {
     // Use AI to understand user's needs and generate search queries
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -456,7 +531,7 @@ async function analyzeImageWithGPT4Vision(imageFile: File, userMessage: string) 
     console.log('🔍 MIME type:', mimeType)
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "user",

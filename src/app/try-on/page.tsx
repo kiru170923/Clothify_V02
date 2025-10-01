@@ -292,6 +292,9 @@ function TryOnPageContent() {
                       if (!isPremium) return
                       setFastMode((v) => {
                         const next = !v
+                        // tránh toast trùng khi toggle nhanh
+                        const toastId = 'fast-mode-toggle'
+                        try { toast.dismiss(toastId as any) } catch {}
                         toast.custom((t) => (
                           <div className={`max-w-sm w-full rounded-xl border ${next ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-white'} shadow-lg p-4 flex items-start gap-3`}>
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center ${next ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
@@ -302,7 +305,7 @@ function TryOnPageContent() {
                               <p className={`text-xs mt-0.5 ${next ? 'text-amber-800' : 'text-gray-600'}`}>{next ? 'Sử dụng Google AI Studio (Gemini) để tạo nhanh.' : 'Quay về chế độ mặc định.'}</p>
                             </div>
                           </div>
-                        ), { duration: 2200 })
+                        ), { id: toastId as any, duration: 1800 })
                         return next
                       })
                     }}
@@ -320,7 +323,7 @@ function TryOnPageContent() {
 
                 {/* Model Image */}
                 <div className="relative mb-4">
-                  <div className="aspect-[2/3] bg-amber-50 rounded-lg overflow-hidden border border-amber-200 max-w-[320px] md:max-w-full mx-auto">
+                  <div className="aspect-[5/6] md:aspect-[5/6] bg-amber-50 rounded-lg overflow-hidden border border-amber-200 max-w-[320px] md:max-w-full mx-auto">
                   {personImage ? (
                       <img
                         src={personImage}

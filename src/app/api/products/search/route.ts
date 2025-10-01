@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../lib/supabase'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { q, priceMin, priceMax, color, size, limit = 20, offset = 0 } = body
 
-    console.log('🔍 Search request:', { q, priceMin, priceMax, color, size, limit, offset })
+    console.log('ðŸ” Search request:', { q, priceMin, priceMax, color, size, limit, offset })
 
     // Use direct query instead of RPC
     let query = supabaseAdmin
@@ -38,16 +38,17 @@ export async function POST(req: NextRequest) {
     // Add pagination
     query = query.range(Number(offset || 0), Number(offset || 0) + Number(limit || 20) - 1)
 
-    console.log('📊 Direct query search')
+    console.log('ðŸ“Š Direct query search')
 
     const { data, error } = await query
     
-    console.log('✅ Search results:', data?.length || 0, 'products found')
+    console.log('âœ… Search results:', data?.length || 0, 'products found')
     return NextResponse.json({ success: true, data, total: (data || []).length })
   } catch (error: any) {
-    console.error('❌ Search error:', error)
+    console.error('âŒ Search error:', error)
     return NextResponse.json({ success: false, error: error.message || String(error) }, { status: 500 })
   }
 }
+
 
 
