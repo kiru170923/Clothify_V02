@@ -114,7 +114,12 @@ export function useTryOn() {
         let attempt = 0
         while (Date.now() - start < timeoutMs) {
           await pollDelay(attempt++)
-          const statusRes = await fetch(`/api/clothify/status?taskId=${encodeURIComponent(taskId)}`, { cache: 'no-store' })
+          const statusRes = await fetch(`/api/clothify/status?taskId=${encodeURIComponent(taskId)}`, { 
+            cache: 'no-store',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}` // 🔥 Add auth header for history saving
+            }
+          })
           if (!statusRes.ok) continue
           const status = await parseResponseJson(statusRes)
           if (status.state === 'success' && status.resultImageUrl) {
