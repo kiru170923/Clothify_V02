@@ -222,6 +222,106 @@ export default function FashionChatbot() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isSubmittingRef = useRef(false)
 
+  // Helper function to load model from My Models
+  const loadModelFromMyModels = async (accessToken: string) => {
+    try {
+      console.log('🔄 Trying to load model from My Models...')
+      const modelsRes = await fetch('/api/my-models', {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        cache: 'no-cache'
+      })
+      
+      console.log('🔍 My Models API response status:', modelsRes.status)
+      
+      if (modelsRes.ok) {
+        const modelsData = await modelsRes.json()
+        console.log('📋 My Models data:', modelsData)
+        if (modelsData.success && modelsData.models?.length > 0) {
+          const firstModel = modelsData.models[0]
+          setUserModelImage(firstModel.image_url)
+          console.log('📸 ✅ Auto-loaded model from My Models:', firstModel.image_url)
+        } else {
+          console.log('❌ No models found in My Models')
+          // Try wardrobe as last fallback
+          await loadModelFromWardrobe(accessToken)
+        }
+      } else {
+        console.log('❌ Failed to load My Models, status:', modelsRes.status)
+        const errorText = await modelsRes.text()
+        console.log('❌ Error response:', errorText)
+        await loadModelFromWardrobe(accessToken)
+      }
+    } catch (error) {
+      console.error('Failed to load from My Models:', error)
+      await loadModelFromWardrobe(accessToken)
+    }
+  }
+  
+  // Helper function to load model from Wardrobe
+  const loadModelFromWardrobe = async (accessToken: string) => {
+    try {
+      console.log('🔄 Trying to load model from Wardrobe...')
+      const wardrobeRes = await fetch('/api/wardrobe?page=1&pageSize=5', {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        cache: 'no-cache'
+      })
+      
+      console.log('🔍 Wardrobe API response status:', wardrobeRes.status)
+      
+      if (wardrobeRes.ok) {
+        const wardrobeData = await wardrobeRes.json()
+        console.log('👔 Wardrobe data:', wardrobeData)
+        if (wardrobeData.items?.length > 0) {
+          const firstItem = wardrobeData.items[0]
+          setUserModelImage(firstItem.image_url)
+          console.log('📸 ✅ Auto-loaded model from Wardrobe:', firstItem.image_url)
+        } else {
+          console.log('❌ No items found in Wardrobe')
+        }
+      } else {
+        console.log('❌ Failed to load Wardrobe, status:', wardrobeRes.status)
+        const errorText = await wardrobeRes.text()
+        console.log('❌ Error response:', errorText)
+      }
+    } catch (error) {
+      console.error('Failed to load from Wardrobe:', error)
+    }
+  }
+
+  // Force reload data function
+  const forceReloadData = async () => {
+    console.log('🔄 Force reloading all data...')
+    setUserModelImage(null)
+    setProfileLoaded(false)
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        // Reload profile
+        const response = await fetch('/api/profile', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+          cache: 'no-cache'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.profile?.try_on_photo_url) {
+            setUserModelImage(data.profile.try_on_photo_url)
+            console.log('📸 ✅ Force reloaded model from profile:', data.profile.try_on_photo_url)
+            return
+          }
+        }
+        
+        // Fallback to My Models
+        await loadModelFromMyModels(session.access_token)
+      }
+    } catch (error) {
+      console.error('Force reload failed:', error)
+    } finally {
+      setProfileLoaded(true)
+    }
+  }
+
   // Ensure timestamp is always a valid Date when rendering
   const ensureDate = (ts: any): Date => {
     try {
@@ -331,6 +431,23 @@ export default function FashionChatbot() {
           router.push('/wardrobe')
           return
         }
+        case 'reload-data': {
+          pushBotMessage('🔄 Đang tải lại dữ liệu từ cơ sở dữ liệu...')
+          toast('Đang tải lại dữ liệu...', { icon: '🔄' })
+          forceReloadData().then(() => {
+            if (userModelImage) {
+              pushBotMessage('✅ Đã tải lại dữ liệu thành công! Tìm thấy ảnh model của bạn.')
+              toast.success('Tải lại dữ liệu thành công!')
+            } else {
+              pushBotMessage('⚠️ Đã tải lại dữ liệu nhưng vẫn chưa tìm thấy ảnh model. Vui lòng tải ảnh model mới.')
+              toast.error('Chưa tìm thấy ảnh model')
+            }
+          }).catch(() => {
+            pushBotMessage('❌ Có lỗi khi tải lại dữ liệu. Vui lòng thử lại sau.')
+            toast.error('Lỗi tải dữ liệu')
+          })
+          return
+        }
         default: {
           pushBotMessage('Dich vu nay dang duoc cap nhat, ban noi ro hon de minh tro giup nhe!')
           return
@@ -339,37 +456,57 @@ export default function FashionChatbot() {
     }
   }
 
-  // Load user profile and model image on component mount
+  // Load user profile and model image - ALWAYS reload on mount
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (profileLoaded) return
-      
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.access_token) return
+        if (!session?.access_token) {
+          console.log('❌ No session found')
+          return
+        }
         
+        console.log('🔄 Loading user profile...')
         const response = await fetch('/api/profile', {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
-          }
+          },
+          cache: 'no-cache' // Force fresh data
         })
         
         if (response.ok) {
           const data = await response.json()
+          console.log('👤 Profile data loaded:', data)
           if (data.profile?.try_on_photo_url) {
             setUserModelImage(data.profile.try_on_photo_url)
-            console.log('📸 Loaded user model image from profile:', data.profile.try_on_photo_url)
+            console.log('📸 ✅ Loaded user model image from profile:', data.profile.try_on_photo_url)
+          } else {
+            console.log('❌ No try_on_photo_url found in profile:', data.profile)
+            // Try to load from My Models as fallback
+            await loadModelFromMyModels(session.access_token)
           }
+        } else {
+          console.log('❌ Failed to load profile:', response.status, response.statusText)
+          // Try to load from My Models as fallback
+          await loadModelFromMyModels(session.access_token)
         }
       } catch (error) {
         console.error('Error loading user profile:', error)
+        // Try to load from My Models as fallback
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.access_token) {
+            await loadModelFromMyModels(session.access_token)
+          }
+        } catch {}
       } finally {
         setProfileLoaded(true)
       }
     }
     
+    
     loadUserProfile()
-  }, [profileLoaded])
+  }, []) // Removed profileLoaded dependency to always reload
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }) // Changed to auto for speed
@@ -427,7 +564,13 @@ export default function FashionChatbot() {
     }
       
       if (!userModelImage) {
-        pushBotMessage('Bạn cần tải ảnh người mẫu của bạn trước (full/half body). Hãy gửi ảnh tại đây hoặc vào mục Tủ đồ để lưu ảnh mẫu nhé!')
+        pushBotMessage('Bạn cần tải ảnh người mẫu của bạn trước (full/half body). Hãy gửi ảnh tại đây hoặc vào mục Tủ đồ để lưu ảnh mẫu nhé!', {
+          actions: [
+            createAction({ label: '🔄 Tải lại dữ liệu', kind: 'service', value: 'reload-data' }),
+            createAction({ label: '📷 Tải ảnh model', kind: 'service', value: 'open-try-on' }),
+            createAction({ label: '👔 Mở tủ đồ', kind: 'service', value: 'open-wardrobe' }),
+          ]
+        })
         return
       }
 
@@ -611,7 +754,8 @@ export default function FashionChatbot() {
   useEffect(() => {
     const load = async () => {
       try {
-        if (!session?.access_token) return
+        const { data: { session: currentSession } } = await supabase.auth.getSession()
+        if (!currentSession?.access_token) return
         // Prefetch profile once per session and cache locally
         // No localStorage caching for speed
       } catch (e) {
@@ -1565,7 +1709,14 @@ export default function FashionChatbot() {
             <p className="text-sm text-gray-600">Trợ lý thời trang nam thông minh</p>
           </div>
         </div>
-        <div className="ml-4">
+        <div className="ml-4 flex gap-2">
+          <button 
+            onClick={forceReloadData} 
+            className="px-3 py-2 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-full text-sm font-semibold hover:from-blue-500 hover:to-blue-600 transition-all shadow-md"
+            title="Tải lại dữ liệu từ DB"
+          >
+            🔄
+          </button>
           <button onClick={requestRecommendations} className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 rounded-full text-sm font-semibold hover:from-amber-500 hover:to-yellow-500 transition-all shadow-md">
             Gợi ý cho tôi
           </button>

@@ -4,7 +4,7 @@ import { APP_URL } from '../../../lib/config'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('ðŸ“‹ Wardrobe API called')
+    console.log('📋 Wardrobe API called')
 
     // Get user session
     const authHeader = request.headers.get('authorization')

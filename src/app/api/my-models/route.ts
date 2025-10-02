@@ -3,7 +3,7 @@ import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('ðŸ“‹ My Models API called')
+    console.log('📋 My Models API called')
 
     // Get user session
     const authHeader = request.headers.get('authorization')
