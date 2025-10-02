@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     const scoreMap = new Map<number, number>()
 
-    ;(vectorMatches ?? []).forEach((match, index) => {
+    ;(vectorMatches ?? []).forEach((match: any, index: number) => {
       const boost = 1000 - index
       scoreMap.set(match.product_id, Math.max(scoreMap.get(match.product_id) ?? 0, boost))
     })

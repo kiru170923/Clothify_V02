@@ -10,7 +10,7 @@ const DRY_RUN = process.env.DRY_RUN === '1'
 const DATA_FILES = ['top.json', 'bottom.json']
 const EMBEDDING_DIM = 1536
 
-let cachedSupabase: Awaited<ReturnType<typeof import('../src/lib/supabaseAdmin')>>['supabaseAdmin'] | null = null
+let cachedSupabase: any = null
 const getSupabase = async () => {
   if (cachedSupabase) return cachedSupabase
   const mod = await import('../src/lib/supabaseAdmin')

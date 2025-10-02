@@ -7,12 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ingest:torano": "tsx scripts/ingest-torano.ts"
+    "ingest:torano": "tsx scripts/ingest-torano.ts",
+    "import:data": "ts-node scripts/import-local-data.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
     "@fortawesome/free-solid-svg-icons": "^7.0.1",
     "@fortawesome/react-fontawesome": "^3.0.2",
+    "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.8",
     "@heroicons/react": "^2.2.0",
     "@payos/node": "^2.0.3",
@@ -58,6 +60,7 @@
     "eslint": "^8",
     "eslint-config-next": "15.5.3",
     "postcss": "^8",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

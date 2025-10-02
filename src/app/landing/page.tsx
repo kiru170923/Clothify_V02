@@ -1,16 +1,64 @@
 'use client'
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Zap, Users, Star, MessageCircle, Palette, Camera, Wand2, ArrowRight, Play, CheckCircle, Crown, Shield, Bolt } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
+import { Sparkles, Zap, Users, Star, MessageCircle, Palette, Camera, Wand2, ArrowRight, Play, CheckCircle, Crown, Shield, Bolt, TrendingUp, Heart, Gift, ChevronDown, Quote, Award, Target, Clock, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ImageSkeleton } from '../../components/SkeletonLoader'
 import ShimmerButton from '../../components/ui/ShimmerButton'
 import GlowCard from '../../components/ui/GlowCard'
 
+// Floating particles component
+const FloatingParticles = () => {
+  const [particles, setParticles] = useState<Array<{id: number, x: number, y: number, size: number, delay: number}>>([])
+  
+  useEffect(() => {
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 4 + 2,
+      delay: Math.random() * 5
+    }))
+    setParticles(newParticles)
+  }, [])
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className="absolute rounded-full bg-gradient-to-r from-amber-300 to-yellow-300 opacity-20"
+          style={{
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: `${particle.size}px`,
+            height: `${particle.size}px`,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.2, 0.5, 0.2],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 4 + Math.random() * 2,
+            repeat: Infinity,
+            delay: particle.delay,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState('clothing-tryon')
+  const [activeFAQ, setActiveFAQ] = useState<number | null>(null)
+  const { scrollYProgress } = useScroll()
+  const headerY = useTransform(scrollYProgress, [0, 0.1], [0, -50])
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0])
 
   const features = [
     {
@@ -45,10 +93,109 @@ export default function LandingPage() {
     }
   ]
 
+  const testimonials = [
+    {
+      name: "Minh Anh",
+      role: "Fashion Blogger",
+      content: "Clothify đã thay đổi cách mình mua sắm! Virtual try-on quá xuất sắc, giúp mình tự tin hơn khi đặt hàng online.",
+      rating: 5,
+      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
+    },
+    {
+      name: "Phúc Thành",
+      role: "University Student", 
+      content: "AI stylist của Clothify đưa ra những gợi ý rất phù hợp với phong cách và ngân sách sinh viên của mình.",
+      rating: 5,
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+    },
+    {
+      name: "Thu Hà",
+      role: "Office Worker",
+      content: "Tính năng phối đồ cho công sở thật tiện lợi. Giờ mình không còn phải lo lắng về việc mix&match nữa!",
+      rating: 5,
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"
+    }
+  ]
+
+  const stats = [
+    { number: "50K+", label: "Happy Users", icon: Users },
+    { number: "500K+", label: "Try-On Sessions", icon: Camera },
+    { number: "98%", label: "Satisfaction Rate", icon: Heart },
+    { number: "24/7", label: "AI Support", icon: Clock }
+  ]
+
+  const faqData = [
+    {
+      question: "Clothify có miễn phí không?",
+      answer: "Có! Bạn có thể sử dụng các tính năng cơ bản miễn phí. Chúng tôi cũng có gói premium với nhiều tính năng nâng cao."
+    },
+    {
+      question: "Tính năng try-on có chính xác không?",
+      answer: "Clothify sử dụng AI tiên tiến để đảm bảo độ chính xác cao. Kết quả try-on phản ánh 90-95% hiện thực so với việc mặc thật."
+    },
+    {
+      question: "Tôi có thể sử dụng trên mobile không?",
+      answer: "Hiện tại Clothify hoạt động tốt trên web browser. Chúng tôi đang phát triển ứng dụng mobile sẽ ra mắt sớm."
+    },
+    {
+      question: "Clothify có hỗ trợ mua hàng không?",
+      answer: "Có! Chúng tôi tích hợp với các sàn thương mại điện tử lớn như Shopee, Tiki để bạn mua hàng trực tiếp."
+    }
+  ]
+
+  const pricingPlans = [
+    {
+      name: "Free",
+      price: "0₫",
+      period: "/tháng",
+      features: [
+        "5 lần try-on/ngày",
+        "Gợi ý phong cách cơ bản",
+        "Lưu 10 outfit",
+        "Hỗ trợ email"
+      ],
+      popular: false,
+      color: "from-gray-400 to-gray-600"
+    },
+    {
+      name: "Premium",
+      price: "199K",
+      period: "/tháng", 
+      features: [
+        "Unlimited try-on",
+        "AI stylist chuyên nghiệp",
+        "Lưu không giới hạn",
+        "Phân tích body shape",
+        "Hỗ trợ 24/7",
+        "Ưu tiên xử lý"
+      ],
+      popular: true,
+      color: "from-amber-400 to-yellow-400"
+    },
+    {
+      name: "Pro",
+      price: "399K", 
+      period: "/tháng",
+      features: [
+        "Tất cả tính năng Premium",
+        "Virtual wardrobe manager",
+        "Style consultation 1-1",
+        "Custom AI model",
+        "API access",
+        "White-label solution"
+      ],
+      popular: false,
+      color: "from-purple-400 to-pink-400"
+    }
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50 text-gray-900" style={{ backgroundColor: '#f6f1e9' }}>
       {/* Header */}
-      <header className="border-b border-amber-200 bg-white/80 backdrop-blur-sm">
+      <motion.header 
+        style={{ y: headerY }}
+        className="border-b border-amber-200 bg-white/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-50"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -81,10 +228,15 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+      <section className="relative overflow-hidden pt-24 pb-20">
+        <FloatingParticles />
+        <motion.div 
+          style={{ opacity: heroOpacity }}
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        >
         <div className="text-center overflow-x-auto">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -244,6 +396,256 @@ export default function LandingPage() {
             )}
           </AnimatePresence>
         </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-gradient-to-r from-amber-500 to-yellow-500 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="text-center"
+              >
+                <div className="flex justify-center mb-4">
+                  <stat.icon className="w-8 h-8" />
+                </div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  transition={{ duration: 0.8, delay: index * 0.1 + 0.2, type: "spring" }}
+                  className="text-3xl md:text-4xl font-bold mb-2"
+                >
+                  {stat.number}
+                </motion.div>
+                <div className="text-amber-100 font-medium">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+              Khách hàng nói gì về Clothify
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Hàng nghìn người dùng đã tin tưởng và yêu thích Clothify
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all"
+              >
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-amber-400 mb-4" />
+                <p className="text-gray-700 mb-6 leading-relaxed">{testimonial.content}</p>
+                <div className="flex items-center">
+                  <img 
+                    src={testimonial.avatar} 
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full mr-4 object-cover"
+                  />
+                  <div>
+                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                    <div className="text-amber-600 text-sm">{testimonial.role}</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-20 bg-gradient-to-br from-amber-50 to-yellow-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+              Chọn gói phù hợp với bạn
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Từ miễn phí đến chuyên nghiệp, chúng tôi có gói dịch vụ cho mọi nhu cầu
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {pricingPlans.map((plan, index) => (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -10, scale: 1.05 }}
+                className={`relative bg-white border-2 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all ${
+                  plan.popular ? 'border-amber-400 transform scale-105' : 'border-gray-200'
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-4 py-2 rounded-full text-sm font-bold">
+                      POPULAR
+                    </span>
+                  </div>
+                )}
+                
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                    <span className="text-gray-600 ml-1">{plan.period}</span>
+                  </div>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`w-full py-3 px-6 rounded-full font-semibold transition-all ${
+                    plan.popular 
+                      ? 'bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 hover:from-amber-500 hover:to-yellow-500' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {plan.name === 'Free' ? 'Bắt đầu miễn phí' : 'Chọn gói này'}
+                </motion.button>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+              Câu hỏi thường gặp
+            </h2>
+            <p className="text-gray-600 text-lg">
+              Những câu hỏi phổ biến từ người dùng Clothify
+            </p>
+          </motion.div>
+
+          <div className="space-y-4">
+            {faqData.map((faq, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="border border-amber-200 rounded-lg overflow-hidden"
+              >
+                <motion.button
+                  onClick={() => setActiveFAQ(activeFAQ === index ? null : index)}
+                  className="w-full text-left p-6 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 transition-all flex justify-between items-center"
+                  whileHover={{ backgroundColor: "#fef3c7" }}
+                >
+                  <span className="font-semibold text-gray-900">{faq.question}</span>
+                  <motion.div
+                    animate={{ rotate: activeFAQ === index ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown className="w-5 h-5 text-amber-600" />
+                  </motion.div>
+                </motion.button>
+                <AnimatePresence>
+                  {activeFAQ === index && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-white"
+                    >
+                      <p className="p-6 text-gray-700 leading-relaxed">{faq.answer}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-amber-500 to-yellow-500 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-6xl font-bold mb-6"
+          >
+            Sẵn sàng khám phá tương lai thời trang?
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-xl mb-8 text-amber-100"
+          >
+            Tham gia cùng hàng nghìn người dùng đã tin tưởng Clothify
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Link href="/try-on">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-white text-amber-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all shadow-lg inline-flex items-center gap-2"
+              >
+                Bắt đầu ngay - Miễn phí
+                <ArrowRight className="w-5 h-5" />
+              </motion.button>
+            </Link>
+          </motion.div>
+        </div>
       </section>
 
       {/* Agencies Section */}

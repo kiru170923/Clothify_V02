@@ -276,10 +276,10 @@ export async function POST(request: NextRequest) {
     })
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-4o-mini",
       messages: messages as any,
       max_tokens: 220,
-      temperature: 0.6
+      temperature: 0.8
     })
 
     return NextResponse.json({
@@ -317,7 +317,7 @@ async function generateProductRecommendations(userMessage: string) {
         }
       ],
       max_tokens: 200,
-      temperature: 0.3
+      temperature: 0.6
     })
 
     const aiResult = JSON.parse(aiResponse.choices[0].message.content || '{"keywords": ["áo phông"]}')
@@ -531,35 +531,35 @@ async function analyzeImageWithGPT4Vision(imageFile: File, userMessage: string) 
     console.log('🔍 MIME type:', mimeType)
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Bạn là chuyên gia thời trang AI. Hãy phân tích trang phục trong ảnh và đưa ra lời khuyên chi tiết.
+              text: `Bạn là chuyên gia thời trang AI. Hãy phân tích trang phục của bạn trong ảnh và đưa ra lời khuyên chi tiết.
 
 YÊU CẦU: ${userMessage || 'Phân tích trang phục và gợi ý cải thiện'}
 
 NHIỆM VỤ: 
-- Phân tích trang phục, phụ kiện, màu sắc, chất liệu
+- Phân tích trang phục, phụ kiện, màu sắc, chất liệu của bạn
 - Đánh giá phong cách và phù hợp với hoàn cảnh
-- Đưa ra gợi ý cải thiện cụ thể
-- KHÔNG nhận diện người, chỉ tập trung vào thời trang
+- Đưa ra gợi ý cải thiện cụ thể cho bạn
+- Tập trung vào thời trang, không nhận diện người
 
 FORMAT TRẢ LỜI:
-**👗 TRANG PHỤC**: [Mô tả chi tiết màu sắc, kiểu dáng, chất liệu]
+**👗 TRANG PHỤC**: [Mô tả chi tiết màu sắc, kiểu dáng, chất liệu của bạn]
 **🎯 PHONG CÁCH**: [Casual/Formal/Sporty/Street + hoàn cảnh phù hợp]
-**✨ ĐIỂM TÍCH CỰC**: [2-3 điểm mạnh của outfit]
-**🔧 CẦN CẢI THIỆN**: [1-2 điểm cụ thể cần thay đổi]
+**✨ ĐIỂM TÍCH CỰC**: [2-3 điểm mạnh của outfit bạn]
+**🔧 CẦN CẢI THIỆN**: [1-2 điểm cụ thể bạn nên thay đổi]
 
 **💡 GỢI Ý STYLING**:
-• [Phụ kiện phù hợp + màu sắc]
-• [Item thay thế tốt hơn]
-• [Tip styling chuyên nghiệp]
+• [Phụ kiện phù hợp + màu sắc cho bạn]
+• [Item thay thế tốt hơn cho bạn]
+• [Tip styling chuyên nghiệp cho bạn]
 
-**🛍️ SẢN PHẨM GỢI Ý**: [2-3 sản phẩm cụ thể với tên, màu, lý do phù hợp]
+**🛍️ SẢN PHẨM GỢI Ý**: [2-3 sản phẩm cụ thể với tên, màu, lý do phù hợp với bạn]
 
 Trả lời chi tiết, chuyên nghiệp và hữu ích. Kết thúc bằng câu hỏi để tương tác.`
             },
@@ -573,7 +573,7 @@ Trả lời chi tiết, chuyên nghiệp và hữu ích. Kết thúc bằng câu
         }
       ],
       max_tokens: 2000,
-      temperature: 0.7
+      temperature: 0.8
     })
 
     const analysis = response.choices[0].message.content
@@ -616,7 +616,7 @@ Bạn có thể mô tả trang phục trong ảnh không?`
       }
     }
     
-    return "Xin lỗi, tôi không thể phân tích ảnh này. Vui lòng thử lại với ảnh khác hoặc gửi link sản phẩm Shopee để tôi có thể tư vấn cho bạn nhé! 😊"
+    return "Xin lỗi, tôi không thể phân tích ảnh này. Vui lòng thử lại với ảnh khác😊"
   }
 }
 

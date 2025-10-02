@@ -10,12 +10,12 @@ interface StickyLogoProps {
 export default function StickyLogo({ onClick }: StickyLogoProps) {
   return (
     <motion.button
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      whileHover={{ scale: 1.1, rotate: 5 }}
+      initial={{ scale: 0, x: -100 }}
+      animate={{ scale: 1, x: 0 }}
+      whileHover={{ scale: 1.05, x: 5 }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-40 w-16 h-16 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-full shadow-[0_10px_30px_rgba(245,158,11,0.35)] flex items-center justify-center cursor-pointer group"
+      className="fixed bottom-6 left-6 z-40 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl shadow-[0_10px_30px_rgba(245,158,11,0.35)] flex items-center gap-3 px-4 py-3 cursor-pointer group hover:shadow-[0_15px_40px_rgba(245,158,11,0.5)] transition-all duration-300"
       title="AI Fashion Advisor - Nhấn để chat"
     >
       {/* Logo chính */}
@@ -23,7 +23,7 @@ export default function StickyLogo({ onClick }: StickyLogoProps) {
         <img 
           src="./favicon.ico.png" 
           alt="Clothify AI" 
-          className="w-10 h-10 rounded-full object-cover"
+          className="w-8 h-8 rounded-full object-cover"
         />
         
         {/* Chat icon overlay */}
@@ -37,27 +37,36 @@ export default function StickyLogo({ onClick }: StickyLogoProps) {
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg"
+          className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg"
         >
-          <MessageCircle className="w-3 h-3 text-white" />
+          <MessageCircle className="w-2.5 h-2.5 text-white" />
         </motion.div>
+      </div>
+
+      {/* Text content */}
+      <div className="text-white">
+        <div className="flex items-center gap-1">
+          <Sparkles className="w-4 h-4 text-yellow-300" />
+          <span className="font-semibold text-sm">AI Stylist</span>
+        </div>
+        <div className="text-xs opacity-80">Hỏi tư vấn thời trang</div>
       </div>
 
       {/* Tooltip */}
       <motion.div
-        initial={{ opacity: 0, x: 20 }}
+        initial={{ opacity: 0, x: -20 }}
         whileHover={{ opacity: 1, x: 0 }}
-        className="absolute right-full mr-4 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none"
+        className="absolute left-full ml-4 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap pointer-events-none"
       >
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-400" />
           AI Fashion Advisor
         </div>
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
       </motion.div>
 
       {/* Pulse effect */}
-      <div className="absolute inset-0 rounded-full bg-amber-400/30 blur-xl opacity-70" />
+      <div className="absolute inset-0 rounded-2xl bg-amber-400/20 blur-xl opacity-70" />
     </motion.button>
   )
 }

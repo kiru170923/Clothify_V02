@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from './SupabaseProvider'
+import { supabase } from '../lib/supabase'
 
 // Generate unique message ID
 let messageIdCounter = 0
@@ -30,6 +31,7 @@ import { semanticSearchEngine, createSearchFilters } from '../lib/semanticSearch
 import { personalizationEngine } from '../lib/personalizationEngine'
 // Removed emotional intelligence for core functionality focus
 import { advancedFilteringEngine, createAdvancedFilters } from '../lib/advancedFiltering'
+import { ProductCard } from './ProductCard'
 
 type ChatActionKind = 'quick-text' | 'service' | 'link'
 
@@ -193,27 +195,10 @@ export default function FashionChatbot() {
     ]),
   })
 
-  // Load messages from localStorage on component mount
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedMessages = localStorage.getItem('fashion-chatbot-messages')
-      if (savedMessages) {
-        try {
-          const parsed = JSON.parse(savedMessages)
-          // Convert timestamp strings back to Date objects (fallback safe)
-          return parsed.map((msg: any) => ({
-            ...msg,
-            timestamp: msg?.timestamp ? new Date(msg.timestamp) : new Date(),
-          }))
-        } catch (error) {
-          console.error('Error parsing saved messages:', error)
-        }
-      }
-    }
-    return [buildWelcomeMessage()]
-  })
+  // Load messages from memory only (no localStorage for speed)
+  const [messages, setMessages] = useState<Message[]>([buildWelcomeMessage()])
 
-  // Initialize conversation memory on mount
+  // No localStorage needed - everything in memory for speed
   useEffect(() => {
     loadContext()
   }, [loadContext])
@@ -226,6 +211,12 @@ export default function FashionChatbot() {
   >(null)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [tryOnLoading, setTryOnLoading] = useState<string | null>(null)
+  const [tryOnResults, setTryOnResults] = useState<Map<string, string>>(new Map())
+  const [showImageModal, setShowImageModal] = useState<{ url: string; alt: string } | null>(null)
+  const [wardrobeAnalysisLoading, setWardrobeAnalysisLoading] = useState(false)
+  const [userModelImage, setUserModelImage] = useState<string | null>(null)
+  const [profileLoaded, setProfileLoaded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -263,7 +254,7 @@ export default function FashionChatbot() {
     let safeContent = content ?? ''
     if (typeof safeContent !== 'string') safeContent = String(safeContent ?? '')
     if (safeContent.trim().length === 0) {
-      safeContent = 'Mình đang kiểm tra thông tin cho bạn nhé!'
+      safeContent = ''
     }
     
     // Apply personalization only (emotional layer removed)
@@ -348,18 +339,179 @@ export default function FashionChatbot() {
     }
   }
 
+  // Load user profile and model image on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (profileLoaded) return
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) return
+        
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.profile?.try_on_photo_url) {
+            setUserModelImage(data.profile.try_on_photo_url)
+            console.log('📸 Loaded user model image from profile:', data.profile.try_on_photo_url)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error)
+      } finally {
+        setProfileLoaded(true)
+      }
+    }
+    
+    loadUserProfile()
+  }, [profileLoaded])
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }) // Changed to auto for speed
   }
 
-  const handleTryOn = (imageUrl: string) => {
-    if (!imageUrl) {
+  const handleWardrobeAnalysis = async (imageUrl: string, userDescription?: string) => {
+    if (!session?.user) {
+      toast.error('Vui lòng đăng nhập để thêm vào tủ đồ')
+      return
+    }
+
+    try {
+      setWardrobeAnalysisLoading(true)
+      
+      const response = await fetch('/api/wardrobe/analyze-and-save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          imageUrl,
+          userDescription,
+          userId: session?.user?.id || ''
+        })
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Wardrobe analysis failed')
+      }
+
+      if (data.success && data.item) {
+        pushBotMessage(`✅ **Đã thêm vào tủ đồ thành công!**\n\n**${data.item.title}**\n- Loại: ${data.item.category}\n- Màu: ${data.item.color}\n- Phong cách: ${data.item.style_tags?.join(', ') || 'Chưa xác định'}\n- Dịp sử dụng: ${data.item.occasion_tags?.join(', ') || 'Chưa xác định'}\n\n*Tôi sẽ sử dụng thông tin này để tư vấn phù hợp hơn cho bạn!*`)
+        toast.success('Đã thêm vào tủ đồ thành công!')
+      } else {
+        throw new Error('No item data returned')
+      }
+      
+    } catch (error) {
+      console.error('Wardrobe analysis error:', error)
+      pushBotMessage('Xin lỗi, có lỗi xảy ra khi thêm vào tủ đồ. Bạn thử lại sau nhé!')
+      toast.error('Có lỗi xảy ra khi thêm vào tủ đồ')
+    } finally {
+      setWardrobeAnalysisLoading(false)
+    }
+  }
+
+  const handleTryOnApi = async (productImageUrl: string) => {
+    try {
+      if (!productImageUrl) {
       toast.error('Không có ảnh sản phẩm để thử đồ')
       return
     }
-    const encodedImageUrl = encodeURIComponent(imageUrl)
-    router.push(`/try-on?clothing=${encodedImageUrl}`)
-    toast.success('Đang chuyển tới trang thử đồ ảo...')
+      
+      if (!userModelImage) {
+        pushBotMessage('Bạn cần tải ảnh người mẫu của bạn trước (full/half body). Hãy gửi ảnh tại đây hoặc vào mục Tủ đồ để lưu ảnh mẫu nhé!')
+        return
+      }
+
+      // Set loading state immediately
+      setTryOnLoading(productImageUrl)
+      
+      // Get session token once
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Chưa đăng nhập')
+      }
+      
+      // Use existing try-on API with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+      
+      const res = await fetch('/api/clothify/try-on', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          personImage: userModelImage,
+          clothingImage: productImageUrl,
+          clothingImageUrls: [productImageUrl],
+          selectedGarmentType: 'auto',
+          fastMode: true
+        }),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId))
+      
+      const data = await res.json()
+      if (!res.ok || !data?.success || !data?.resultImageUrl) {
+        throw new Error(data?.error || 'Try-on thất bại')
+      }
+      
+      // Store the result
+      setTryOnResults(prev => new Map(prev).set(productImageUrl, data.resultImageUrl))
+      
+      pushBotMessage('Ảnh thử đồ đã sẵn sàng:')
+      pushBotMessage('', { 
+        image: data.resultImageUrl,
+        onClick: () => setShowImageModal({ url: data.resultImageUrl, alt: 'Ảnh thử đồ' })
+      } as any)
+      
+    } catch (e: any) {
+      console.error('tryon error', e)
+      if (e.name === 'AbortError') {
+        pushBotMessage('Thử đồ mất quá nhiều thời gian. Vui lòng thử lại sau.')
+      } else {
+        pushBotMessage('Xin lỗi, hiện chưa thử đồ được. Bạn thử lại sau nhé!')
+      }
+    } finally {
+      setTryOnLoading(null)
+    }
+  }
+
+  // Global functions for HTML onclick handlers
+  const handleTryOnClick = (button: HTMLElement) => {
+    const card = button.closest('.border')
+    if (card) {
+      const productName = card.querySelector('strong')?.textContent || ''
+      const productLink = card.querySelector('a')?.href || ''
+      
+      // Extract product ID from URL for image
+      const urlMatch = productLink.match(/products\/([^\/\?]+)/)
+      const productId = urlMatch ? urlMatch[1] : ''
+      
+      // For now, use a placeholder image URL - you can enhance this later
+      const productImageUrl = `https://torano.vn/products/${productId}`
+      
+      handleTryOnApi(productImageUrl)
+    }
+  }
+
+  const handleBuyClick = (button: HTMLElement) => {
+    const card = button.closest('.border')
+    if (card) {
+      const productLink = card.querySelector('a')?.href || ''
+      if (productLink) {
+        window.open(productLink, '_blank')
+      }
+    }
   }
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -397,14 +549,9 @@ export default function FashionChatbot() {
     }
   }
 
-  // Save messages to localStorage whenever messages change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('fashion-chatbot-messages', JSON.stringify(messages))
-    }
-  }, [messages])
+  // No localStorage saving - messages stay in memory for speed
 
-  // Update conversation context when messages change
+  // Update conversation context when messages change (optimized)
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1]
@@ -413,13 +560,13 @@ export default function FashionChatbot() {
         saveContext()
       }
     }
+    // Scroll to bottom only for new messages
+    if (messages.length > 0) {
+      setTimeout(() => scrollToBottom(), 100)
+    }
   }, [messages, updateContext, saveContext, conversationContext])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Persist conversation to server (debounced)
+  // Persist conversation to server (debounced) - OPTIMIZED
   useEffect(() => {
     const save = async () => {
       if (!session?.access_token) return
@@ -436,7 +583,7 @@ export default function FashionChatbot() {
         console.error('Lưu hội thoại thất bại:', e)
       }
     }
-    const deb = debounce(save, 2000)
+    const deb = debounce(save, 2000) // Increased to 2s to reduce API calls
     deb()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, session?.access_token])
@@ -446,16 +593,27 @@ export default function FashionChatbot() {
     inputRef.current?.focus()
   }, [])
 
+  // Register global functions for HTML onclick handlers
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).handleTryOnClick = handleTryOnClick
+      ;(window as any).handleBuyClick = handleBuyClick
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).handleTryOnClick
+        delete (window as any).handleBuyClick
+      }
+    }
+  }, [])
+
   // Load server-side conversation if logged in (fallback over localStorage)
   useEffect(() => {
     const load = async () => {
       try {
         if (!session?.access_token) return
         // Prefetch profile once per session and cache locally
-        if (typeof window !== 'undefined' && !localStorage.getItem('cached-profile')) {
-          const pr = await fetch('/api/profile', { headers: { Authorization: `Bearer ${session.access_token}` } }).then(r=>r.json()).catch(()=>null)
-          if (pr && pr.profile) localStorage.setItem('cached-profile', JSON.stringify(pr.profile))
-        }
+        // No localStorage caching for speed
       } catch (e) {
         console.error('Load conversation failed:', e)
       }
@@ -490,13 +648,13 @@ export default function FashionChatbot() {
           .map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: String(m.content || '') }))
         const convSummary = (() => {
           try {
-            const cached = typeof window !== 'undefined' ? localStorage.getItem('cached-profile') : null
+            const cached = null // No localStorage for speed
             if (cached) return `PROFILE: ${cached}`
           } catch {}
           return conversationContext ? getContextForAI() : ''
         })()
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 45000)
+        const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased to 60s for stability
         const resp = await fetch('/api/stylist/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -510,12 +668,6 @@ export default function FashionChatbot() {
         if (data.answer) {
           const actions = buildQuickActionsFromAnswer(String(data.answer))
           pushBotMessage(String(data.answer), actions ? { actions } : undefined)
-        }
-        if (Array.isArray(data.products) && data.products.length) {
-          const mapped: ProductData[] = data.products.map((p: any) => mapProductToCard(p))
-          const first = mapped[0]
-          if (first) pushBotMessage('', { product: first })
-          for (const item of mapped.slice(1)) pushBotMessage('', { product: item })
         }
       } catch (e: any) {
         console.error('Simple recommend error:', e)
@@ -539,7 +691,7 @@ export default function FashionChatbot() {
 
       // Get products from API
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000)
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // Increase to 60 seconds
 
       const res = await fetch('/api/recommend', {
         method: 'POST',
@@ -571,14 +723,7 @@ export default function FashionChatbot() {
       if (recommendedProducts.length > 0) {
         pushBotMessage('Mình đã chọn lọc những sản phẩm phù hợp nhất với sở thích và phong cách của bạn:')
 
-        // Show first 3 products in a grid
-        const prodList = recommendedProducts.slice(0, 3)
-        pushBotMessage('', { productList: prodList })
-
-        // Show remaining products individually
-        for (const product of recommendedProducts.slice(3)) {
-          pushBotMessage('', { product })
-        }
+        // Products will be shown in text format by AI
 
         pushBotMessage('Bạn có muốn mình hỗ trợ thêm gì nữa không?', {
           actions: [
@@ -644,12 +789,12 @@ export default function FashionChatbot() {
           .slice(-6)
           .map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: String(m.content || '') }))
         const convSummary = (() => {
-          try { const c = typeof window !== 'undefined' ? localStorage.getItem('cached-profile') : null; if (c) return `PROFILE: ${c}` } catch {}
+          try { const c = null; if (c) return `PROFILE: ${c}` } catch {} // No localStorage for speed
           return conversationContext ? getContextForAI() : ''
         })()
 
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 45000)
+        const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased to 60s for stability
         const resp = await fetch('/api/stylist/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -663,13 +808,14 @@ export default function FashionChatbot() {
         if (data.answer) {
           const actions = buildQuickActionsFromAnswer(String(data.answer))
           pushBotMessage(String(data.answer), actions ? { actions } : undefined)
-        }
-
-        if (Array.isArray(data.products) && data.products.length) {
-          const mapped: ProductData[] = data.products.map((p: any) => mapProductToCard(p))
-          const grid = mapped.slice(0, 3)
-          if (grid.length) pushBotMessage('', { productList: grid })
-          for (const item of mapped.slice(3)) pushBotMessage('', { product: item })
+          
+          // Display products if available
+          if (data.products && Array.isArray(data.products)) {
+            data.products.forEach((item: any) => {
+              const product = mapProductToCard(item)
+              pushBotMessage('', { product })
+            })
+          }
         }
       } catch (err: any) {
         console.error('Simple search error:', err)
@@ -724,7 +870,7 @@ export default function FashionChatbot() {
 
         // Get products from API with smart query enhancement
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 15000)
+        const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased to 60s for stability
 
         // Enhance query for better results
         let enhancedQuery = trimmedQuery || messageText
@@ -862,7 +1008,7 @@ export default function FashionChatbot() {
           const first = finalProducts[0]
           if (first) pushBotMessage('', { product: first })
           for (const product of finalProducts.slice(1)) {
-            pushBotMessage('', { product })
+              pushBotMessage('', { product })
           }
         }
 
@@ -880,11 +1026,14 @@ export default function FashionChatbot() {
     searchTimeout = window.setTimeout(executeSearch, 300)
   }
 
+  const CLARIFY_ENABLED = false
+
   const promptClarify = (
     type: 'price' | 'color' | 'size' | 'occasion' | 'season' | 'material',
     originalQuery?: string,
     entities?: any
   ) => {
+    if (!CLARIFY_ENABLED) return
     setPendingClarify({ type, originalQuery, entities })
     const content =
       type === 'price'
@@ -909,6 +1058,7 @@ export default function FashionChatbot() {
   }
 
   const handleClarifyResponse = (value: string) => {
+    if (!CLARIFY_ENABLED) return
     if (!pendingClarify) return
     
     // Handle cancel/skip actions
@@ -1032,12 +1182,62 @@ export default function FashionChatbot() {
 
       // Prioritize uploaded image analysis
       if (selectedImage) {
+        // Upload to Supabase storage first
+        const fileExt = selectedImage.name.split('.').pop()
+        const fileName = `${session?.user?.id}-${Date.now()}.${fileExt}`
+        const filePath = `uploads/${fileName}`
+
+        // Try multiple buckets for upload
+        const bucketNames = ['user-uploads', 'uploads', 'images', 'wardrobe']
+        let uploadResponse = null
+        let bucketName = 'user-uploads'
+        
+        for (const bucket of bucketNames) {
+          try {
+            uploadResponse = await supabase.storage
+              .from(bucket)
+              .upload(filePath, selectedImage)
+            
+            if (!uploadResponse.error) {
+              bucketName = bucket
+              break
+            }
+          } catch (e) {
+            console.log(`Failed to upload to ${bucket}:`, e)
+            continue
+          }
+        }
+
+        if (!uploadResponse || uploadResponse.error) {
+          throw new Error(`Upload failed: ${uploadResponse?.error?.message || 'No bucket available'}`)
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(filePath)
+
+        // Add user message with image
+        pushBotMessage('', { image: publicUrl })
+        
+        // Check if user wants wardrobe analysis or general analysis
+        const message = inputValue || ''
+        const wantsWardrobe = /(tủ đồ|wardrobe|thêm vào|lưu vào|save|add)/i.test(message)
+        
+        // Always cache the image as user model for try-on
+        setUserModelImage(publicUrl)
+        console.log('📸 Cached user model image for try-on:', publicUrl)
+        
+        if (wantsWardrobe) {
+          // Add to wardrobe
+          await handleWardrobeAnalysis(publicUrl, message)
+        } else {
+          // General analysis
         const formData = new FormData()
         formData.append('image', selectedImage)
-        formData.append('message', inputValue || 'Phân tích trang phục và đưa ra gợi ý')
+          formData.append('message', message || 'Phân tích trang phục và đưa ra gợi ý')
 
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 120000) // 120s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000) // Increased to 45s for image analysis
 
         const response = await fetch('/api/chat', {
           method: 'POST',
@@ -1064,8 +1264,17 @@ export default function FashionChatbot() {
           throw new Error(data.error || 'Không thể phân tích ảnh')
         }
 
-        pushBotMessage(data.answer || 'Minh se kiem tra them thong tin cho ban nhe!')
+          pushBotMessage(data.response || data.answer || '')
         toast.success('Phân tích ảnh thành công!')
+
+          // Cache current image as user model image for try-on convenience
+          try {
+            if (publicUrl) {
+              setUserModelImage(publicUrl)
+              console.log('📸 Cached user model image:', publicUrl)
+            }
+          } catch {}
+        }
 
         // Clear image after sending
         removeImage()
@@ -1077,19 +1286,22 @@ export default function FashionChatbot() {
       // SIMPLE MODE: Direct stylist/chat call for text messages
       if (SIMPLE_MODE) {
         try {
+          // OPTIMIZED: Reduce context processing for speed
           const recentContext = messages
-            .slice(-6)
+            .slice(-3) // Reduced from 6 to 3 messages for speed
             .map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: String(m.content || '') }))
           const convSummary = (() => {
-            try { const c = typeof window !== 'undefined' ? localStorage.getItem('cached-profile') : null; if (c) return `PROFILE: ${c}` } catch {}
-            return conversationContext ? getContextForAI() : ''
+            try { 
+              const c = null // No localStorage for speed
+              return c ? `PROFILE: ${c}` : ''
+            } catch { return '' }
           })()
 
           const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 45000)
+          const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased to 60s for stability
           const resp = await fetch('/api/stylist/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-stream': '1' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMessage.content, context: recentContext, summary: convSummary }),
             signal: controller.signal,
           }).finally(() => clearTimeout(timeoutId))
@@ -1100,30 +1312,65 @@ export default function FashionChatbot() {
             const reader = resp.body?.getReader()
             let acc = ''
             if (reader) {
-              pushBotMessage('')
-              const idx = messages.length + 1
               while (true) {
                 const { value, done } = await reader.read()
                 if (done) break
                 acc += new TextDecoder().decode(value)
               }
-              // Replace last bot message with full text
+              // Only push message if we have content
               if (acc.trim()) pushBotMessage(acc)
             }
           } else {
             const data = await parseResponseJson(resp)
             if (!resp.ok) throw new Error(data.error || 'Chat failed')
             if (data.answer) pushBotMessage(String(data.answer))
-            if (Array.isArray(data.products) && data.products.length) {
-              const mapped: ProductData[] = data.products.map((p: any) => mapProductToCard(p))
-              const first = mapped[0]
-              if (first) pushBotMessage('', { product: first })
-              for (const item of mapped.slice(1)) pushBotMessage('', { product: item })
+            
+            // Display products if available (only if AI didn't already describe them)
+            console.log('🔍 Frontend received products:', data.products?.length || 0, 'for message:', inputValue)
+            if (data.products && Array.isArray(data.products) && data.products.length > 0) {
+              // Check if AI response already contains detailed product descriptions
+              const hasProductDescriptions = data.answer && (
+                data.answer.includes('Giá:') || 
+                data.answer.includes('Link:') || 
+                data.answer.includes('Mô tả:') ||
+                data.answer.includes('### 1.') ||
+                data.answer.includes('### 2.') ||
+                data.answer.includes('### 3.') ||
+                data.answer.includes('### 4.') ||
+                data.answer.includes('VNĐ') ||
+                data.answer.includes('VND') ||
+                data.answer.includes('Xem chi tiết') ||
+                data.answer.includes('Xem tại đây') ||
+                data.answer.includes('Phong cách:') ||
+                data.answer.includes('Gợi ý phối đồ:') ||
+                data.answer.includes('Lời khuyên phối đồ:') ||
+                data.answer.includes('Màu sắc:') ||
+                data.answer.includes('Tổng chi phí:') ||
+                data.answer.includes('Link sản phẩm:') ||
+                (data.answer.includes('Áo') && data.answer.includes('Giá')) ||
+                (data.answer.includes('Quần') && data.answer.includes('Giá')) ||
+                data.answer.split('---').length > 1 || // Check for separator lines
+                data.answer.includes('1.') && data.answer.includes('2.') // Check for numbered lists
+              )
+              
+              // Always show ProductCards when products are available
+              // Limit to 2 products
+              const limitedProducts = data.products.slice(0, 2)
+              limitedProducts.forEach((item: any) => {
+                const product = mapProductToCard(item)
+                pushBotMessage('', { product })
+              })
             }
           }
         } catch (err: any) {
           console.error('Simple chat error:', err)
-          pushBotMessage('Xin lỗi, hiện mình chưa trả lời được. Bạn thử lại nhé!')
+          if (err.name === 'AbortError') {
+            pushBotMessage('Xin lỗi, yêu cầu của bạn mất quá nhiều thời gian để xử lý. Vui lòng thử lại với câu hỏi ngắn gọn hơn.')
+          } else if (err.message?.includes('Cannot process request')) {
+            pushBotMessage('Xin lỗi, hệ thống đang quá tải. Vui lòng thử lại sau ít phút nhé!')
+          } else {
+            pushBotMessage('Xin lỗi, hiện mình chưa trả lời được. Bạn thử lại nhé!')
+          }
         }
         setIsLoading(false)
         isSubmittingRef.current = false
@@ -1226,7 +1473,7 @@ export default function FashionChatbot() {
       // Handle any other intents with a helpful response
       const contextForAI2 = conversationContext ? getContextForAI() : ''
       const controller2 = new AbortController()
-      const timeoutId2 = setTimeout(() => controller2.abort(), 60000)
+      const timeoutId2 = setTimeout(() => controller2.abort(), 15000) // Reduced to 15s for speed
 
       const response2 = await fetch('/api/stylist/chat', {
         method: 'POST',
@@ -1264,7 +1511,11 @@ export default function FashionChatbot() {
       console.error('Error in handleSubmit:', error)
       setIsLoading(false)
       isSubmittingRef.current = false
+      if (error.message?.includes('Cannot process request')) {
+        pushBotMessage('Xin lỗi, hệ thống đang quá tải. Vui lòng thử lại sau ít phút nhé!')
+      } else {
       toast.error('Đã xảy ra lỗi không mong muốn')
+      }
     }
   }
 
@@ -1283,8 +1534,8 @@ export default function FashionChatbot() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-yellow-50">
-      <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white/70 backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+      <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white/80 backdrop-blur-sm">
       {/* Sticky Clear Conversation Button */}
       {messages.length > 1 && (
         <motion.button
@@ -1304,49 +1555,56 @@ export default function FashionChatbot() {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-40 flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-50 to-yellow-50 shadow-sm">
+      <div className="sticky top-0 z-40 flex items-center justify-between p-4 border-b border-amber-200 bg-white/90 backdrop-blur-sm shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full flex items-center justify-center shadow-md">
             <SparklesIcon className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Cố vấn thời trang nam AI</h2>
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Cố vấn thời trang nam AI</h2>
             <p className="text-sm text-gray-600">Trợ lý thời trang nam thông minh</p>
           </div>
         </div>
         <div className="ml-4">
-          <button onClick={requestRecommendations} className="px-3 py-1 bg-amber-50 rounded text-amber-700 text-sm">
+          <button onClick={requestRecommendations} className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 rounded-full text-sm font-semibold hover:from-amber-500 hover:to-yellow-500 transition-all shadow-md">
             Gợi ý cho tôi
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white/80 backdrop-blur-sm">
-        {/* Debug: Show messages count */}
-        <div className="text-xs text-gray-400 mb-2">Debug: {messages.length} messages</div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Debug: Show messages count - removed for performance */}
         <AnimatePresence>
-          {messages.map((message) => (
+          {messages.map((message, index) => (
             <motion.div
               key={message.id}
-              initial={{ opacity: 0, y: 8 }}
+              initial={index >= messages.length - 3 ? { opacity: 0, y: 8 } : false}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               className={`flex items-end gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {/* Avatar */}
               {message.type !== 'user' && (
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-xs shadow">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-xs shadow-md">
                   <SparklesIcon className="w-4 h-4" />
                 </div>
               )}
               <div className={`max-w-[70%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
                 <div
-                  className={`rounded-2xl px-4 py-3 shadow ${
-                    message.type === 'user' ? 'bg-gray-900 text-white rounded-tr-md' : 'bg-white text-gray-900 border border-amber-100 rounded-tl-md'
+                  className={`rounded-2xl px-4 py-3 shadow-md ${
+                    message.type === 'user' ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white rounded-tr-md' : 'bg-white text-gray-900 border border-amber-200 rounded-tl-md'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <div className="text-sm whitespace-pre-wrap break-words">
+                    {message.content
+                      .replace(/┌([^┐]*)┐/g, '')
+                      .replace(/└([^┘]*)┘/g, '')
+                      .replace(/🖼️\s*\[([^\]]+)\]/g, '')
+                      .replace(/\[Thử ngay\]/g, '')
+                      .replace(/\[Mua ngay\]/g, '')
+                    }
+                  </div>
 
                   {message.actions && message.actions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -1354,7 +1612,7 @@ export default function FashionChatbot() {
                         <button
                           key={action.id}
                           onClick={() => handleActionClick(action)}
-                          className="text-xs px-3 py-1 rounded-full border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors"
+                          className="text-xs px-3 py-1 rounded-full border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors"
                         >
                           {action.label}
                         </button>
@@ -1368,8 +1626,9 @@ export default function FashionChatbot() {
                       <img
                         src={message.image}
                         alt="Uploaded"
-                        className="max-w-full h-auto rounded-lg border border-white/20"
+                        className="max-w-full h-auto rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity"
                         style={{ maxHeight: '200px', objectFit: 'cover' }}
+                        onClick={() => setShowImageModal({ url: message.image!, alt: 'Ảnh đã tải lên' })}
                       />
                     </div>
                   )}
@@ -1382,86 +1641,47 @@ export default function FashionChatbot() {
                   </p>
                 </div>
 
-                {/* Product Card */}
+                {/* Product Card using new component */}
                 {message.product && (
-                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-3 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    {message.product.images && message.product.images.length > 0 && (
-                      <div className="relative">
-                        <div className="flex overflow-x-auto gap-2 p-3">
-                          {message.product.images.slice(0, 4).map((image, index) => (
-                            <img key={index} src={image} alt={`Ảnh sản phẩm ${index + 1}`} className="w-24 h-24 object-cover rounded-lg flex-shrink-0" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold text-gray-900 text-sm leading-snug">{message.product.name}</h3>
-                          <p className="text-sm font-semibold text-red-600">{formatPrice(message.product.price)}</p>
-                        </div>
-                        {message.product?.productUrl && (
-                          <button onClick={() => window.open(message.product?.productUrl!, '_blank')} className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
-                            Mở sản phẩm
+                  <div className="mt-4 space-y-2">
+                    <ProductCard 
+                      product={{
+                        name: message.product.name,
+                        price: message.product.price,
+                        description: message.product.whyRecommend,
+                        image: message.product.images?.[0],
+                        productUrl: message.product.productUrl
+                      }}
+                      onTryOn={handleTryOnApi}
+                      tryOnLoading={tryOnLoading}
+                      tryOnResults={tryOnResults}
+                      onImageClick={(url, alt) => setShowImageModal({ url, alt })}
+                      onBuy={(url) => window.open(url, '_blank')}
+                    />
+                    {/* AI Try-on button */}
+                    {message.product?.images?.[0] && (
+                      <button
+                        onClick={() => handleTryOnApi(message.product?.images?.[0] || '')}
+                        disabled={tryOnLoading === message.product?.images?.[0]}
+                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 disabled:from-gray-400 disabled:to-gray-500 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2"
+                      >
+                        {tryOnLoading === message.product?.images?.[0] ? (
+                          <>
+                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                            Đang xử lý...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Thử sản phẩm này bằng AI
+                          </>
+                        )}
                           </button>
                         )}
                       </div>
-
-                      {message.product.whyRecommend && <p className="text-sm text-gray-700 leading-relaxed">{message.product.whyRecommend}</p>}
-
-                      {(message.product.style?.length || message.product.occasion?.length) && (
-                        <div className="flex flex-wrap gap-2">
-                          {message.product.style?.map((item) => (
-                            <span key={`style-${item}`} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-                              {item}
-                            </span>
-                          ))}
-                          {message.product.occasion?.map((item) => (
-                            <span key={`occasion-${item}`} className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {message.product.matchWith && message.product.matchWith.length > 0 && (
-                        <div className="text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3">
-                          <p className="font-medium text-gray-700 mb-1">Gợi ý phối:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            {message.product.matchWith.map((item, idx) => (
-                              <li key={idx}>{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {message.product.variants && message.product.variants.length > 0 && (
-                        <div className="text-xs text-gray-600 space-y-1">
-                          {(() => {
-                            const sizes = Array.from(new Set((message.product!.variants || []).map((v) => v.size).filter(Boolean))) as string[]
-                            const colors = Array.from(new Set((message.product!.variants || []).map((v) => v.color).filter(Boolean))) as string[]
-                            return (
-                              <>
-                                {sizes.length > 0 && <p>Size: {sizes.join(', ')}</p>}
-                                {colors.length > 0 && <p>Màu: {colors.join(', ')}</p>}
-                              </>
-                            )
-                          })()}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <button onClick={() => handleTryOn(message.product!.images?.[0] || '')} className="flex-1 bg-black hover:bg-gray-800 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all">
-                          Thử ngay
-                        </button>
-                        {message.product?.productUrl && (
-                          <button onClick={() => window.open(message.product?.productUrl!, '_blank')} className="flex-1 border border-gray-300 text-gray-800 py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-gray-100 transition-all">
-                            Xem chi tiết
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
                 )}
 
                 {/* Product Grid */}
@@ -1478,12 +1698,16 @@ export default function FashionChatbot() {
                           </div>
                           <p className="text-sm font-semibold text-red-600">{formatPrice(p.price)}</p>
                           <div className="flex gap-2">
-                            <button onClick={() => handleTryOn(p.images?.[0] || '')} className="flex-1 bg-black hover:bg-gray-800 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all">
+                            <button 
+                              onClick={() => handleTryOnApi(p.images?.[0] || '')} 
+                              disabled={tryOnLoading === p.images?.[0]}
+                              className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all"
+                            >
                               Thử ngay
                             </button>
                             {p.productUrl && (
                               <button onClick={() => window.open(p.productUrl!, '_blank')} className="flex-1 border border-gray-300 text-gray-800 py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-gray-100 transition-all">
-                                Xem chi tiết
+                                Mua ngay
                               </button>
                             )}
                           </div>
@@ -1521,7 +1745,7 @@ export default function FashionChatbot() {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t bg-white/80 backdrop-blur-sm">
+      <div className="p-4 border-t border-amber-200 bg-white/90 backdrop-blur-sm">
         {/* Image preview */}
         {imagePreview && (
           <div className="mb-3 p-3 bg-gray-50 rounded-lg">
@@ -1547,7 +1771,7 @@ export default function FashionChatbot() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Nhập câu hỏi thời trang nam hoặc tải ảnh trang phục để phân tích..."
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 pr-12 border border-amber-300 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               disabled={isLoading}
               ref={inputRef}
             />
@@ -1556,7 +1780,7 @@ export default function FashionChatbot() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-purple-500 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-amber-500 transition-colors"
               disabled={isLoading}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1564,7 +1788,7 @@ export default function FashionChatbot() {
               </svg>
             </button>
           </div>
-          <button type="submit" disabled={(!inputValue.trim() && !selectedImage) || isLoading} className="px-6 py-3 bg-black hover:bg-gray-800 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+          <button type="submit" disabled={(!inputValue.trim() && !selectedImage) || isLoading} className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">
             <PaperAirplaneIcon className="w-5 h-5" />
           </button>
         </form>
@@ -1574,7 +1798,7 @@ export default function FashionChatbot() {
           <p className="text-xs text-gray-500 mb-2">Gợi ý cho bạn:</p>
           <div className="flex flex-wrap gap-2 mb-2">
             {['Gợi ý outfit công sở thoáng mát', 'Phân tích giúp mình chiếc áo polo này', 'Set đồ đi chơi cuối tuần'].map((suggestion) => (
-              <button key={suggestion} onClick={() => setInputValue(suggestion)} className="text-xs text-blue-600 hover:text-blue-800 underline">
+              <button key={suggestion} onClick={() => setInputValue(suggestion)} className="text-xs text-amber-600 hover:text-amber-800 underline">
                 {suggestion}
               </button>
             ))}
@@ -1590,7 +1814,7 @@ export default function FashionChatbot() {
                   e.stopPropagation()
                   handleQuickSearch(suggestion)
                 }}
-                className="text-xs px-3 py-1 rounded bg-amber-50 text-amber-700"
+                className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
               >
                 {suggestion}
               </button>
@@ -1602,69 +1826,69 @@ export default function FashionChatbot() {
             <div className="mt-2 flex flex-wrap gap-2">
               {pendingClarify?.type === 'season' && (
                 <>
-                  <button onClick={() => handleClarifyResponse('winter')} className="text-xs px-3 py-1 rounded bg-amber-50">Mùa đông</button>
-                  <button onClick={() => handleClarifyResponse('summer')} className="text-xs px-3 py-1 rounded bg-amber-50">Mùa hè</button>
-                  <button onClick={() => handleClarifyResponse('fall')} className="text-xs px-3 py-1 rounded bg-amber-50">Mùa thu</button>
-                  <button onClick={() => handleClarifyResponse('spring')} className="text-xs px-3 py-1 rounded bg-amber-50">Mùa xuân</button>
+                  <button onClick={() => handleClarifyResponse('winter')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Mùa đông</button>
+                  <button onClick={() => handleClarifyResponse('summer')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Mùa hè</button>
+                  <button onClick={() => handleClarifyResponse('fall')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Mùa thu</button>
+                  <button onClick={() => handleClarifyResponse('spring')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Mùa xuân</button>
                 </>
               )}
               {pendingClarify?.type === 'material' && (
                 <>
-                  <button onClick={() => handleClarifyResponse('len')} className="text-xs px-3 py-1 rounded bg-amber-50">Len</button>
-                  <button onClick={() => handleClarifyResponse('ni')} className="text-xs px-3 py-1 rounded bg-amber-50">Nỉ/Fleece</button>
-                  <button onClick={() => handleClarifyResponse('day')} className="text-xs px-3 py-1 rounded bg-amber-50">Dạ/Tweed</button>
-                  <button onClick={() => handleClarifyResponse('down')} className="text-xs px-3 py-1 rounded bg-amber-50">Lông vũ/Puffer</button>
-                  <button onClick={() => handleClarifyResponse('da')} className="text-xs px-3 py-1 rounded bg-amber-50">Da/Leather</button>
+                  <button onClick={() => handleClarifyResponse('len')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Len</button>
+                  <button onClick={() => handleClarifyResponse('ni')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Nỉ/Fleece</button>
+                  <button onClick={() => handleClarifyResponse('day')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Dạ/Tweed</button>
+                  <button onClick={() => handleClarifyResponse('down')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Lông vũ/Puffer</button>
+                  <button onClick={() => handleClarifyResponse('da')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">Da/Leather</button>
                 </>
               )}
               {pendingClarify?.type === 'price' && (
                 <>
-                  <button onClick={() => handleClarifyResponse('dưới 300k')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('dưới 300k')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Dưới 300k
                   </button>
-                  <button onClick={() => handleClarifyResponse('300-600k')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('300-600k')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     300k-600k
                   </button>
-                  <button onClick={() => handleClarifyResponse('trên 600k')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('trên 600k')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Trên 600k
                   </button>
                 </>
               )}
               {pendingClarify?.type === 'color' && (
                 <>
-                  <button onClick={() => handleClarifyResponse('trắng')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('trắng')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Trắng
                   </button>
-                  <button onClick={() => handleClarifyResponse('xanh navy')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('xanh navy')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Xanh navy
                   </button>
-                  <button onClick={() => handleClarifyResponse('đen')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('đen')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Đen
                   </button>
                 </>
               )}
               {pendingClarify?.type === 'size' && (
                 <>
-                  <button onClick={() => handleClarifyResponse('S')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('S')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     S
                   </button>
-                  <button onClick={() => handleClarifyResponse('M')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('M')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     M
                   </button>
-                  <button onClick={() => handleClarifyResponse('L')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('L')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     L
                   </button>
                 </>
               )}
               {pendingClarify?.type === 'occasion' && (
                 <>
-                  <button onClick={() => handleClarifyResponse('đi làm')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('đi làm')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Đi làm
                   </button>
-                  <button onClick={() => handleClarifyResponse('đi chơi')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('đi chơi')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Đi chơi
                   </button>
-                  <button onClick={() => handleClarifyResponse('dự tiệc')} className="text-xs px-3 py-1 rounded bg-amber-50">
+                  <button onClick={() => handleClarifyResponse('dự tiệc')} className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
                     Dự tiệc
                   </button>
                 </>
@@ -1674,6 +1898,27 @@ export default function FashionChatbot() {
         </div>
       </div>
       </div>
+
+      {/* Image Modal for zoom */}
+      {showImageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => setShowImageModal(null)}>
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img 
+              src={showImageModal.url} 
+              alt={showImageModal.alt}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              style={{ maxHeight: '100vh', maxWidth: '100vw' }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button 
+              onClick={() => setShowImageModal(null)}
+              className="absolute top-4 right-4 text-white text-2xl font-bold hover:text-gray-300 bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

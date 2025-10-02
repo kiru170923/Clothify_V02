@@ -230,8 +230,8 @@ class ConversationMemoryManager {
   private updateConversationFlow(message: Message, messages: Message[]): void {
     if (!this.context) return
 
-    // Keep only last 10 messages for context
-    const recentMessages = messages.slice(-10)
+    // Keep only last 25 messages for context
+    const recentMessages = messages.slice(-25)
     this.context.conversationFlow = recentMessages.map(m => m.content)
   }
 
@@ -290,9 +290,9 @@ Context hiện tại:
 
     this.context.recentSearches.push(searchRecord)
     
-    // Keep only last 20 searches
-    if (this.context.recentSearches.length > 20) {
-      this.context.recentSearches = this.context.recentSearches.slice(-20)
+    // Keep only last 25 searches
+    if (this.context.recentSearches.length > 25) {
+      this.context.recentSearches = this.context.recentSearches.slice(-25)
     }
   }
 
