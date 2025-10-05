@@ -16,7 +16,7 @@ async function tryWithFallbackImages(personImageUrl: string, clothingImageUrl: s
         negative_prompt: 'blurry, low quality, distorted, artifacts, poor fit',
         image_urls: [personImageUrl, clothingImageUrl],
         output_format: 'png',
-        image_size: '1:1', // Force square ratio
+        image_size: '3:4', // Portrait ratio for try-on
         num_inference_steps: 30,
         guidance_scale: 5.0
       }
@@ -463,7 +463,7 @@ export async function POST(request: NextRequest) {
         negative_prompt: negativePrompt,
         image_urls: imageUrls,
         output_format: 'png',
-        image_size: '1:1', // Force square ratio
+        image_size: '3:4', // Portrait ratio for try-on
         ...parameters
       }
     }
@@ -504,9 +504,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message, code: kieaiData.code }, { status })
     }
 
-    // Return 202 Accepted immediately and let client poll /api/clothify/status
+    // Save task metadata for history tracking
     const taskId = kieaiData.data.taskId
     console.log('âœ… Task created with ID:', taskId)
+    
+    try {
+      // Save task metadata to database
+      await supabaseAdmin
+        .from('task_metadata')
+        .insert({
+          task_id: taskId,
+          user_id: user.id,
+          person_image_url: personImageUrl,
+          clothing_image_url: clothingImageUrl,
+          clothing_image_urls: clothingImageUrls,
+          selected_garment_type: selectedGarmentType,
+          custom_model_prompt: customModelPrompt,
+          provider: 'kieai'
+        })
+      
+      console.log('âœ… Task metadata saved for:', taskId)
+    } catch (metadataError) {
+      console.error('âŒ Error saving task metadata:', metadataError)
+      // Don't fail the main request if metadata save fails
+    }
+    
+    // Return 202 Accepted immediately and let client poll /api/clothify/status
     return NextResponse.json({ success: true, taskId, provider: 'kieai' }, { status: 202 })
 
   } catch (error: any) {

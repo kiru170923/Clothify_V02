@@ -1,5 +1,6 @@
 import { PayOS } from '@payos/node'
 import crypto from 'crypto'
+import { APP_URL } from './config'
 
 // PayOS Configuration
 export const PAYOS_CONFIG = {
@@ -8,9 +9,9 @@ export const PAYOS_CONFIG = {
   API_KEY: process.env.PAYOS_API_KEY!,
   CHECKSUM_KEY: process.env.PAYOS_CHECKSUM_KEY!,
   
-  // Return URLs
-  RETURN_URL: 'http://localhost:3000/api/payment/payos/return',
-  CANCEL_URL: 'http://localhost:3000/membership',
+  // Return URLs - sử dụng dynamic APP_URL thay vì hardcode localhost
+  RETURN_URL: `${APP_URL}/api/payment/payos/return`,
+  CANCEL_URL: `${APP_URL}/membership`,
   
   // Payment settings
   CURRENCY: 'VND',

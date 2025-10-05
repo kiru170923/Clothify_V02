@@ -10,7 +10,15 @@ export async function POST(request: NextRequest) {
 
     if (!planId || !billingCycle || !userId) {
       return NextResponse.json(
-        { error: 'Thiáº¿u thÃ´ng tin báº¯t buá»™c' },
+        { error: 'Thiếu thông tin bắt buộc' },
+        { status: 400 }
+      )
+    }
+
+    // Validate billingCycle
+    if (!['monthly', 'yearly'].includes(billingCycle)) {
+      return NextResponse.json(
+        { error: 'Chu kỳ thanh toán không hợp lệ' },
         { status: 400 }
       )
     }
@@ -24,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     if (planError || !plan) {
       return NextResponse.json(
-        { error: 'KhÃ´ng tÃ¬m tháº¥y gÃ³i membership' },
+        { error: 'Không tìm thấy gói membership' },
         { status: 404 }
       )
     }
@@ -37,6 +45,12 @@ export async function POST(request: NextRequest) {
     }
     if (!userId) {
       return NextResponse.json({ error: 'Thiáº¿u userId' }, { status: 400 })
+    }
+
+    // Verify user exists
+    const { data: user, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId)
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User không tồn tại' }, { status: 404 })
     }
 
     // TÃ­nh sá»‘ tiá»n thanh toÃ¡n
@@ -79,7 +93,7 @@ export async function POST(request: NextRequest) {
     if (paymentError) {
       console.error('Error saving payment order:', paymentError)
       return NextResponse.json(
-        { error: 'CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘Æ¡n thanh toÃ¡n' },
+        { error: 'Có lỗi xảy ra khi tạo đơn thanh toán' },
         { status: 500 }
       )
     }
@@ -97,7 +111,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating PayOS payment:', error)
     return NextResponse.json(
-      { error: 'CÃ³ lá»—i xáº£y ra khi táº¡o thanh toÃ¡n' },
+      { error: 'Có lỗi xảy ra khi tạo thanh toán' },
       { status: 500 }
     )
   }

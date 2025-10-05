@@ -173,10 +173,10 @@ export default function Header() {
                         onClick={async () => {
                           try {
                             await signOut()
-                            toast.success('Logged out successfully!')
+                            toast.success('Đăng xuất thành công!')
                             router.push('/landing')
                           } catch (error) {
-                            toast.error('Logout error')
+                            toast.error('Lỗi đăng xuất')
                           }
                         }}
                         className={`${

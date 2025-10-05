@@ -40,7 +40,7 @@ export default function TryOnButton({
     const hasClothing = clothingItems && clothingItems.length > 0 ? clothingItems[0].image : clothingImage
     
     if (!personImage || !hasClothing) {
-      toast.error('Please upload both person and clothing images')
+      toast.error('Vui lòng tải lên cả ảnh người và ảnh trang phục')
       return
     }
 

@@ -11,22 +11,22 @@ export async function GET(request: NextRequest) {
 
     if (!orderCode) {
       return NextResponse.redirect(
-        `${APP_URL}/membership?error=${encodeURIComponent('Thiáº¿u thÃ´ng tin Ä‘Æ¡n hÃ ng')}`
+        `${APP_URL}/membership?error=${encodeURIComponent('Thiếu thông tin đơn hàng')}`
       )
     }
 
-    // Láº¥y thÃ´ng tin payment tá»« PayOS
+    // Lấy thông tin payment từ PayOS
     const paymentInfo = await getPayOSPaymentInfo(parseInt(orderCode))
     
     console.log('=== PayOS Payment Info Structure ===')
     console.log('Payment Info:', JSON.stringify(paymentInfo, null, 2))
 
-    // Kiá»ƒm tra tráº¡ng thÃ¡i thanh toÃ¡n tá»« PayOS SDK response
+    // Kiểm tra trạng thái thanh toán từ PayOS SDK response
     if (paymentInfo.status === 'PAID') {
-      // Thanh toÃ¡n thÃ nh cÃ´ng
+      // Thanh toán thành công
       console.log('Payment successful:', paymentInfo)
       
-      // TÃ¬m payment order tá»« orderCode (thá»­ kiá»ƒu sá»‘ trÆ°á»›c, sau Ä‘Ã³ chuá»—i)
+      // Tìm payment order từ orderCode (thử kiểu số trước, sau đó chuỗi)
       console.log('[Return] orderCode:', orderCode)
       let { data: paymentOrder, error: orderError } = await supabaseAdmin
         .from('payment_orders')
@@ -55,13 +55,13 @@ export async function GET(request: NextRequest) {
         if (!paymentOrder) {
           console.error('Payment order not found for orderCode:', orderCode)
           return NextResponse.redirect(
-            `${APP_URL}/membership?error=${encodeURIComponent('KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin Ä‘Æ¡n hÃ ng')}`
+            `${APP_URL}/membership?error=${encodeURIComponent('Không tìm thấy thông tin đơn hàng')}`
           )
         }
       }
       console.log('[Return] Found order id:', paymentOrder.id, 'status:', paymentOrder.status, 'plan_id:', paymentOrder.plan_id, 'tokens_to_add:', paymentOrder.tokens_to_add)
 
-      // Náº¿u Ä‘Ã£ completed thÃ¬ bá» qua xá»­ lÃ½ tiáº¿p
+      // Nếu đã completed thì bỏ qua xử lý tiếp
       if (paymentOrder.status !== 'completed') {
         const { error: updateOrderError } = await supabaseAdmin
           .from('payment_orders')
@@ -78,41 +78,73 @@ export async function GET(request: NextRequest) {
 
       // updateOrderError is scoped inside the block above; no extra logging here
 
-      // PhÃ¢n nhÃ¡nh: náº¿u lÃ  Ä‘Æ¡n mua token (plan_id null vÃ  cÃ³ tokens_to_add)
+      // Phân nhánh: nếu là đơn mua token (plan_id null và có tokens_to_add)
       if (!paymentOrder.plan_id && paymentOrder.tokens_to_add) {
-        // Cá»™ng tokens báº±ng RPC (náº¿u cÃ³)
+        // Cộng tokens bằng RPC (nếu có)
         try {
           await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: paymentOrder.user_id, p_tokens: paymentOrder.tokens_to_add })
         } catch (e) {
-          // fallback cá»™ng thá»§ cÃ´ng
+          // fallback cộng thủ công
           const { data: cur } = await supabaseAdmin.from('user_tokens').select('total_tokens').eq('user_id', paymentOrder.user_id).maybeSingle()
           const total = (cur?.total_tokens || 0) + paymentOrder.tokens_to_add
           await supabaseAdmin.from('user_tokens').upsert({ user_id: paymentOrder.user_id, total_tokens: total }, { onConflict: 'user_id' })
         }
         return NextResponse.redirect(
-          `${APP_URL}/tokens/buy?success=${encodeURIComponent(`Thanh toÃ¡n thÃ nh cÃ´ng! ÄÃ£ cá»™ng ${paymentOrder.tokens_to_add} tokens vÃ o tÃ i khoáº£n.`)}`
+          `${APP_URL}/tokens/buy?success=${encodeURIComponent(`Thanh toán thành công! Đã cộng ${paymentOrder.tokens_to_add} tokens vào tài khoản.`)}`
         )
       }
 
-      // NgÆ°á»£c láº¡i: Ä‘Æ¡n membership (giá»¯ logic cÅ©, nhÆ°ng fetch plan riÃªng)
+      // Ngược lại: đơn membership (giữ logic cũ, nhưng fetch plan riêng)
       const { data: plan } = await supabaseAdmin.from('membership_plans').select('*').eq('id', paymentOrder.plan_id).maybeSingle()
       const tokensToAdd = paymentOrder.billing_cycle === 'monthly' ? plan?.tokens_monthly || 0 : plan?.tokens_yearly || 0
+      // Cộng tokens cho user
       await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: paymentOrder.user_id, p_tokens: tokensToAdd })
+      
+      // **FIX CHÍNH**: Tạo/update user membership plan
+      const endDate = new Date()
+      if (paymentOrder.billing_cycle === 'monthly') {
+        endDate.setMonth(endDate.getMonth() + 1)
+      } else {
+        endDate.setFullYear(endDate.getFullYear() + 1)
+      }
+      
+      // Tắt membership cũ (nếu có)
+      await supabaseAdmin
+        .from('user_memberships')
+        .update({ status: 'expired' })
+        .eq('user_id', paymentOrder.user_id)
+        .eq('status', 'active')
+      
+      // Tạo membership mới
+      const { error: membershipError } = await supabaseAdmin
+        .from('user_memberships')
+        .insert({
+          user_id: paymentOrder.user_id,
+          plan_id: paymentOrder.plan_id,
+          status: 'active',
+          start_date: new Date().toISOString(),
+          end_date: endDate.toISOString(),
+          billing_cycle: paymentOrder.billing_cycle,
+          auto_renew: false
+        })
+      
+      if (membershipError) {
+        console.error('Error creating user membership:', membershipError)
+      }
       return NextResponse.redirect(
-        `${APP_URL}/membership?success=${encodeURIComponent(`Thanh toÃ¡n thÃ nh cÃ´ng! ÄÃ£ cá»™ng ${tokensToAdd} tokens vÃ  kÃ­ch hoáº¡t gÃ³i ${plan?.name || ''}.`)}`
+        `${APP_URL}/membership?success=${encodeURIComponent(`Thanh toán thành công! Đã cộng ${tokensToAdd} tokens và kích hoạt gói ${plan?.name || ''}.`)}`
       )
     } else {
-      // Thanh toÃ¡n tháº¥t báº¡i
+      // Thanh toán thất bại
       return NextResponse.redirect(
-        `${APP_URL}/membership?error=${encodeURIComponent('Thanh toÃ¡n tháº¥t báº¡i')}`
+        `${APP_URL}/membership?error=${encodeURIComponent('Thanh toán thất bại')}`
       )
     }
 
   } catch (error) {
     console.error('Error processing PayOS return:', error)
     return NextResponse.redirect(
-      `${APP_URL}/membership?error=${encodeURIComponent('CÃ³ lá»—i xáº£y ra khi xá»­ lÃ½ thanh toÃ¡n')}`
+      `${APP_URL}/membership?error=${encodeURIComponent('Có lỗi xảy ra khi xử lý thanh toán')}`
     )
   }
 }
-

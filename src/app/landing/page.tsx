@@ -56,39 +56,64 @@ const FloatingParticles = () => {
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState('clothing-tryon')
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null)
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalTryOns: 0,
+    satisfactionRate: 95,
+    recentActivity: 0
+  })
   const { scrollYProgress } = useScroll()
   const headerY = useTransform(scrollYProgress, [0, 0.1], [0, -50])
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0])
 
+  // Fetch real stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats')
+        const data = await response.json()
+        if (data.error) {
+          console.error('Error fetching stats:', data.error)
+          return
+        }
+        setStats(data)
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
   const features = [
     {
       id: 'clothing-tryon',
-      title: 'Clothing Try-On',
-      description: 'Change the clothing in any model photo using a reference image—whether it\'s from someone wearing the outfit or a product photo.',
+      title: 'Thử Đồ Ảo',
+      description: 'Thay đổi trang phục trong bất kỳ ảnh model nào bằng cách sử dụng ảnh tham chiếu—dù là từ người đang mặc outfit hoặc ảnh sản phẩm.',
       active: true
     },
     {
-      id: 'model-swap',
-      title: 'AI Suggestion',
-      description: 'Nhận gợi ý trang phục và phong cách thời trang thông minh từ AI dựa trên ảnh của bạn hoặc link sản phẩm Shopee.',
+      id: 'ai-chatbot',
+      title: 'Stylist AI',
+      description: 'Chatbot thời trang thông minh tư vấn phong cách, gợi ý trang phục và phân tích outfit từ ảnh.',
       active: false
     },
     {
-      id: 'model-creation',
-      title: 'Model Creation',
-      description: 'Generate realistic AI models and create on-model photos from just the product image.',
+      id: 'wardrobe',
+      title: 'Tủ Đồ Số',
+      description: 'Quản lý tủ đồ cá nhân với AI phân tích trang phục, phân loại và gợi ý phối đồ.',
       active: false
     },
     {
-      id: 'short-videos',
-      title: 'Short Videos',
-      description: 'Create dynamic fashion videos with AI-generated models and clothing.',
+      id: 'model-generation',
+      title: 'Tạo Model',
+      description: 'Tạo ra các model AI chân thực từ mô tả hoặc upload ảnh để sử dụng trong thử đồ.',
       active: false
     },
     {
-      id: 'ai-editing',
-      title: 'AI Photo Editing',
-      description: 'Advanced photo editing tools powered by artificial intelligence.',
+      id: 'history',
+      title: 'Lịch Sử',
+      description: 'Lưu trữ và quản lý tất cả ảnh đã thử đồ, dễ dàng xem lại và chia sẻ.',
       active: false
     }
   ]
@@ -97,92 +122,111 @@ export default function LandingPage() {
     {
       name: "Minh Anh",
       role: "Fashion Blogger",
-      content: "Clothify đã thay đổi cách mình mua sắm! Virtual try-on quá xuất sắc, giúp mình tự tin hơn khi đặt hàng online.",
+      content: "Clothify đã thay đổi cách mình mua sắm! Thử đồ ảo quá xuất sắc, giúp mình tự tin hơn khi đặt hàng online.",
       rating: 5,
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
     },
     {
       name: "Phúc Thành",
-      role: "University Student", 
-      content: "AI stylist của Clothify đưa ra những gợi ý rất phù hợp với phong cách và ngân sách sinh viên của mình.",
+      role: "Sinh viên", 
+      content: "Stylist AI của Clothify đưa ra những gợi ý rất phù hợp với phong cách và ngân sách sinh viên của mình.",
       rating: 5,
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
     },
     {
       name: "Thu Hà",
-      role: "Office Worker",
-      content: "Tính năng phối đồ cho công sở thật tiện lợi. Giờ mình không còn phải lo lắng về việc mix&match nữa!",
+      role: "Nhân viên văn phòng",
+      content: "Tính năng tủ đồ số và gợi ý phối đồ thật tiện lợi. Giờ mình không còn phải lo lắng về việc mix&match nữa!",
       rating: 5,
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"
     }
   ]
 
-  const stats = [
-    { number: "50K+", label: "Happy Users", icon: Users },
-    { number: "500K+", label: "Try-On Sessions", icon: Camera },
-    { number: "98%", label: "Satisfaction Rate", icon: Heart },
-    { number: "24/7", label: "AI Support", icon: Clock }
+  const statsData = [
+    { 
+      number: stats.totalUsers >= 1000 ? `${Math.floor(stats.totalUsers / 1000)}K+` : `${stats.totalUsers}+`, 
+      label: "Người dùng", 
+      icon: Users 
+    },
+    { 
+      number: stats.totalTryOns >= 1000 ? `${Math.floor(stats.totalTryOns / 1000)}K+` : `${stats.totalTryOns}+`, 
+      label: "Lần thử đồ", 
+      icon: Camera 
+    },
+    { 
+      number: `${stats.satisfactionRate}%`, 
+      label: "Độ hài lòng", 
+      icon: Heart 
+    },
+    { 
+      number: "24/7", 
+      label: "Hỗ trợ AI", 
+      icon: Clock 
+    }
   ]
 
   const faqData = [
     {
       question: "Clothify có miễn phí không?",
-      answer: "Có! Bạn có thể sử dụng các tính năng cơ bản miễn phí. Chúng tôi cũng có gói premium với nhiều tính năng nâng cao."
+      answer: "Hiện tại Clothify sử dụng hệ thống token. Bạn có thể mua token để sử dụng các tính năng thử đồ và AI stylist."
     },
     {
       question: "Tính năng try-on có chính xác không?",
-      answer: "Clothify sử dụng AI tiên tiến để đảm bảo độ chính xác cao. Kết quả try-on phản ánh 90-95% hiện thực so với việc mặc thật."
+      answer: "Clothify sử dụng AI tiên tiến từ KIE.AI để đảm bảo độ chính xác cao. Kết quả try-on phản ánh 90-95% hiện thực so với việc mặc thật."
     },
     {
       question: "Tôi có thể sử dụng trên mobile không?",
-      answer: "Hiện tại Clothify hoạt động tốt trên web browser. Chúng tôi đang phát triển ứng dụng mobile sẽ ra mắt sớm."
+      answer: "Hiện tại Clothify hoạt động tốt trên web browser trên cả desktop và mobile. Giao diện được tối ưu responsive cho mọi thiết bị."
     },
     {
-      question: "Clothify có hỗ trợ mua hàng không?",
-      answer: "Có! Chúng tôi tích hợp với các sàn thương mại điện tử lớn như Shopee, Tiki để bạn mua hàng trực tiếp."
+      question: "Stylist AI có thể làm gì?",
+      answer: "Stylist AI có thể tư vấn phong cách, gợi ý trang phục, phân tích outfit từ ảnh, và giúp bạn phối đồ phù hợp với dịp sử dụng."
+    },
+    {
+      question: "Tủ đồ số hoạt động như thế nào?",
+      answer: "Bạn có thể upload ảnh trang phục, AI sẽ phân tích và phân loại tự động. Sau đó bạn có thể quản lý, tìm kiếm và nhận gợi ý phối đồ."
     }
   ]
 
   const pricingPlans = [
     {
-      name: "Free",
-      price: "0₫",
+      name: "Standard",
+      price: "59K",
       period: "/tháng",
       features: [
-        "5 lần try-on/ngày",
-        "Gợi ý phong cách cơ bản",
-        "Lưu 10 outfit",
-        "Hỗ trợ email"
+        "30 ảnh/tháng",
+        "Chất lượng HD",
+        "Hỗ trợ email",
+        "Lưu lịch sử cơ bản"
       ],
       popular: false,
       color: "from-gray-400 to-gray-600"
     },
     {
-      name: "Premium",
-      price: "199K",
+      name: "Medium",
+      price: "99K",
       period: "/tháng", 
       features: [
-        "Unlimited try-on",
-        "AI stylist chuyên nghiệp",
-        "Lưu không giới hạn",
-        "Phân tích body shape",
-        "Hỗ trợ 24/7",
-        "Ưu tiên xử lý"
+        "50 ảnh/tháng",
+        "Chất lượng HD+",
+        "Hỗ trợ ưu tiên",
+        "Lưu trữ 100 ảnh",
+        "Stylist AI nâng cao"
       ],
       popular: true,
       color: "from-amber-400 to-yellow-400"
     },
     {
-      name: "Pro",
-      price: "399K", 
+      name: "Premium",
+      price: "159K", 
       period: "/tháng",
       features: [
-        "Tất cả tính năng Premium",
-        "Virtual wardrobe manager",
-        "Style consultation 1-1",
-        "Custom AI model",
-        "API access",
-        "White-label solution"
+        "100 ảnh/tháng",
+        "Chất lượng 4K",
+        "Hỗ trợ 24/7",
+        "Lưu trữ không giới hạn",
+        "Tính năng API",
+        "Tủ đồ số nâng cao"
       ],
       popular: false,
       color: "from-purple-400 to-pink-400"
@@ -208,14 +252,14 @@ export default function LandingPage() {
             <nav className="hidden md:flex items-center gap-8">
               <div className="flex items-center gap-6">
                 <button className="text-amber-600 hover:text-amber-800 transition-colors font-medium">
-                  Products <ArrowRight className="w-4 h-4 inline ml-1 rotate-90" />
+                  Sản phẩm <ArrowRight className="w-4 h-4 inline ml-1 rotate-90" />
                 </button>
                 <button className="text-amber-600 hover:text-amber-800 transition-colors font-medium">
-                  Solutions <ArrowRight className="w-4 h-4 inline ml-1 rotate-90" />
+                  Giải pháp <ArrowRight className="w-4 h-4 inline ml-1 rotate-90" />
                 </button>
-                <button className="text-amber-600 hover:text-amber-800 transition-colors font-medium">Pricing</button>
+                <button className="text-amber-600 hover:text-amber-800 transition-colors font-medium">Bảng giá</button>
                 <a href="#about-us" className="text-amber-600 hover:text-amber-800 transition-colors font-medium">
-                  About Us
+                  Về chúng tôi
                 </a>
               </div>
             </nav>
@@ -223,7 +267,7 @@ export default function LandingPage() {
             {/* CTA */}
             <Link href="/try-on">
               <ShimmerButton>
-                Get Started
+                Bắt đầu
               </ShimmerButton>
             </Link>
           </div>
@@ -232,7 +276,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-24 pb-20">
-        <FloatingParticles />
+        {/* <FloatingParticles /> */}
         <motion.div 
           style={{ opacity: heroOpacity }}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
@@ -248,7 +292,7 @@ export default function LandingPage() {
               CLOTHIFY
             </span><br />
             <span className="text-3xl md:text-3xl text-gray-600">
-            Future of Fashion, <span className="bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent font-semibold">Today.</span>
+            Tương lai thời trang, <span className="bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent font-semibold">hôm nay.</span>
             </span>
           </motion.h1>
           <motion.p
@@ -273,7 +317,7 @@ export default function LandingPage() {
                 whileTap={{ scale: 0.95 }}
                 className="bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-8 py-4 rounded-full font-semibold text-lg hover:from-amber-500 hover:to-yellow-500 transition-all shadow-lg inline-flex items-center gap-2"
               >
-                  Start Free Trial
+                  Bắt đầu miễn phí
                 <ArrowRight className="w-5 h-5" />
               </motion.button>
             </Link>
@@ -315,66 +359,50 @@ export default function LandingPage() {
           {/* Demo Images */}
           <AnimatePresence>
             {activeTab === 'clothing-tryon' && (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
-              >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="overflow-hidden"
-                >
-                  <GlowCard>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div className="overflow-hidden">
+                  <div className="relative rounded-2xl p-2 bg-white border border-amber-100 shadow-lg hover:shadow-xl transition-shadow">
                     <Image 
                       src="/images/1.png" 
                       alt="Clothing Try-On Example 1" 
                       width={300} 
                       height={400} 
                       className="w-full h-full object-cover rounded-xl"
+                      priority
+                      quality={100}
+                      style={{ filter: 'none', opacity: 1 }}
                     />
-                  </GlowCard>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
-                  className="overflow-hidden"
-                >
-                  <GlowCard>
+                  </div>
+                </div>
+                <div className="overflow-hidden">
+                  <div className="relative rounded-2xl p-2 bg-white border border-amber-100 shadow-lg hover:shadow-xl transition-shadow">
                     <Image 
                       src="/images/2.png" 
                       alt="Clothing Try-On Example 2" 
                       width={300} 
                       height={400} 
                       className="w-full h-full object-cover rounded-xl"
+                      priority
+                      quality={100}
+                      style={{ filter: 'none', opacity: 1 }}
                     />
-                  </GlowCard>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.3, delay: 0.2, ease: "easeOut" }}
-                  className="overflow-hidden"
-                >
-                  <GlowCard>
+                  </div>
+                </div>
+                <div className="overflow-hidden">
+                  <div className="relative rounded-2xl p-2 bg-white border border-amber-100 shadow-lg hover:shadow-xl transition-shadow">
                     <Image 
                       src="/images/3.png" 
                       alt="Clothing Try-On Example 3" 
                       width={300} 
                       height={400} 
                       className="w-full h-full object-cover rounded-xl"
+                      priority
+                      quality={100}
+                      style={{ filter: 'none', opacity: 1 }}
                     />
-                  </GlowCard>
-                </motion.div>
-              </motion.div>
+                  </div>
+                </div>
+              </div>
             )}
             {activeTab === 'model-swap' && (
               <motion.div
@@ -403,7 +431,7 @@ export default function LandingPage() {
       <section className="py-16 bg-gradient-to-r from-amber-500 to-yellow-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
+            {statsData.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
@@ -648,154 +676,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Agencies Section */}
-      <section className="border-t border-amber-200 py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <p className="text-amber-600 uppercase tracking-wider text-sm font-semibold mb-4">FOR BRANDS</p>
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="text-4xl md:text-5xl font-bold mb-6 text-gray-900"
-              >
-                Already have<br />model photos?
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                className="text-gray-600 text-lg mb-8 leading-relaxed"
-              >
-                Reuse great photos by trying different clothing on the same model, 
-                or change models to increase diversity.
-              </motion.p>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                className="text-gray-600 mb-8"
-              >
-                <span className="text-amber-700 font-semibold bg-amber-100 px-2 py-1 rounded">NO TRAINING NEEDED</span>. Get try-on results in seconds with just 
-                one reference image, no complex setup or multiple image training required.
-              </motion.p>
-              <div className="flex gap-4">
-                <Link href="/try-on">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-6 py-3 rounded-full font-semibold hover:from-amber-500 hover:to-yellow-500 transition-all shadow-lg inline-flex items-center gap-2"
-                  >
-                      Try-On Studio
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
-                </Link>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="border-2 border-amber-300 text-amber-700 px-6 py-3 rounded-full font-semibold hover:border-amber-400 hover:bg-amber-50 transition-all inline-flex items-center gap-2"
-                >
-                  Swap Model
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
-              >
-                <ImageSkeleton aspectRatio="aspect-[3/4]" className="bg-amber-100" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
-              >
-                <ImageSkeleton aspectRatio="aspect-square" className="bg-amber-100" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
-              >
-                <ImageSkeleton aspectRatio="aspect-[3/4]" className="bg-amber-100" />
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Startups Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="grid grid-cols-3 gap-4">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
-              >
-                <ImageSkeleton aspectRatio="aspect-[3/4]" className="bg-amber-100" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
-              >
-                <ImageSkeleton aspectRatio="aspect-square" className="bg-amber-100" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                className="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
-              >
-                <ImageSkeleton aspectRatio="aspect-[3/4]" className="bg-amber-100" />
-              </motion.div>
-            </div>
-
-            <div>
-              <p className="text-amber-600 uppercase tracking-wider text-sm font-semibold mb-4">FOR FASHION STARTUPS</p>
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="text-4xl md:text-5xl font-bold mb-6 text-gray-900"
-              >
-                Don't have any<br />model photos?
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                className="text-gray-600 text-lg mb-8 leading-relaxed"
-              >
-                Create realistic AI models and generate on-model photos 
-                from just product images.
-              </motion.p>
-              <div className="flex gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 px-6 py-3 rounded-full font-semibold hover:from-amber-500 hover:to-yellow-500 transition-all shadow-lg inline-flex items-center gap-2"
-                >
-                  Create AI Model
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* About Us Section */}
       <section id="about-us" className="py-20 bg-amber-50 border-t border-amber-200">
@@ -806,7 +686,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="text-5xl md:text-6xl font-extrabold text-center mb-12 bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent px-4 py-2"
           >
-            About Us – Clothify
+            Về chúng tôi – Clothify
           </motion.h2>
 
           <div className="space-y-12 text-lg text-gray-700 leading-relaxed">
@@ -815,14 +695,14 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
             >
-              Clothify is a fashion technology platform that uses AI and AR to help you style outfits intelligently, try on virtual clothing, and shop online more easily than ever before.
+              Clothify là nền tảng công nghệ thời trang sử dụng AI và AR để giúp bạn phối đồ thông minh, thử trang phục ảo và mua sắm trực tuyến dễ dàng hơn bao giờ hết.
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             >
-              We were founded by a group of passionate young students, with the desire to solve common problems when shopping for fashion online: choosing the wrong size, colors not matching the image, difficulty styling according to personal style or occasion.
+              Chúng tôi được thành lập bởi một nhóm sinh viên trẻ đầy đam mê, với mong muốn giải quyết những vấn đề thường gặp khi mua sắm thời trang trực tuyến: chọn sai size, màu sắc không khớp với hình ảnh, khó khăn trong việc phối đồ theo phong cách cá nhân hoặc dịp sử dụng.
             </motion.p>
 
             <motion.div
@@ -830,12 +710,13 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
             >
-              <h3 className="text-2xl font-bold text-amber-800 mb-4">Our Mission</h3>
-              <p className="mb-4">Clothify aims to deliver "Personalized Fashion – Modern Technology – Convenient Shopping" experiences for young generations (Gen Z, Millennials), helping you:</p>
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Sứ mệnh của chúng tôi</h3>
+              <p className="mb-4">Clothify hướng tới mang đến trải nghiệm "Thời trang cá nhân hóa – Công nghệ hiện đại – Styling thông minh" cho thế hệ trẻ, giúp bạn:</p>
               <ul className="list-disc list-inside space-y-2 pl-4">
-                <li>Receive smart styling suggestions based on body shape, preferences and usage occasions.</li>
-                <li>Try on clothing online using realistic AI/AR technology before purchasing.</li>
-                <li>Buy instantly through direct links from major e-commerce platforms like Shopee, Tiki, Lazada.</li>
+                <li>Thử trang phục ảo với công nghệ AI tiên tiến từ KIE.AI.</li>
+                <li>Nhận tư vấn từ Stylist AI thông minh về phong cách và phối đồ.</li>
+                <li>Quản lý tủ đồ số với AI phân tích và phân loại trang phục tự động.</li>
+                <li>Tạo model AI chân thực để sử dụng trong thử đồ.</li>
               </ul>
             </motion.div>
 
@@ -844,13 +725,13 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
             >
-              <h3 className="text-2xl font-bold text-amber-800 mb-4">What Makes Us Different</h3>
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Điều làm nên sự khác biệt</h3>
               <ul className="list-disc list-inside space-y-2 pl-4">
-                <li>Personal AI Stylist: Suggests clothing based on body shape, style, and occasions.</li>
-                <li>Virtual Try-On Experience (AR): Helps you visualize clearly when wearing clothes.</li>
-                <li>Fast Shopping Integration: Direct links to e-commerce platforms, no time wasted searching.</li>
-                <li>Flexible Service Packages: Use for free or upgrade to VIP to unlock premium features.</li>
-                <li>Fashion Community: Join styling challenges, share styles, connect with KOLs & fashion shops.</li>
+                <li>Công nghệ AI tiên tiến: Sử dụng KIE.AI để tạo kết quả thử đồ chân thực và chính xác.</li>
+                <li>Stylist AI thông minh: Chatbot có thể tư vấn phong cách, phân tích outfit và gợi ý phối đồ.</li>
+                <li>Tủ đồ số thông minh: AI phân tích và phân loại trang phục tự động, giúp quản lý tủ đồ hiệu quả.</li>
+                <li>Hệ thống token linh hoạt: Mua token để sử dụng các tính năng theo nhu cầu.</li>
+                <li>Giao diện thân thiện: Responsive design hoạt động tốt trên mọi thiết bị.</li>
               </ul>
             </motion.div>
 
@@ -859,10 +740,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
             >
-              <h3 className="text-2xl font-bold text-amber-800 mb-4">Development Journey</h3>
-              <p className="mb-4">Starting from a university startup idea, Clothify has researched the market and recognized the urgent need of young users for a smart styling tool.</p>
-              <p className="mb-4">The product has been built through multiple stages: research – AI development – user-friendly website/app design – testing – continuous improvement based on real feedback.</p>
-              <p>We collaborate with KOLs, small fashion shops and fashion-loving communities to expand the ecosystem and create value for both buyers and sellers.</p>
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Hành trình phát triển</h3>
+              <p className="mb-4">Clothify được phát triển bởi nhóm sinh viên đam mê công nghệ và thời trang, với mong muốn giải quyết những khó khăn trong việc mua sắm và phối đồ online.</p>
+              <p className="mb-4">Sản phẩm được xây dựng với các công nghệ hiện đại: Next.js, Supabase, KIE.AI và các công cụ AI tiên tiến để mang đến trải nghiệm tốt nhất cho người dùng.</p>
+              <p>Chúng tôi tập trung vào việc phát triển các tính năng core như thử đồ ảo, AI stylist và tủ đồ số để phục vụ nhu cầu thực tế của người dùng Việt Nam.</p>
             </motion.div>
 
             <motion.div
@@ -870,14 +751,14 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
             >
-              <h3 className="text-2xl font-bold text-amber-800 mb-4">Future Vision</h3>
-              <p className="mb-4">Clothify doesn't stop at Vietnam, but also aims to expand to Southeast Asia – where the fashion e-commerce market is growing strongly.</p>
-              <p className="mb-4">In the future, we will:</p>
+              <h3 className="text-2xl font-bold text-amber-800 mb-4">Tầm nhìn tương lai</h3>
+              <p className="mb-4">Clothify hướng tới trở thành nền tảng thời trang AI hàng đầu tại Việt Nam, phục vụ nhu cầu ngày càng tăng của người dùng về công nghệ thời trang thông minh.</p>
+              <p className="mb-4">Trong tương lai, chúng tôi sẽ:</p>
               <ul className="list-disc list-inside space-y-2 pl-4">
-                <li>Launch a mobile application with optimized experience.</li>
-                <li>Develop styling features by events, profession, personality.</li>
-                <li>Collaborate closely with brands and retailers to diversify products.</li>
-                <li>Build a young, creative and sustainable fashion community.</li>
+                <li>Nâng cấp công nghệ AI để cải thiện độ chính xác của thử đồ.</li>
+                <li>Phát triển thêm tính năng phân tích body shape và gợi ý phong cách cá nhân hóa.</li>
+                <li>Tích hợp với các sàn thương mại điện tử để hỗ trợ mua sắm trực tiếp.</li>
+                <li>Xây dựng cộng đồng người dùng để chia sẻ kinh nghiệm và phong cách.</li>
               </ul>
             </motion.div>
             <motion.p
@@ -886,7 +767,7 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.7, ease: "easeOut" }}
               className="text-center text-xl font-semibold text-amber-800"
             >
-              ✨ With Clothify, fashion shopping is no longer a worry about choosing wrong, but becomes a personalized, fun and inspiring journey.
+              ✨ Với Clothify, mua sắm thời trang không còn là nỗi lo chọn sai, mà trở thành một hành trình cá nhân hóa, vui vẻ và truyền cảm hứng.
             </motion.p>
           </div>
         </div>
@@ -902,15 +783,15 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-6 text-amber-600">
-              <Link href="/try-on" className="hover:text-amber-800 transition-colors font-medium">Try-On</Link>
-              <Link href="/wardrobe" className="hover:text-amber-800 transition-colors font-medium">Wardrobe</Link>
-              <Link href="/membership" className="hover:text-amber-800 transition-colors font-medium">Plans</Link>
-              <Link href="/profile" className="hover:text-amber-800 transition-colors font-medium">Profile</Link>
+              <Link href="/try-on" className="hover:text-amber-800 transition-colors font-medium">Thử đồ</Link>
+              <Link href="/wardrobe" className="hover:text-amber-800 transition-colors font-medium">Tủ đồ</Link>
+              <Link href="/membership" className="hover:text-amber-800 transition-colors font-medium">Gói dịch vụ</Link>
+              <Link href="/profile" className="hover:text-amber-800 transition-colors font-medium">Hồ sơ</Link>
             </div>
           </div>
 
           <div className="mt-8 pt-8 border-t border-amber-200 text-center text-amber-600">
-            <p>&copy; 2025 Clothify. All rights reserved by Kiru.</p>
+            <p>&copy; 2025 Clothify. Tất cả quyền được bảo lưu bởi Kiru.</p>
           </div>
         </div>
       </footer>

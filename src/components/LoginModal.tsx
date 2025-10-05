@@ -17,9 +17,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     try {
       await signIn()
       onClose()
-      toast.success('Login successful!')
+      toast.success('Đăng nhập thành công!')
     } catch (error: any) {
-      toast.error('Login error: ' + error.message)
+      toast.error('Lỗi đăng nhập: ' + error.message)
     }
   }
 

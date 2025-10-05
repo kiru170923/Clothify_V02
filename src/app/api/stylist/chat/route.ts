@@ -94,39 +94,30 @@ function classifyPromptType(message: string, nlu: any): string {
 
 async function determineIfShouldSuggestProducts(message: string, nlu: any): Promise<boolean> {
   try {
-    // Fast decision with reduced tokens and timeout
-    const response = await Promise.race([
-      openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `Analyze if user wants product recommendations. Answer "YES" or "NO" only.
-
-SUGGEST products for: clothing requests, shopping, outfit help
-DON'T suggest for: greetings, service questions, general info
-
-Examples:
-- "hi" → NO
-- "find jeans" → YES
-- "what can you do?" → NO
-- "áo ấm" → YES`
-          },
-          {
-            role: 'user',
-            content: `"${message}"`
-          }
-        ],
-        max_tokens: 5,
-        temperature: 0.1
-      }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
-    ])
-
-    const decision = response.choices[0]?.message?.content?.trim().toUpperCase()
-    console.log('🟢 AI Decision result:', decision)
+    // Fast regex-based decision instead of AI call
+    const msgLower = message.toLowerCase()
     
-    return decision === 'YES'
+    // Keywords that indicate product request
+    const productKeywords = [
+      'áo', 'quần', 'shirt', 'pants', 'jeans', 'polo', 'khoác', 'jacket',
+      'tìm', 'find', 'mua', 'buy', 'gợi ý', 'suggest', 'recommend',
+      'đồ', 'clothes', 'fashion', 'thời trang'
+    ]
+    
+    const hasProductKeywords = productKeywords.some(keyword => msgLower.includes(keyword))
+    
+    // Intent-based decision
+    const shouldSuggest = nlu.intent === 'product_search' || 
+                        nlu.intent === 'shopping' || 
+                        hasProductKeywords
+    
+    console.log('🟢 Fast Decision result:', { 
+      intent: nlu.intent, 
+      hasKeywords: hasProductKeywords, 
+      shouldSuggest 
+    })
+    
+    return shouldSuggest
   } catch (error) {
     console.error('❌ Error in determineIfShouldSuggestProducts:', error)
     // Fast fallback
@@ -434,9 +425,8 @@ export async function POST(request: NextRequest) {
     let productChunks = new Map<number, string[]>()
     let products: any[] = []
 
-    // Best-effort: attach user onboarding profile to context if available
-    let profileContext = ''
-    let wardrobeContext = ''
+    // Enhanced user context integration (with timeout)
+    let enhancedContext = ''
     try {
       const authHeader = request.headers.get('authorization')
       console.log('🔍 Auth Header:', authHeader ? 'Present' : 'Missing')
@@ -447,47 +437,23 @@ export async function POST(request: NextRequest) {
         console.log('🔍 User Auth:', { userId: user?.id, error: authErr?.message })
         
         if (!authErr && user) {
-          // Get user profile - bypass RLS with admin client
-          const { data: prof, error: profErr } = await supabaseAdmin
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', user.id)
-            .single()
+          // Use enhanced user context engine with timeout
+          const contextPromise = import('../../../../lib/enhancedUserContext').then(async ({ enhancedUserContextEngine }) => {
+            const userContext = await enhancedUserContextEngine.buildUserContext(user.id)
+            return enhancedUserContextEngine.formatContextForChatbot(userContext)
+          })
           
-          console.log('🔍 Profile Query:', { userId: user.id, prof, error: profErr?.message })
+          // Race between context loading and timeout
+          enhancedContext = await Promise.race([
+            contextPromise,
+            new Promise<string>((resolve) => setTimeout(() => resolve(''), 2000)) // 2s timeout
+          ])
           
-          if (prof) {
-            const h = prof.height_cm ? `${prof.height_cm}cm` : 'unknown'
-            const w = prof.weight_kg ? `${prof.weight_kg}kg` : 'unknown'
-            const s = prof.size || 'unknown'
-            const styles = Array.isArray(prof.style_preferences) && prof.style_preferences.length ? prof.style_preferences.join(', ') : 'unknown'
-            const colors = Array.isArray(prof.favorite_colors) && prof.favorite_colors.length ? prof.favorite_colors.join(', ') : 'unknown'
-            const occasions = Array.isArray(prof.occasions) && prof.occasions.length ? prof.occasions.join(', ') : 'unknown'
-            profileContext = `USER_PROFILE:\n- Height: ${h}\n- Weight: ${w}\n- Size: ${s}\n- Style Preferences: ${styles}\n- Favorite Colors: ${colors}\n- Occasions: ${occasions}\n\nUse this information for personalized recommendations. Mention specific details like "I see you wear size ${s}" or "Based on your ${styles} style preference".`
-            console.log('🔍 Profile Context Created:', profileContext)
-          } else {
-            console.log('❌ No profile found for user:', user.id)
-          }
-
-          // Get user's wardrobe items for context
-          const { data: wardrobeItems } = await supabaseAdmin
-            .from('user_wardrobe_items')
-            .select('title, category, color, style_tags, occasion_tags, ai_notes')
-            .eq('user_id', user.id)
-            .order('added_at', { ascending: false })
-            .limit(10)
-
-          if (wardrobeItems && wardrobeItems.length > 0) {
-            const wardrobeSummary = wardrobeItems.map(item => 
-              `- ${item.title} (${item.category}, ${item.color}) - ${item.style_tags?.join(', ') || 'no style tags'}`
-            ).join('\n')
-            
-            wardrobeContext = `USER_WARDROBE:\n${wardrobeSummary}\n\nWhen making recommendations, consider what the user already has in their wardrobe. Suggest items that complement their existing pieces or fill gaps in their collection.`
-          }
+          console.log('🔍 Enhanced Context Created:', enhancedContext.length > 0 ? 'Success' : 'Timeout/Empty')
         }
       }
     } catch (error) {
-      console.error('❌ Error fetching profile/wardrobe:', error)
+      console.error('❌ Error fetching enhanced context:', error)
     }
 
     // Only search for products if user explicitly asks for them
@@ -718,15 +684,13 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Chat Messages Context:', { 
       selectedPrompt: selectedPrompt.substring(0, 100) + '...', 
-      hasProfileContext: !!profileContext,
-      profileContext: profileContext.substring(0, 200) + '...',
-      hasWardrobeContext: !!wardrobeContext 
+      hasEnhancedContext: !!enhancedContext,
+      enhancedContextLength: enhancedContext.length
     })
 
     const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: 'system', content: selectedPrompt },
-      ...(profileContext ? [{ role: 'system', content: profileContext } as const] : []),
-      ...(wardrobeContext ? [{ role: 'system', content: wardrobeContext } as const] : []),
+      ...(enhancedContext ? [{ role: 'system', content: enhancedContext } as const] : []),
       ...(summary ? [{ role: 'system', content: `Conversation summary: ${summary}` } as const] : []),
       ...bodyContext
         .filter((m: any) => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
@@ -734,8 +698,8 @@ export async function POST(request: NextRequest) {
       {
         role: 'user',
         content: shouldSuggestProducts 
-          ? `Customer asks: "${message}"\n\nPRODUCT CONTEXT:\n${contextBlock}\n\nProvide detailed product recommendation with styling advice. Consider their existing wardrobe when making suggestions.`
-          : `Customer asks: "${message}"\n\nProvide helpful response without product suggestions. Consider their existing wardrobe when giving advice. If you have wardrobe access, use it proactively instead of asking about it.`
+          ? `Customer asks: "${message}"\n\n${enhancedContext}\n\nPRODUCT CONTEXT:\n${contextBlock}\n\nProvide detailed product recommendation with styling advice. Consider their existing wardrobe when making suggestions.`
+          : `Customer asks: "${message}"\n\n${enhancedContext}\n\nProvide helpful response without product suggestions. Consider their existing wardrobe when giving advice. If you have wardrobe access, use it proactively instead of asking about it.`
       }
     ]
 

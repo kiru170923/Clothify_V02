@@ -32,7 +32,7 @@ export default function GarmentSelectionModal({
       onSelectFromDevice(file)
       onClose()
     } else {
-      toast.error('Please select an image file.')
+      toast.error('Vui lòng chọn file ảnh.')
     }
   }
 

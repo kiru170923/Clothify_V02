@@ -7,13 +7,13 @@ export async function GET(request: NextRequest) {
     const taskId = searchParams.get('taskId')
 
     if (!taskId) {
-      return NextResponse.json({ error: 'Missing taskId' }, { status: 400 })
+      return NextResponse.json({ error: 'Thiếu taskId' }, { status: 400 })
     }
 
     const rawKey = process.env.KIEAI_API_KEY ?? ''
     const apiKey = rawKey.trim()
     if (!apiKey) {
-      return NextResponse.json({ error: 'KIE.AI API key missing' }, { status: 500 })
+      return NextResponse.json({ error: 'Thiếu API key KIE.AI' }, { status: 500 })
     }
 
     const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!statusResponse.ok) {
-      return NextResponse.json({ error: 'Status fetch failed' }, { status: 502 })
+      return NextResponse.json({ error: 'Lấy trạng thái thất bại' }, { status: 502 })
     }
 
     const statusData = await statusResponse.json()
@@ -55,12 +55,24 @@ export async function GET(request: NextRequest) {
             if (!authError && user) {
               console.log('💾 Saving try-on result to history for user:', user.id)
               
+              // Get original request data from task_metadata table
+              const { data: taskMetadata } = await supabaseAdmin
+                .from('task_metadata')
+                .select('*')
+                .eq('task_id', taskId)
+                .eq('user_id', user.id)
+                .maybeSingle()
+              
+              console.log('📋 Task metadata found:', taskMetadata)
+              
               // Save to images table for history
               const { data: savedImage, error: saveError } = await supabaseAdmin
                 .from('images')
                 .insert({
                   user_id: user.id,
                   task_id: taskId,
+                  person_image_url: taskMetadata?.person_image_url || 'N/A',
+                  clothing_image_url: taskMetadata?.clothing_image_url || 'N/A', 
                   result_image_url: resultImageUrl,
                   status: 'completed',
                   provider: 'kieai',
@@ -72,8 +84,12 @@ export async function GET(request: NextRequest) {
 
               if (saveError) {
                 console.error('❌ Error saving to history:', saveError)
+                console.error('❌ Save error details:', JSON.stringify(saveError, null, 2))
+                console.error('❌ Task metadata used:', JSON.stringify(taskMetadata, null, 2))
+                console.error('❌ User ID:', user.id)
               } else {
-                console.log('✅ Saved to history:', savedImage.id)
+                console.log('✅ Saved to history:', savedImage?.id)
+                console.log('✅ Saved image data:', JSON.stringify(savedImage, null, 2))
               }
             }
           }
@@ -96,7 +112,7 @@ export async function GET(request: NextRequest) {
             if (!authError && user && resultImageUrl) {
               console.log('💾 Saving try-on result to history (fallback) for user:', user.id)
               
-              await supabaseAdmin
+              const { error: fallbackSaveError } = await supabaseAdmin
                 .from('images')
                 .insert({
                   user_id: user.id,
@@ -107,6 +123,12 @@ export async function GET(request: NextRequest) {
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
                 })
+              
+              if (fallbackSaveError) {
+                console.error('❌ Fallback save error:', JSON.stringify(fallbackSaveError, null, 2))
+              } else {
+                console.log('✅ Fallback save successful')
+              }
             }
           }
         } catch (historyError) {
@@ -118,11 +140,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (state === 'fail' || state === 'failed' || state === 'error') {
-      return NextResponse.json({ state: 'failed', message: statusData.data?.failMsg || 'Generation failed' }, { status: 200 })
+      return NextResponse.json({ state: 'failed', message: statusData.data?.failMsg || 'Tạo ảnh thất bại' }, { status: 200 })
     }
 
     return NextResponse.json({ state: 'processing' }, { status: 200 })
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Lỗi hệ thống' }, { status: 500 })
   }
 }

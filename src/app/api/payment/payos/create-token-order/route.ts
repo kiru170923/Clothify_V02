@@ -17,7 +17,15 @@ export async function POST(request: NextRequest) {
     // Server-side price to avoid client tampering
     const PRICE_PER_TOKEN = 500
     const MIN_TOKENS = 30
-    const normalizedTokens = Math.max(MIN_TOKENS, parseInt(tokens))
+    const MAX_TOKENS = 1000 // Prevent excessive purchases
+    
+    // Validate tokens input
+    const parsedTokens = parseInt(tokens)
+    if (isNaN(parsedTokens) || parsedTokens < MIN_TOKENS || parsedTokens > MAX_TOKENS) {
+      return NextResponse.json({ error: 'Số lượng tokens không hợp lệ' }, { status: 400 })
+    }
+    
+    const normalizedTokens = parsedTokens
     const amount = normalizedTokens * PRICE_PER_TOKEN
 
     // Táº¡o orderId riÃªng cho token
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
     })
     if (error) {
       console.error('save token order error:', error)
-      return NextResponse.json({ error: 'KhÃ´ng lÆ°u Ä‘Æ°á»£c Ä‘Æ¡n hÃ ng. Vui lÃ²ng thá»­ láº¡i.' }, { status: 500 })
+      return NextResponse.json({ error: 'Không lưu được đơn hàng. Vui lòng thử lại.' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, paymentUrl: paymentResponse.checkoutUrl, orderId, orderCode: paymentResponse.orderCode })

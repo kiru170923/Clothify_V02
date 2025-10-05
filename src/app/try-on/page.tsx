@@ -164,7 +164,7 @@ function TryOnPageContent() {
       localStorage.removeItem('try-on-result-image')
     }
     
-    toast.success('All images cleared', {
+    toast.success('Đã xóa tất cả ảnh', {
       duration: 2000,
       icon: '🗑️',
       style: {

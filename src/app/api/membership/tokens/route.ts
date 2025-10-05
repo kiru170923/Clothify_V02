@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     const { tokensToUse, description, imageId } = await request.json()
 
-    if (!tokensToUse || tokensToUse <= 0) {
+    if (!tokensToUse || tokensToUse <= 0 || !Number.isInteger(tokensToUse)) {
       return NextResponse.json({ error: 'Invalid tokens amount' }, { status: 400 })
     }
 

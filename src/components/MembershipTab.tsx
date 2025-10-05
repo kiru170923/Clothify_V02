@@ -8,6 +8,7 @@ import { MembershipPlan, MEMBERSHIP_PLANS } from '../types/membership'
 import { useSupabase } from './SupabaseProvider'
 import toast from 'react-hot-toast'
 import { useMembership } from '../hooks/useMembership'
+import TestMembership from './TestMembership'
 
 export default function MembershipTab() {
   const { user } = useSupabase()
@@ -44,7 +45,7 @@ export default function MembershipTab() {
 
   const handleSelectPlan = async (plan: MembershipPlan, cycle: 'monthly' | 'yearly') => {
     if (!user) {
-      toast.error('Please log in to select a membership plan')
+      toast.error('Vui lòng đăng nhập để chọn gói thành viên')
       return
     }
 
@@ -70,12 +71,12 @@ export default function MembershipTab() {
         // Chuyển hướng đến PayOS
         window.location.href = data.paymentUrl
       } else {
-        throw new Error(data.error || 'Error occurred when creating payment')
+        throw new Error(data.error || 'Có lỗi xảy ra khi tạo thanh toán')
       }
       
     } catch (error) {
       console.error('Error selecting plan:', error)
-      toast.error(error instanceof Error ? error.message : 'Error occurred when selecting plan. Please try again.')
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi chọn gói. Vui lòng thử lại.')
     } finally {
       setLoadingPlanId(null)
     }
@@ -86,7 +87,7 @@ export default function MembershipTab() {
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
-          <p className="text-amber-600">Loading membership plans...</p>
+          <p className="text-amber-600">Đang tải gói thành viên...</p>
         </div>
       </div>
     )
@@ -158,6 +159,11 @@ export default function MembershipTab() {
             loadingMembership={loadingMembership}
           />
         ))}
+      </div>
+
+      {/* Test Component - Remove in production */}
+      <div className="mt-8">
+        <TestMembership />
       </div>
     </div>
   )

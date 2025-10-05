@@ -101,7 +101,7 @@ export const HistoryTab = React.memo(function HistoryTab() {
     
     try {
       await deleteHistoryMutation.mutateAsync(id)
-      toast.success('Deleted successfully!')
+      toast.success('Xóa thành công!')
     } catch (error) {
       // Rollback on error
       queryClient.setQueryData(['history'], previousData)

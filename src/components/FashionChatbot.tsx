@@ -20,6 +20,11 @@ import {
   PaperAirplaneIcon,
   SparklesIcon,
   TrashIcon,
+  MicrophoneIcon,
+  UserIcon,
+  QuestionMarkCircleIcon,
+  ChartBarIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
@@ -32,6 +37,30 @@ import { personalizationEngine } from '../lib/personalizationEngine'
 // Removed emotional intelligence for core functionality focus
 import { advancedFilteringEngine, createAdvancedFilters } from '../lib/advancedFiltering'
 import { ProductCard } from './ProductCard'
+import MessageBubble from './ui/MessageBubble'
+import TypingIndicator, { TypingIndicatorVariant } from './ui/TypingIndicator'
+import ChatInput from './ui/ChatInput'
+import ProductCarousel from './ui/ProductCarousel'
+import ChatHeader from './ui/ChatHeader'
+import MobileChatInput from './ui/MobileChatInput'
+import MobileMessageBubble from './ui/MobileMessageBubble'
+import { PullToRefresh, BottomSheet, useCompactMode } from './ui/MobileGestures'
+import { 
+  SmoothScrollToBottom, 
+  ReadReceipt,
+  MessageStatus,
+  NotificationToast,
+  PulseAnimation
+} from './ui/MicroInteractions'
+
+// Phase 4 Advanced Features
+import { useConversationState, ConversationState, UserIntent } from '../lib/conversationStateMachine'
+import { useSmartFollowUp, FollowUpContext } from '../lib/smartFollowUp'
+import { useAdvancedNLU } from '../lib/advancedNLU'
+import { useStyleAnalysis, StyleProfile } from '../lib/styleAnalysisEngine'
+import VoiceCommands from './ui/VoiceCommands'
+import StyleQuiz from './ui/StyleQuiz'
+import AnalyticsDashboard from './ui/AnalyticsDashboard'
 
 type ChatActionKind = 'quick-text' | 'service' | 'link'
 
@@ -171,6 +200,38 @@ export default function FashionChatbot() {
     clearContext
   } = useConversationMemory()
 
+  // Phase 4: Advanced Features
+  const {
+    currentState,
+    context: stateContext,
+    transition,
+    updateCollectedInfo,
+    updateUserProfile,
+    getStateDescription,
+    getSuggestedActions
+  } = useConversationState()
+
+  const {
+    analyzeMissingInfo,
+    generateFollowUpQuestions,
+    generateFollowUpMessage,
+    generateQuickActions,
+    processResponse,
+    getCompletionPercentage
+  } = useSmartFollowUp()
+
+
+  const {
+    analyzeText,
+    extractEntitiesAdvanced
+  } = useAdvancedNLU()
+
+  const {
+    analyzeStyleProfile,
+    analyzeOutfit,
+    generateStyleRecommendations
+  } = useStyleAnalysis()
+
   const createAction = (partial: Omit<ChatAction, 'id'>): ChatAction => ({
     id: generateMessageId(),
     ...partial,
@@ -205,6 +266,38 @@ export default function FashionChatbot() {
 
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Phase 4: Advanced Features State
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false)
+  const [activeFeature, setActiveFeature] = useState<'voice' | 'quiz' | 'analytics' | null>(null)
+  const [followUpContext, setFollowUpContext] = useState<FollowUpContext>({
+    missingInfo: [],
+    conversationFlow: [],
+    userResponses: {},
+    currentTopic: '',
+    urgency: 'low'
+  })
+
+  // Separate effect for follow-up context updates
+  useEffect(() => {
+    // Update follow-up context when conversation changes
+    const missingInfo = analyzeMissingInfo(followUpContext)
+    if (missingInfo.length !== followUpContext.missingInfo.length) {
+      setFollowUpContext(prev => ({
+        ...prev,
+        missingInfo
+      }))
+    }
+  }, [followUpContext.conversationFlow.length, Object.keys(followUpContext.userResponses).length, followUpContext.currentTopic])
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info' | 'warning'>('info')
+  const [showBottomSheet, setShowBottomSheet] = useState(false)
+  const [bottomSheetContent, setBottomSheetContent] = useState<React.ReactNode>(null)
+  const [bottomSheetTitle, setBottomSheetTitle] = useState('')
+  
+  // Mobile optimizations
+  const isCompact = useCompactMode()
   const [pendingClarify, setPendingClarify] = useState<
     | null
     | { type: 'price' | 'color' | 'size' | 'occasion' | 'season' | 'material'; originalQuery?: string; entities?: any }
@@ -372,6 +465,76 @@ export default function FashionChatbot() {
     setMessages((prev) => [...prev, message])
     return message
   }
+
+  // Phase 4: Advanced Feature Handlers
+  const handleAdvancedFeature = (feature: 'voice' | 'quiz' | 'analytics') => {
+    setActiveFeature(feature)
+    setShowAdvancedFeatures(true)
+  }
+
+  const handleVoiceCommand = (command: any) => {
+    console.log('Voice command executed:', command)
+    // Process voice command and update conversation
+    if (command.type === 'search') {
+      setInputValue(command.data.query || '')
+      handleSubmit({ preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent)
+    } else if (command.type === 'advice') {
+      setInputValue('Tư vấn phong cách')
+      handleSubmit({ preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent)
+    }
+  }
+
+
+
+  const handleStyleQuizComplete = (result: any) => {
+    console.log('Style quiz completed:', result)
+    
+    // Create a comprehensive quiz result message
+    const quizSummary = `
+🎯 **Kết quả trắc nghiệm phong cách:**
+
+**Phong cách của bạn:** ${result.stylePersonality}
+**Độ tin cậy:** ${Math.round(result.confidence * 100)}%
+
+**Đặc điểm phong cách:**
+${result.styleTraits.map((trait: any) => `• ${trait.trait}: ${trait.description}`).join('\n')}
+
+**Màu sắc phù hợp:** ${result.colorPalette.primary.join(', ')}
+
+**Thương hiệu gợi ý:** ${result.brandSuggestions.map((brand: any) => brand.brand).join(', ')}
+
+Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của bạn! Bạn có muốn xem chi tiết không? 😊
+    `.trim()
+
+    const botMessage: Message = {
+      id: generateMessageId(),
+      type: 'bot',
+      content: quizSummary,
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, botMessage])
+    
+    // Close the advanced features modal
+    setShowAdvancedFeatures(false)
+    setActiveFeature(null)
+    
+    // Add follow-up suggestions
+    setTimeout(() => {
+      const followUpMessage: Message = {
+        id: generateMessageId(),
+        type: 'bot',
+        content: 'Bạn có muốn tôi tìm thêm sản phẩm phù hợp với phong cách này không? Hoặc bạn có câu hỏi gì về phong cách thời trang?',
+        timestamp: new Date(),
+        actions: [
+          createAction({ label: 'Tìm sản phẩm phù hợp', kind: 'service', value: 'search-products' }),
+          createAction({ label: 'Tư vấn phong cách', kind: 'service', value: 'style-advice' }),
+          createAction({ label: 'Làm lại trắc nghiệm', kind: 'service', value: 'retake-quiz' })
+        ]
+      }
+      setMessages(prev => [...prev, followUpMessage])
+    }, 1000)
+  }
+
 
   const handleActionClick = (action: ChatAction) => {
     if (!action) return
@@ -1276,6 +1439,35 @@ export default function FashionChatbot() {
     e.preventDefault()
     e.stopPropagation() // Prevent event bubbling
 
+    // Phase 4: Advanced NLU Processing
+    if (inputValue.trim()) {
+      try {
+        const nluResult = await analyzeText(inputValue)
+        console.log('Advanced NLU Result:', nluResult)
+        
+        // Update conversation state based on intent
+        const intent = nluResult.intent as UserIntent
+        transition(intent, nluResult.entities)
+        
+        // Update follow-up context
+        setFollowUpContext(prev => ({
+          ...prev,
+          currentTopic: nluResult.context.topic,
+          urgency: nluResult.context.urgency,
+          conversationFlow: [...prev.conversationFlow, inputValue]
+        }))
+        
+        // Process response for follow-up system
+        if (nluResult.followUpQuestions.length > 0) {
+          // Store follow-up questions for later use
+          console.log('Follow-up questions:', nluResult.followUpQuestions)
+        }
+        
+      } catch (error) {
+        console.error('Advanced NLU processing failed:', error)
+      }
+    }
+
     if ((!inputValue.trim() && !selectedImage) || isLoading) return
 
     if (isLoading || isSubmittingRef.current) return
@@ -1678,50 +1870,45 @@ export default function FashionChatbot() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
       <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white/80 backdrop-blur-sm">
       {/* Sticky Clear Conversation Button */}
       {messages.length > 1 && (
         <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.2 }}
-          whileHover={{ scale: 1.05 }}
+          initial={{ opacity: 0, scale: 0.9, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: -10 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          whileHover={{ 
+            scale: 1.05,
+            boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)"
+          }}
           whileTap={{ scale: 0.95 }}
           onClick={clearConversation}
-          className="fixed top-16 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors"
+          className="fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-red-400/20"
           title="Xóa hội thoại"
         >
+          <motion.div
+            animate={{ rotate: [0, -10, 10, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+        >
           <TrashIcon className="w-4 h-4" />
-          <span className="text-sm font-medium hidden sm:inline">Xóa hội thoại</span>
+          </motion.div>
+          <span className="text-sm font-semibold hidden sm:inline">Xóa hội thoại</span>
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-400/20 to-red-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300" />
         </motion.button>
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-40 flex items-center justify-between p-4 border-b border-amber-200 bg-white/90 backdrop-blur-sm shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full flex items-center justify-center shadow-md">
-            <SparklesIcon className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold bg-gradient-to-r from-amber-700 to-yellow-700 bg-clip-text text-transparent">Cố vấn thời trang nam AI</h2>
-            <p className="text-sm text-gray-600">Trợ lý thời trang nam thông minh</p>
-          </div>
-        </div>
-        <div className="ml-4 flex gap-2">
-          <button 
-            onClick={forceReloadData} 
-            className="px-3 py-2 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-full text-sm font-semibold hover:from-blue-500 hover:to-blue-600 transition-all shadow-md"
-            title="Tải lại dữ liệu từ DB"
-          >
-            🔄
-          </button>
-          <button onClick={requestRecommendations} className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 rounded-full text-sm font-semibold hover:from-amber-500 hover:to-yellow-500 transition-all shadow-md">
-            Gợi ý cho tôi
-          </button>
-        </div>
-      </div>
+      <ChatHeader
+        onClearConversation={clearConversation}
+        onRefreshData={forceReloadData}
+        onRequestRecommendations={requestRecommendations}
+        isLoading={isLoading}
+        messageCount={messages.length}
+        isOnline={true}
+      />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -1733,8 +1920,51 @@ export default function FashionChatbot() {
               initial={index >= messages.length - 3 ? { opacity: 0, y: 8 } : false}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className={`flex items-end gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
+              {isCompact ? (
+                <MobileMessageBubble
+                  message={message}
+                  onActionClick={handleActionClick}
+                  onImageClick={(url, alt) => {
+                    setBottomSheetTitle('Xem ảnh')
+                    setBottomSheetContent(
+                      <div className="p-4">
+                        <img src={url} alt={alt} className="w-full h-auto rounded-lg" />
+                      </div>
+                    )
+                    setShowBottomSheet(true)
+                  }}
+                  onDelete={() => {
+                    // TODO: Implement message deletion
+                    console.log('Delete message:', message.id)
+                  }}
+                >
+                  {/* Product Carousel */}
+                  {message.productList && message.productList.length > 0 && (
+                    <div className="mt-3">
+                      <ProductCarousel
+                        products={message.productList}
+                        onTryOn={handleTryOnApi}
+                        onBuy={(url) => window.open(url, '_blank')}
+                        onImageClick={(url, alt) => {
+                          setBottomSheetTitle('Xem sản phẩm')
+                          setBottomSheetContent(
+                            <div className="p-4">
+                              <img src={url} alt={alt} className="w-full h-auto rounded-lg" />
+                            </div>
+                          )
+                          setShowBottomSheet(true)
+                        }}
+                        tryOnLoading={tryOnLoading}
+                        tryOnResults={tryOnResults}
+                        title="Sản phẩm gợi ý"
+                        maxItems={2}
+                      />
+                    </div>
+                  )}
+                </MobileMessageBubble>
+              ) : (
+                <div className={`flex items-end gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
               {/* Avatar */}
               {message.type !== 'user' && (
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-xs shadow-md">
@@ -1779,7 +2009,19 @@ export default function FashionChatbot() {
                         alt="Uploaded"
                         className="max-w-full h-auto rounded-lg border border-white/20 cursor-pointer hover:opacity-80 transition-opacity"
                         style={{ maxHeight: '200px', objectFit: 'cover' }}
-                        onClick={() => setShowImageModal({ url: message.image!, alt: 'Ảnh đã tải lên' })}
+                            onClick={() => {
+                              if (isCompact) {
+                                setBottomSheetTitle('Xem ảnh')
+                                setBottomSheetContent(
+                                  <div className="p-4">
+                                    <img src={message.image!} alt="Ảnh đã tải lên" className="w-full h-auto rounded-lg" />
+                                  </div>
+                                )
+                                setShowBottomSheet(true)
+                              } else {
+                                setShowImageModal({ url: message.image!, alt: 'Ảnh đã tải lên' })
+                              }
+                            }}
                       />
                     </div>
                   )}
@@ -1806,7 +2048,19 @@ export default function FashionChatbot() {
                       onTryOn={handleTryOnApi}
                       tryOnLoading={tryOnLoading}
                       tryOnResults={tryOnResults}
-                      onImageClick={(url, alt) => setShowImageModal({ url, alt })}
+                      onImageClick={(url, alt) => {
+                        if (isCompact) {
+                          setBottomSheetTitle('Xem sản phẩm')
+                          setBottomSheetContent(
+                            <div className="p-4">
+                              <img src={url} alt={alt} className="w-full h-auto rounded-lg" />
+                            </div>
+                          )
+                          setShowBottomSheet(true)
+                        } else {
+                          setShowImageModal({ url, alt })
+                        }
+                      }}
                       onBuy={(url) => window.open(url, '_blank')}
                     />
                     {/* AI Try-on button */}
@@ -1835,42 +2089,39 @@ export default function FashionChatbot() {
                       </div>
                 )}
 
-                {/* Product Grid */}
+                {/* Product Carousel */}
                 {message.productList && message.productList.length > 0 && (
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {message.productList.map((p, idx) => (
-                      <div key={`${p.id}-${idx}`} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                        {p.images && p.images[0] && (
-                          <img src={p.images[0]} alt={p.name} className="w-full h-36 object-cover" />
-                        )}
-                        <div className="p-3 space-y-2">
-                          <div className="min-h-[36px]">
-                            <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{p.name}</h3>
+                  <div className="mt-3">
+                    <ProductCarousel
+                      products={message.productList}
+                      onTryOn={handleTryOnApi}
+                      onBuy={(url) => window.open(url, '_blank')}
+                      onImageClick={(url, alt) => {
+                        if (isCompact) {
+                          setBottomSheetTitle('Xem sản phẩm')
+                          setBottomSheetContent(
+                            <div className="p-4">
+                              <img src={url} alt={alt} className="w-full h-auto rounded-lg" />
                           </div>
-                          <p className="text-sm font-semibold text-red-600">{formatPrice(p.price)}</p>
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => handleTryOnApi(p.images?.[0] || '')} 
-                              disabled={tryOnLoading === p.images?.[0]}
-                              className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white py-1.5 px-3 rounded-lg text-xs font-medium transition-all"
-                            >
-                              Thử ngay
-                            </button>
-                            {p.productUrl && (
-                              <button onClick={() => window.open(p.productUrl!, '_blank')} className="flex-1 border border-gray-300 text-gray-800 py-1.5 px-3 rounded-lg text-xs font-medium hover:bg-gray-100 transition-all">
-                                Mua ngay
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                          )
+                          setShowBottomSheet(true)
+                        } else {
+                          setShowImageModal({ url, alt })
+                        }
+                      }}
+                      tryOnLoading={tryOnLoading}
+                      tryOnResults={tryOnResults}
+                      title="Sản phẩm gợi ý"
+                      maxItems={3}
+                    />
                   </div>
                 )}
               </div>
               {/* Avatar placeholder on the right for user */}
               {message.type === 'user' && (
                 <div className="w-7 h-7 rounded-full bg-gray-900/90 text-white flex items-center justify-center text-[10px] shadow">Bạn</div>
+                  )}
+                </div>
               )}
             </motion.div>
           ))}
@@ -1878,99 +2129,82 @@ export default function FashionChatbot() {
 
         {/* Loading indicator */}
         {isLoading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                </div>
-                <span className="text-sm text-gray-600">{selectedImage ? 'Đang phân tích ảnh...' : 'AI đang suy nghĩ...'}</span>
-              </div>
-            </div>
-          </motion.div>
+          <TypingIndicatorVariant 
+            type={selectedImage ? 'analyzing' : 'thinking'}
+            isVisible={isLoading}
+          />
         )}
 
         <div ref={messagesEndRef} />
-      </div>
+        
+        {/* Smooth scroll to bottom */}
+        <SmoothScrollToBottom 
+          messagesEndRef={messagesEndRef} 
+          shouldScroll={messages.length > 0} 
+        />
+              </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-amber-200 bg-white/90 backdrop-blur-sm">
-        {/* Image preview */}
-        {imagePreview && (
-          <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              <img src={imagePreview || ''} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{selectedImage?.name}</p>
-                <p className="text-xs text-gray-500">{(((selectedImage?.size ?? 0) / 1024 / 1024) as number).toFixed(1)} MB</p>
-              </div>
-              <button onClick={removeImage} className="p-1 text-gray-400 hover:text-red-500">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <div className="flex-1 relative">
-            <input
-              type="text"
+      {isCompact ? (
+        <MobileChatInput
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+          onChange={setInputValue}
+          onSubmit={(message) => {
+            setInputValue(message)
+            handleSubmit({ preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent)
+          }}
+          onImageSelect={(file) => {
+            if (file) {
+              setSelectedImage(file)
+              const reader = new FileReader()
+              reader.onloadend = () => {
+                setImagePreview(reader.result as string)
+              }
+              reader.readAsDataURL(file)
+            }
+          }}
+          isLoading={isLoading}
+          placeholder="Nhập tin nhắn..."
+          selectedImage={selectedImage}
+          onRemoveImage={removeImage}
+          suggestions={[
+            'Gợi ý outfit công sở thoáng mát',
+            'Phân tích giúp mình chiếc áo polo này',
+            'Set đồ đi chơi cuối tuần'
+          ]}
+          onSuggestionClick={(suggestion) => setInputValue(suggestion)}
+        />
+      ) : (
+        <ChatInput
+          value={inputValue}
+          onChange={setInputValue}
+          onSubmit={(message) => {
+            setInputValue(message)
+            handleSubmit({ preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent)
+          }}
+          onImageSelect={(file) => {
+            if (file) {
+              setSelectedImage(file)
+              const reader = new FileReader()
+              reader.onloadend = () => {
+                setImagePreview(reader.result as string)
+              }
+              reader.readAsDataURL(file)
+            }
+          }}
+          isLoading={isLoading}
               placeholder="Nhập câu hỏi thời trang nam hoặc tải ảnh trang phục để phân tích..."
-              className="w-full px-4 py-3 pr-12 border border-amber-300 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              disabled={isLoading}
-              ref={inputRef}
-            />
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+          selectedImage={selectedImage}
+          onRemoveImage={removeImage}
+          suggestions={[
+            'Gợi ý outfit công sở thoáng mát',
+            'Phân tích giúp mình chiếc áo polo này',
+            'Set đồ đi chơi cuối tuần'
+          ]}
+          onSuggestionClick={(suggestion) => setInputValue(suggestion)}
+        />
+      )}
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-amber-500 transition-colors"
-              disabled={isLoading}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </div>
-          <button type="submit" disabled={(!inputValue.trim() && !selectedImage) || isLoading} className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">
-            <PaperAirplaneIcon className="w-5 h-5" />
-          </button>
-        </form>
-
-        {/* Example prompts */}
-        <div className="mt-3">
-          <p className="text-xs text-gray-500 mb-2">Gợi ý cho bạn:</p>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {['Gợi ý outfit công sở thoáng mát', 'Phân tích giúp mình chiếc áo polo này', 'Set đồ đi chơi cuối tuần'].map((suggestion) => (
-              <button key={suggestion} onClick={() => setInputValue(suggestion)} className="text-xs text-amber-600 hover:text-amber-800 underline">
-                {suggestion}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-xs text-gray-500 mb-2">Tìm nhanh sản phẩm:</p>
-          <div className="flex flex-wrap gap-2">
-            {['quần jeans slimfit dưới 700k', 'áo polo xanh navy đi làm', 'áo sơ mi trắng form rộng'].map((suggestion) => (
-              <button
-                key={suggestion}
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleQuickSearch(suggestion)
-                }}
-                className="text-xs px-3 py-1 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
 
           {/* Clarify UI when pending */}
           {pendingClarify && (
@@ -2046,7 +2280,6 @@ export default function FashionChatbot() {
               )}
             </div>
           )}
-        </div>
       </div>
       </div>
 
@@ -2070,6 +2303,124 @@ export default function FashionChatbot() {
           </div>
         </div>
       )}
+
+      {/* Micro-interactions */}
+      
+      <NotificationToast
+        message={notificationMessage}
+        type={notificationType}
+        isVisible={showNotification}
+        onClose={() => setShowNotification(false)}
+      />
+
+      {/* Bottom Sheet for Mobile */}
+      <BottomSheet
+        isOpen={showBottomSheet}
+        onClose={() => setShowBottomSheet(false)}
+        title={bottomSheetTitle}
+        height="70vh"
+      >
+        {bottomSheetContent}
+      </BottomSheet>
+
+      {/* Phase 4: Advanced Features Panel */}
+      <AnimatePresence>
+        {showAdvancedFeatures && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {activeFeature === 'voice' && 'Lệnh giọng nói'}
+                  {activeFeature === 'quiz' && 'Trắc nghiệm phong cách'}
+                  {activeFeature === 'analytics' && 'Analytics Dashboard'}
+                </h2>
+                <button
+                  onClick={() => setShowAdvancedFeatures(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5 text-gray-500" />
+                </button>
     </div>
+
+              {/* Content */}
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                {activeFeature === 'voice' && (
+                  <VoiceCommands
+                    onCommandExecuted={handleVoiceCommand}
+                    onVoiceInput={(text) => {
+                      setInputValue(text)
+                      handleSubmit({ preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent)
+                    }}
+                  />
+                )}
+                
+                
+                {activeFeature === 'quiz' && (
+                  <StyleQuiz
+                    onComplete={handleStyleQuizComplete}
+                    onClose={() => setShowAdvancedFeatures(false)}
+                  />
+                )}
+                
+                {activeFeature === 'analytics' && (
+                  <AnalyticsDashboard
+                    onWidgetClick={(widgetId) => console.log('Widget clicked:', widgetId)}
+                    onAlertClick={(alertId) => console.log('Alert clicked:', alertId)}
+                  />
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
+      {/* Phase 4: Advanced Features Quick Access */}
+      <div className="fixed bottom-4 right-4 z-30">
+        <div className="flex flex-col gap-2">
+          <motion.button
+            onClick={() => handleAdvancedFeature('voice')}
+            className="p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            title="Lệnh giọng nói"
+          >
+            <MicrophoneIcon className="w-5 h-5" />
+          </motion.button>
+          
+          
+          <motion.button
+            onClick={() => handleAdvancedFeature('quiz')}
+            className="p-3 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            title="Trắc nghiệm phong cách"
+          >
+            <QuestionMarkCircleIcon className="w-5 h-5" />
+          </motion.button>
+          
+          <motion.button
+            onClick={() => handleAdvancedFeature('analytics')}
+            className="p-3 bg-gray-500 text-white rounded-full shadow-lg hover:bg-gray-600 transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            title="Analytics Dashboard"
+          >
+            <ChartBarIcon className="w-5 h-5" />
+          </motion.button>
+        </div>
+      </div>
+    </>
   )
 }

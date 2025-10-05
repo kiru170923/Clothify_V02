@@ -8,11 +8,13 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-signature')
 
     if (!signature) {
+      console.error('Missing webhook signature')
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
     }
 
-    // XÃ¡c thá»±c webhook
+    // Xác thực webhook
     if (!verifyPayOSWebhook(body, signature)) {
+      console.error('Invalid webhook signature:', signature)
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
@@ -24,12 +26,12 @@ export async function POST(request: NextRequest) {
     console.log('- Status:', status)
 
     if (status === 'PAID') {
-      // Láº¥y thÃ´ng tin payment chi tiáº¿t
+      // Lấy thông tin payment chi tiết
       const paymentInfo = await getPayOSPaymentInfo(orderCode)
 
       if (paymentInfo.code === '00' && paymentInfo.data.code === '00') {
-        // Thanh toÃ¡n thÃ nh cÃ´ng
-        // 1) TÃ¬m payment order
+        // Thanh toán thành công
+        // 1) Tìm payment order
         const { data: order } = await supabaseAdmin
           .from('payment_orders')
           .select('*')
@@ -41,21 +43,21 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: true })
         }
 
-        // 2) Náº¿u Ä‘Ã£ completed thÃ¬ bá» qua
+        // 2) Kiểm tra trùng lặp - nếu đã completed thì bỏ qua
         if (order.status === 'completed') {
+          console.log('Order already completed:', orderCode)
           return NextResponse.json({ success: true })
         }
 
-        // 3) Cáº­p nháº­t tráº¡ng thÃ¡i
-        await supabaseAdmin
-          .from('payment_orders')
-          .update({ status: 'completed' })
-          .eq('id', order.id)
+        // 3) Sử dụng transaction để đảm bảo atomicity
+        const { error: transactionError } = await supabaseAdmin.rpc('process_payment_completion', {
+          p_order_id: order.id,
+          p_order_code: orderCode.toString()
+        })
 
-        // 4) Náº¿u lÃ  Ä‘Æ¡n mua tokens -> cá»™ng token
-        if (order.tokens_to_add && order.user_id) {
-          // TÄƒng total_tokens cho user
-          await supabaseAdmin.rpc('increment_user_tokens', { p_user_id: order.user_id, p_tokens: order.tokens_to_add })
+        if (transactionError) {
+          console.error('Transaction error:', transactionError)
+          return NextResponse.json({ error: 'Transaction failed' }, { status: 500 })
         }
 
         console.log('Payment completed successfully:', paymentInfo.data)
@@ -70,4 +72,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
