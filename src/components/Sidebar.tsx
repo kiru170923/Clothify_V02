@@ -11,7 +11,8 @@ import {
   SparklesIcon,
   CameraIcon,
   SwatchIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -21,7 +22,8 @@ import {
   Cog6ToothIcon as Cog6ToothIconSolid,
   CameraIcon as CameraIconSolid,
   SwatchIcon as SwatchIconSolid,
-  CreditCardIcon as CreditCardIconSolid
+  CreditCardIcon as CreditCardIconSolid,
+  ShieldCheckIcon as ShieldCheckIconSolid
 } from '@heroicons/react/24/solid'
 import React from 'react'
 import { useSidebar } from './SidebarProvider'
@@ -62,6 +64,12 @@ const menuItems = [
     icon: UserIcon,
     iconActive: UserIconSolid,
     label: 'Profile'
+  },
+  {
+    id: '/admin',
+    icon: ShieldCheckIcon,
+    iconActive: ShieldCheckIconSolid,
+    label: 'Admin'
   }
 ]
 
