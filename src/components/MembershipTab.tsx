@@ -8,7 +8,6 @@ import { MembershipPlan, MEMBERSHIP_PLANS } from '../types/membership'
 import { useSupabase } from './SupabaseProvider'
 import toast from 'react-hot-toast'
 import { useMembership } from '../hooks/useMembership'
-import TestMembership from './TestMembership'
 
 export default function MembershipTab() {
   const { user } = useSupabase()
@@ -161,10 +160,6 @@ export default function MembershipTab() {
         ))}
       </div>
 
-      {/* Test Component - Remove in production */}
-      <div className="mt-8">
-        <TestMembership />
-      </div>
     </div>
   )
 }

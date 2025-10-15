@@ -4,9 +4,9 @@ import './globals.css'
 import { SupabaseProvider } from '@/components/SupabaseProvider'
 import { QueryProvider } from '@/components/QueryProvider'
 import { SidebarProvider } from '@/components/SidebarProvider'
+import ChatbotProvider from '@/components/ChatbotProvider'
 // import AuthGuard from '@/components/AuthGuard'
 // import NotificationProvider from '@/components/NotificationProvider'
-// import SimpleChatbotProvider from '../components/SimpleChatbotProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -39,7 +39,9 @@ export default function RootLayout({
         <QueryProvider>
           <SupabaseProvider>
             <SidebarProvider>
-              {children}
+              <ChatbotProvider>
+                {children}
+              </ChatbotProvider>
             </SidebarProvider>
           </SupabaseProvider>
         </QueryProvider>

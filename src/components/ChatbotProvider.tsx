@@ -30,15 +30,18 @@ export default function ChatbotProvider({ children }: ChatbotProviderProps) {
   const openChatbot = () => setIsOpen(true)
   const closeChatbot = () => setIsOpen(false)
 
+  // Hide chatbot on admin page
+  const isAdminPage = typeof window !== 'undefined' && window.location.pathname === '/admin'
+
   return (
     <ChatbotContext.Provider value={{ isOpen, openChatbot, closeChatbot }}>
       {children}
       
-      {/* Sticky Logo - hiển thị ở mọi trang */}
-      <StickyLogo onClick={openChatbot} />
+      {/* Sticky Logo - hiển thị ở mọi trang trừ admin */}
+      {!isAdminPage && <StickyLogo onClick={openChatbot} />}
       
       {/* Chatbot Popup */}
-      {isOpen && (
+      {isOpen && !isAdminPage && (
         <div className="fixed inset-0 z-50 bg-black/50 flex p-0">
           <div className="bg-white w-screen h-screen rounded-none shadow-none flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
