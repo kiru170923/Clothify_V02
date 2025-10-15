@@ -5,6 +5,7 @@ import { SupabaseProvider } from '@/components/SupabaseProvider'
 import { QueryProvider } from '@/components/QueryProvider'
 import { SidebarProvider } from '@/components/SidebarProvider'
 import ChatbotProvider from '@/components/ChatbotProvider'
+import { Analytics } from '@vercel/analytics/next'
 // import AuthGuard from '@/components/AuthGuard'
 // import NotificationProvider from '@/components/NotificationProvider'
 
@@ -41,6 +42,7 @@ export default function RootLayout({
             <SidebarProvider>
               <ChatbotProvider>
                 {children}
+                <Analytics />
               </ChatbotProvider>
             </SidebarProvider>
           </SupabaseProvider>
