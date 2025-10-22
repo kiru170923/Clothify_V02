@@ -289,10 +289,6 @@ export default function AdminDashboard() {
                     <span className="text-gray-600">Tỷ lệ thành công</span>
                     <span className="text-black font-semibold">{dashboardData.engagement.successRate.toFixed(1)}%</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Số lượt nhắn chatbot</span>
-                    <span className="text-black font-semibold">{dashboardData.engagement.totalTryOns.toLocaleString()}</span>
-                  </div>
                 </div>
               </div>
             </div>
