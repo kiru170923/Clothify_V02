@@ -113,9 +113,11 @@ export default function PaymentManagement() {
       const dailyRevenue = currentPayments
         .filter(p => {
           const paymentDate = new Date(p.createdAt)
-          const oneDayAgo = new Date()
-          oneDayAgo.setDate(oneDayAgo.getDate() - 1)
-          return p.status === 'completed' && paymentDate >= oneDayAgo
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const paymentDay = new Date(paymentDate)
+          paymentDay.setHours(0, 0, 0, 0)
+          return p.status === 'completed' && paymentDay.getTime() === today.getTime()
         })
         .reduce((sum, p) => sum + p.amount, 0)
 
@@ -123,7 +125,7 @@ export default function PaymentManagement() {
       const completedTransactions = currentPayments.filter(p => p.status === 'completed').length
       const successRate = totalTransactions > 0 ? (completedTransactions / totalTransactions * 100) : 0
 
-      const avgTransactionValue = completedTransactions > 0 ? (totalRevenue / completedTransactions) : 0
+      const avgTransactionValue = completedTransactions > 0 ? Math.round(totalRevenue / completedTransactions) : 0
 
       const pendingAmount = currentPayments
         .filter(p => p.status === 'pending')
@@ -273,12 +275,6 @@ export default function PaymentManagement() {
             <div className="text-sm text-gray-500">Avg Transaction Value</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{formatCurrency(paymentStats.pendingAmount)}</div>
-            <div className="text-sm text-gray-500">Pending Amount</div>
-          </div>
-        </div>
       </div>
 
       {/* Payment List */}
@@ -418,42 +414,6 @@ export default function PaymentManagement() {
             <p className="text-gray-500">No payments found</p>
           </div>
         )}
-      </div>
-
-      {/* Payment Analytics */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Payment Analytics</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-4">Revenue Trend (Last 30 Days)</h4>
-              <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                <p className="text-gray-500">Chart placeholder</p>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-4">Payment Methods</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">PayOS</span>
-                  <span className="text-sm font-medium text-gray-900">85%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Bank Transfer</span>
-                  <span className="text-sm font-medium text-gray-900">15%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '15%' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

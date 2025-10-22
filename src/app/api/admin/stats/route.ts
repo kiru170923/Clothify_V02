@@ -4,6 +4,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 export async function GET(request: NextRequest) {
   try {
     // Get user statistics
+    const { data: authUsersData } = await supabaseAdmin.auth.admin.listUsers()
+    const authUsers = authUsersData?.users || []
+
     const { data: userProfiles } = await supabaseAdmin
       .from('user_profiles')
       .select('user_id, created_at')
@@ -30,14 +33,24 @@ export async function GET(request: NextRequest) {
       .select('user_id, created_at')
 
     // Calculate statistics
-    const totalUsers = userProfiles?.length || 0
+    const totalUsers = authUsers.length
     
+    // Users this week
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    const usersThisWeek = authUsers.filter(user => new Date(user.created_at) > oneWeekAgo).length
+    
+    // Users this month
+    const oneMonthAgo = new Date()
+    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30)
+    const usersThisMonth = authUsers.filter(user => new Date(user.created_at) > oneMonthAgo).length
+
     // Active users (last 30 days)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const activeUsers = userProfiles?.filter(user => 
+    const activeUsers = authUsers.filter(user => 
       new Date(user.created_at) > thirtyDaysAgo
-    ).length || 0
+    ).length
 
     // Premium users - calculate from completed payments (users who have paid)
     const { data: completedPayments } = await supabaseAdmin
@@ -69,15 +82,15 @@ export async function GET(request: NextRequest) {
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
     const currentYear = new Date().getFullYear()
     
-    const currentMonthUsers = userProfiles?.filter(user => {
+    const currentMonthUsers = authUsers.filter(user => {
       const userDate = new Date(user.created_at)
       return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear
-    }).length || 0
+    }).length
 
-    const lastMonthUsers = userProfiles?.filter(user => {
+    const lastMonthUsers = authUsers.filter(user => {
       const userDate = new Date(user.created_at)
       return userDate.getMonth() === lastMonth && userDate.getFullYear() === currentYear
-    }).length || 0
+    }).length
 
     const userGrowthRate = lastMonthUsers > 0 
       ? ((currentMonthUsers - lastMonthUsers) / lastMonthUsers * 100).toFixed(1)
@@ -86,6 +99,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       users: {
         total: totalUsers,
+        thisWeek: usersThisWeek,
+        thisMonth: usersThisMonth,
         active: activeUsers,
         premium: premiumUsers,
         growthRate: userGrowthRate

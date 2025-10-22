@@ -2,412 +2,339 @@
 
 import { useState, useEffect } from 'react'
 import { useSupabase } from '@/components/SupabaseProvider'
-import UserManagement from '@/components/admin/UserManagement'
-import SystemSettings from '@/components/admin/SystemSettings'
-import ActivityMonitoring from '@/components/admin/ActivityMonitoring'
 import PaymentManagement from '@/components/admin/PaymentManagement'
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
-import SecurityAudit from '@/components/admin/SecurityAudit'
+import UserManagement from '@/components/admin/UserManagement'
 import { 
   Users, 
-  Activity, 
+  TrendingUp,
   CreditCard, 
   ShoppingBag, 
-  MessageSquare, 
-  Camera,
-  Settings,
-  BarChart3,
-  Eye,
-  UserCheck,
-  AlertTriangle,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Clock,
-  Database,
-  Shield,
-  Zap,
-  ShieldCheck
+  Activity,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react'
 
-interface UserStats {
-  totalUsers: number
-  activeUsers: number
-  premiumUsers: number
-  totalTokens: number
-  totalRevenue: number
-  monthlyRevenue: number
-  dailyActiveUsers: number
-  conversionRate: number
-  avgSessionDuration: number
-  totalTryOns: number
-  totalChats: number
-  satisfactionRate: number
-}
-
-interface RecentActivity {
-  id: string
-  type: 'try_on' | 'chat' | 'wardrobe' | 'payment'
-  userId: string
-  userEmail: string
-  description: string
-  timestamp: string
+interface DashboardData {
+  users: {
+    totalUsers: number
+    newUsersThisMonth: number
+    activeUsers: number
+    growthRate: number
+  }
+  revenue: {
+    totalRevenue: number
+    monthlyRevenue: number
+    mrr: number
+    revenueGrowth: number
+    avgOrderValue: number
+    totalTransactions: number
+  }
+  engagement: {
+    totalTryOns: number
+    successRate: number
+    totalWardrobeItems: number
+    uniqueUsersWithWardrobe: number
+  }
+  membership: {
+    totalActiveMemberships: number
+    membershipsByPlan: Array<{
+      planName: string
+      price: number
+      activeCount: number
+    }>
+    churnRate: number
+  }
 }
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useSupabase()
-  const [activeTab, setActiveTab] = useState('overview')
-  const [userStats, setUserStats] = useState<UserStats>({
-    totalUsers: 0,
-    activeUsers: 0,
-    premiumUsers: 0,
-    totalTokens: 0,
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    dailyActiveUsers: 0,
-    conversionRate: 0,
-    avgSessionDuration: 0,
-    totalTryOns: 0,
-    totalChats: 0,
-    satisfactionRate: 0
-  })
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
-  const [users, setUsers] = useState<any[]>([])
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users'>('overview')
 
-  // Admin access control
-  const ADMIN_UID = '0ccaf0b6-1fa0-4488-a61c-e18f6fc44dd3'
-  const isAuthorized = user?.id === ADMIN_UID
-
-  // Show unauthorized message if not admin
-  if (!authLoading && !isAuthorized) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Truy cập bị từ chối</h2>
-          <p className="text-gray-600 mb-6">
-            Bạn không có quyền truy cập trang admin. Chỉ có admin được phép truy cập.
-          </p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Về trang chủ
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang kiểm tra quyền truy cập...</p>
-        </div>
-      </div>
-    )
-  }
-
-  useEffect(() => {
-    fetchDashboardData()
-    
-    // Auto refresh every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    // Allow anyone to access admin dashboard
+  const isAuthorized = true
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true)
+      setError(null)
+      const response = await fetch('/api/admin/dashboard-metrics')
       
-      // Fetch data from API endpoints instead of direct supabaseAdmin access
-      const [statsResponse, usersResponse] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/admin/users?limit=50')
-      ])
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json()
-        setUserStats({
-          totalUsers: statsData.users?.total || 0,
-          activeUsers: statsData.users?.active || 0,
-          premiumUsers: statsData.users?.premium || 0,
-          totalTokens: statsData.tokens?.total || 0,
-          totalRevenue: statsData.revenue?.total || 0,
-          monthlyRevenue: statsData.revenue?.monthly || 0,
-          dailyActiveUsers: Math.floor(statsData.users?.active * 0.3) || 0, // Estimate from active users
-          conversionRate: statsData.users?.total > 0 ? (statsData.users?.premium / statsData.users?.total * 100) : 0,
-          avgSessionDuration: 0, // Real data will be calculated later
-          totalTryOns: statsData.activity?.tryOns || 0,
-          totalChats: statsData.activity?.chats || 0,
-          satisfactionRate: statsData.activity?.tryOns > 0 ? 95 : 0 // Real calculation based on completed vs failed
-        })
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard metrics')
       }
-
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json()
-        setUsers(usersData.users || [])
-      }
-
-      // Clear recent activity
-      setRecentActivity([])
       
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      const data = await response.json()
+      setDashboardData(data)
+      setLastUpdated(new Date())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Error fetching dashboard:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'try_on': return <Camera className="w-4 h-4" />
-      case 'chat': return <MessageSquare className="w-4 h-4" />
-      case 'wardrobe': return <ShoppingBag className="w-4 h-4" />
-      case 'payment': return <CreditCard className="w-4 h-4" />
-      default: return <Activity className="w-4 h-4" />
+  useEffect(() => {
+    if (!authLoading) {
+      fetchDashboardData()
+      const interval = setInterval(fetchDashboardData, 30000)
+      return () => clearInterval(interval)
     }
+  }, [isAuthorized, authLoading])
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent"></div>
+      </div>
+    )
   }
 
-  const formatCurrency = (amount: number) => {
+  if (!isAuthorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-black mx-auto mb-4" />
+          <p className="text-black font-semibold">Truy cập không được phép</p>
+          <p className="text-gray-600 text-sm">Bạn không có quyền truy cập vào trang này.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'VND'
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('vi-VN')
+      currency: 'VND',
+      minimumFractionDigits: 0,
+    }).format(value)
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Quản lý hệ thống Clothify</p>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto p-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8 pb-8 border-b-2 border-black">
+          <div>
+            <h1 className="text-4xl font-bold text-black mb-1">Bảng điều khiển</h1>
+            <p className="text-gray-600 text-sm">
+              {lastUpdated ? `Cập nhật lần cuối: ${lastUpdated.toLocaleTimeString('vi-VN')}` : 'Đang tải...'}
+            </p>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            disabled={loading}
+            className="border-2 border-black text-black px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-black hover:text-white transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </button>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex gap-8 mb-8 border-b-2 border-black pb-4">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`font-semibold text-lg transition ${
+              activeTab === 'overview'
+                ? 'text-black border-b-4 border-black pb-2'
+                : 'text-gray-500 hover:text-black'
+            }`}
+          >
+            Tổng quan
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`font-semibold text-lg transition ${
+              activeTab === 'payments'
+                ? 'text-black border-b-4 border-black pb-2'
+                : 'text-gray-500 hover:text-black'
+            }`}
+          >
+            Thanh toán
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`font-semibold text-lg transition ${
+              activeTab === 'users'
+                ? 'text-black border-b-4 border-black pb-2'
+                : 'text-gray-500 hover:text-black'
+            }`}
+          >
+            Người dùng
+          </button>
+        </div>
+
+        {error && dashboardData && (
+          <div className="border-2 border-black rounded-lg p-4 mb-6 bg-gray-100">
+            <p className="text-black font-semibold">⚠️ Cảnh báo: {error}</p>
+          </div>
+        )}
+
+        {/* TAB CONTENT */}
+        {activeTab === 'overview' && dashboardData && (
+          <div className="space-y-8">
+            {/* KEY METRICS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Total Users */}
+              <div className="border-2 border-black rounded-lg p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-gray-600 text-sm font-semibold">Tổng người dùng</p>
+                    <h3 className="text-3xl font-bold text-black mt-2">
+                      {dashboardData.users.totalUsers.toLocaleString()}
+                    </h3>
+                  </div>
+                  <Users className="w-6 h-6 text-black" />
+                </div>
+                <p className="text-gray-600 text-xs">
+                  +{dashboardData.users.newUsersThisMonth} tháng này
+                </p>
+              </div>
+
+              {/* Monthly Revenue */}
+              <div className="border-2 border-black rounded-lg p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-gray-600 text-sm font-semibold">Doanh thu hàng tháng</p>
+                    <h3 className="text-3xl font-bold text-black mt-2">
+                      {formatCurrency(dashboardData.revenue.monthlyRevenue)}
+                    </h3>
+                  </div>
+                  <CreditCard className="w-6 h-6 text-black" />
+                </div>
+                <p className={`text-xs ${dashboardData.revenue.revenueGrowth >= 0 ? 'text-black' : 'text-black'}`}>
+                  {dashboardData.revenue.revenueGrowth >= 0 ? '↑' : '↓'} {Math.abs(dashboardData.revenue.revenueGrowth).toFixed(1)}% so với tháng trước
+                </p>
+              </div>
+
+              {/* Active Users */}
+              <div className="border-2 border-black rounded-lg p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-gray-600 text-sm font-semibold">Người dùng hoạt động</p>
+                    <h3 className="text-3xl font-bold text-black mt-2">
+                      {dashboardData.users.activeUsers.toLocaleString()}
+                    </h3>
+                  </div>
+                  <Activity className="w-6 h-6 text-black" />
+                </div>
+                <p className="text-gray-600 text-xs">
+                  {((dashboardData.users.activeUsers / dashboardData.users.totalUsers) * 100).toFixed(1)}%
+                </p>
+              </div>
+
+              {/* Total Transactions */}
+              <div className="border-2 border-black rounded-lg p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-gray-600 text-sm font-semibold">Giao dịch</p>
+                    <h3 className="text-3xl font-bold text-black mt-2">
+                      {dashboardData.revenue.totalTransactions}
+                    </h3>
+                  </div>
+                  <ShoppingBag className="w-6 h-6 text-black" />
+                </div>
+                <p className="text-gray-600 text-xs">
+                  Trung bình: {formatCurrency(dashboardData.revenue.avgOrderValue)}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={fetchDashboardData}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                Refresh
-              </button>
+
+            {/* REVENUE & ENGAGEMENT */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="border-2 border-black rounded-lg p-6">
+                <h2 className="text-lg font-bold text-black mb-6 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-black" />
+                  Thông tin doanh thu
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Tổng doanh thu (Tất cả thời gian)</span>
+                    <span className="text-black font-semibold">{formatCurrency(dashboardData.revenue.totalRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Doanh thu lặp lại hàng tháng</span>
+                    <span className="text-black font-semibold">{formatCurrency(dashboardData.revenue.mrr)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Trung bình giá trị đơn hàng</span>
+                    <span className="text-black font-semibold">{formatCurrency(dashboardData.revenue.avgOrderValue)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-2 border-black rounded-lg p-6">
+                <h2 className="text-lg font-bold text-black mb-6 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-black" />
+                  Thống kê sử dụng
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Số lượt thử đồ</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.totalTryOns.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Tỷ lệ thành công</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.successRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Số lượt nhắn chatbot</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.totalTryOns.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MEMBERSHIP BREAKDOWN */}
+            <div className="border-2 border-black rounded-lg p-6">
+              <h2 className="text-lg font-bold text-black mb-6">Membership</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {dashboardData.membership.membershipsByPlan.map((plan, idx) => (
+                  <div key={idx} className="border border-gray-300 rounded-lg p-4">
+                    <h3 className="text-black font-semibold mb-3">{plan.planName}</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Số lượng:</span>
+                        <span className="text-black font-semibold">{plan.activeCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Giá:</span>
+                        <span className="text-black font-semibold">{formatCurrency(plan.price)}/tháng</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-black flex justify-between">
+                <span className="text-gray-600">Tổng số người dùng Membership</span>
+                <span className="text-black font-semibold">{dashboardData.membership.totalActiveMemberships}</span>
+              </div>
+              {dashboardData.membership.churnRate > 0 && (
+                <div className="mt-2 flex justify-between text-sm">
+                  <span className="text-gray-600">Tỷ lệ chảy dốc (30 ngày)</span>
+                  <span className="text-black font-semibold">{dashboardData.membership.churnRate.toFixed(1)}%</span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 overflow-x-auto">
-            {[
-              { id: 'overview', name: 'Tổng quan', icon: BarChart3 },
-              { id: 'analytics', name: 'Analytics', icon: TrendingUp },
-              { id: 'users', name: 'Người dùng', icon: Users },
-              { id: 'activity', name: 'Hoạt động', icon: Activity },
-              { id: 'payments', name: 'Thanh toán', icon: CreditCard },
-              { id: 'security', name: 'Bảo mật', icon: ShieldCheck },
-              { id: 'settings', name: 'Cài đặt', icon: Settings }
-            ].map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                    activeTab === tab.id
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.name}</span>
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        <div className="mt-8">
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <Users className="h-8 w-8 text-blue-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Tổng người dùng</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.totalUsers}</dd>
-                        <dd className="text-xs text-gray-400">+{userStats.dailyActiveUsers} hôm nay</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <TrendingUp className="h-8 w-8 text-green-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Người dùng hoạt động</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.activeUsers}</dd>
-                        <dd className="text-xs text-gray-400">30 ngày qua</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <UserCheck className="h-8 w-8 text-purple-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Premium users</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.premiumUsers}</dd>
-                        <dd className="text-xs text-gray-400">{userStats.conversionRate.toFixed(1)}% conversion</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <CreditCard className="h-8 w-8 text-orange-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Doanh thu tháng</dt>
-                        <dd className="text-lg font-medium text-gray-900">{formatCurrency(userStats.monthlyRevenue)}</dd>
-                        <dd className="text-xs text-gray-400">Tổng: {formatCurrency(userStats.totalRevenue)}</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <Camera className="h-8 w-8 text-indigo-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Thử đồ</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.totalTryOns}</dd>
-                        <dd className="text-xs text-gray-400">{userStats.satisfactionRate.toFixed(1)}% thành công</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <MessageSquare className="h-8 w-8 text-pink-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Chat sessions</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.totalChats}</dd>
-                        <dd className="text-xs text-gray-400">AI conversations</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <Clock className="h-8 w-8 text-cyan-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Thời gian TB</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.avgSessionDuration}m</dd>
-                        <dd className="text-xs text-gray-400">per session</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <Zap className="h-8 w-8 text-yellow-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Tokens</dt>
-                        <dd className="text-lg font-medium text-gray-900">{userStats.totalTokens.toLocaleString()}</dd>
-                        <dd className="text-xs text-gray-400">Total distributed</dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {activeTab === 'users' && (
-            <UserManagement />
-          )}
-
-          {activeTab === 'analytics' && (
-            <AnalyticsDashboard />
-          )}
-
-          {activeTab === 'activity' && (
-            <ActivityMonitoring />
-          )}
-
-          {activeTab === 'payments' && (
-            <PaymentManagement />
-          )}
-
-          {activeTab === 'security' && (
-            <SecurityAudit />
-          )}
-
-          {activeTab === 'settings' && (
-            <SystemSettings />
-          )}
-        </div>
+        {activeTab === 'payments' && <PaymentManagement />}
+        {activeTab === 'users' && <UserManagement />}
       </div>
     </div>
   )
 }
+

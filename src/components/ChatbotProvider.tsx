@@ -1,8 +1,13 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
-import FashionChatbot from './FashionChatbot'
+import { createContext, useContext, useState, ReactNode, lazy, Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import StickyLogo from './StickyLogo'
+
+const FashionChatbot = dynamic(() => import('./FashionChatbot'), {
+  loading: () => <div className="w-full h-full flex items-center justify-center">Đang tải...</div>,
+  ssr: false,
+})
 
 interface ChatbotContextType {
   isOpen: boolean
@@ -58,7 +63,9 @@ export default function ChatbotProvider({ children }: ChatbotProviderProps) {
               </button>
             </div>
             <div className="flex-1 overflow-hidden">
-              <FashionChatbot />
+              <Suspense fallback={<div className="w-full h-full flex items-center justify-center">Đang tải...</div>}>
+                <FashionChatbot />
+              </Suspense>
             </div>
           </div>
         </div>

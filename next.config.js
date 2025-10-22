@@ -3,6 +3,21 @@ const nextConfig = {
   images: {
     domains: ['localhost', 'supabase.co'],
   },
+  // Optimize chunks and prevent timeout
+  compress: true,
+  productionBrowserSourceMaps: false,
+  swcMinify: true,
+  webpack: (config, { isServer }) => {
+    return config
+  },
+  experimental: {
+    // Optimize chunk splitting
+    optimizePackageImports: [
+      '@tanstack/react-query',
+      '@supabase/supabase-js',
+      'lucide-react'
+    ],
+  },
 }
 
 module.exports = nextConfig
