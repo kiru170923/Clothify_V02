@@ -15,7 +15,7 @@ interface MobileMessageBubbleProps {
       id: string
       label: string
       value: string
-      kind: 'quick-text' | 'service' | 'link'
+      kind: 'quick-text' | 'service' | 'link' | 'confirm-tryon' | 'cancel'
       autoSend?: boolean
       submitType?: 'search' | 'chat'
       href?: string

@@ -2,7 +2,7 @@
 import OpenAI from 'openai'
 
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
-import { classifyIntent } from '../../../../lib/nlu'
+import { classifyIntent, classifyIntentWithAI } from '../../../../lib/nlu'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
@@ -94,35 +94,59 @@ function classifyPromptType(message: string, nlu: any): string {
 
 async function determineIfShouldSuggestProducts(message: string, nlu: any): Promise<boolean> {
   try {
-    // Fast regex-based decision instead of AI call
-    const msgLower = message.toLowerCase()
+    // TRUST THE AI NLU SYSTEM!
+    // If AI detected greeting, policy, compare, or non-product intent → don't suggest products
+    const nonProductIntents = ['greeting', 'policy', 'update_profile', 'unknown']
     
-    // Keywords that indicate product request
+    if (nonProductIntents.includes(nlu.intent)) {
+      console.log('🟢 AI detected non-product intent - NOT suggesting products:', { 
+        intent: nlu.intent, 
+        confidence: nlu.confidence,
+        message 
+      })
+      return false
+    }
+    
+    // If AI detected search intent → suggest products
+    if (nlu.intent === 'search' || nlu.intent === 'product_search' || nlu.intent === 'shopping') {
+      console.log('🟢 AI detected product search intent - suggesting products:', { 
+        intent: nlu.intent, 
+        confidence: nlu.confidence 
+      })
+      return true
+    }
+    
+    // For style_advice - suggest products if confidence is high enough
+    if (nlu.intent === 'style_advice' && nlu.confidence > 0.7) {
+      console.log('🟢 AI detected style advice with high confidence - suggesting products:', { 
+        intent: nlu.intent, 
+        confidence: nlu.confidence 
+      })
+      return true
+    }
+    
+    // Fallback: check for product keywords as safety net
+    const msgLower = message.toLowerCase()
     const productKeywords = [
       'áo', 'quần', 'shirt', 'pants', 'jeans', 'polo', 'khoác', 'jacket',
-      'tìm', 'find', 'mua', 'buy', 'gợi ý', 'suggest', 'recommend',
-      'đồ', 'clothes', 'fashion', 'thời trang'
+      'tìm', 'find', 'mua', 'buy', 'gợi ý', 'suggest', 'recommend'
     ]
     
     const hasProductKeywords = productKeywords.some(keyword => msgLower.includes(keyword))
     
-    // Intent-based decision
-    const shouldSuggest = nlu.intent === 'product_search' || 
-                        nlu.intent === 'shopping' || 
-                        hasProductKeywords
-    
-    console.log('🟢 Fast Decision result:', { 
-      intent: nlu.intent, 
-      hasKeywords: hasProductKeywords, 
-      shouldSuggest 
+    console.log('🟢 AI-driven decision result:', { 
+      intent: nlu.intent,
+      confidence: nlu.confidence,
+      hasProductKeywords,
+      shouldSuggest: hasProductKeywords 
     })
     
-    return shouldSuggest
+    return hasProductKeywords
   } catch (error) {
     console.error('❌ Error in determineIfShouldSuggestProducts:', error)
-    // Fast fallback
+    // Minimal fallback - only suggest if has obvious product keywords
     const msgLower = message.toLowerCase()
-    return /(áo|quần|shirt|pants|jeans|polo|khoác|jacket|tìm|find|mua|buy|gợi ý|suggest)/.test(msgLower)
+    return /(áo|quần|shirt|pants|jeans|polo|khoác|jacket|tìm|find|mua|buy|gợi ý|suggest|recommend)/.test(msgLower)
   }
 }
 
@@ -412,8 +436,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 })
     }
 
-    // Use fast regex-based intent detection to reduce latency
-    const nlu = classifyIntent(message)
+    // Use AI-powered intent detection for better accuracy
+    const nlu = await classifyIntentWithAI(message).catch(err => {
+      console.warn('AI intent classification failed, using regex fallback:', err)
+      return classifyIntent(message)
+    })
+    
     const promptType = classifyPromptType(message, nlu)
     // AI-driven decision for product suggestions (optimized)
     const shouldSuggestProducts = await determineIfShouldSuggestProducts(message, nlu)
@@ -483,13 +511,54 @@ export async function POST(request: NextRequest) {
       const orderedProductIds = Array.from(productScores.entries()).sort((a, b) => b[1] - a[1]).map(([id]) => id)
       const chosenProductIds = orderedProductIds.slice(0, 2) // Force limit to 2 products
 
-      const { data: fetchedProducts, error: productsError } = await supabaseAdmin
-        .from('products')
-        .select('id,title,price,url,image,gallery,style,occasion,match_with,why_recommend,variants,search_booster,description_text,tags')
-        .in('id', chosenProductIds)
-      if (productsError) throw new Error(`Fetch products error: ${productsError.message}`)
+      console.log('🔍 Vector search found product IDs:', chosenProductIds)
 
-      products = fetchedProducts || []
+      let fetchedProducts = []
+      if (chosenProductIds.length > 0) {
+        const { data, error: productsError } = await supabaseAdmin
+          .from('products')
+          .select('id,title,price,url,image,gallery,style,occasion,match_with,why_recommend,variants,search_booster,description_text,tags')
+          .in('id', chosenProductIds)
+        if (productsError) throw new Error(`Fetch products error: ${productsError.message}`)
+        fetchedProducts = data || []
+      }
+
+      // Fallback: if no products found, get some random products
+      if (fetchedProducts.length === 0) {
+        console.log('🔍 No products from vector search, getting fallback products')
+        
+        // Try to find products that match the query keywords first
+        const keywords = aiAnalysis.keywords.length > 0 ? aiAnalysis.keywords : extractGarmentKeywords(message)
+        let fallbackProducts: any[] = []
+        
+        if (keywords.length > 0) {
+          console.log('🔍 Searching for products with keywords:', keywords)
+          const { data: keywordProducts, error: keywordError } = await supabaseAdmin
+            .from('products')
+            .select('id,title,price,url,image,gallery,style,occasion,match_with,why_recommend,variants,search_booster,description_text,tags')
+            .or(keywords.map(k => `title.ilike.%${k}%`).join(','))
+            .limit(4)
+          if (!keywordError && keywordProducts && keywordProducts.length > 0) {
+            fallbackProducts = keywordProducts
+            console.log('🔍 Found products with keyword search:', fallbackProducts.map(p => p.title))
+          }
+        }
+        
+        // If still no products, get recent products
+        if (fallbackProducts.length === 0) {
+          const { data: recentProducts, error: fallbackError } = await supabaseAdmin
+            .from('products')
+            .select('id,title,price,url,image,gallery,style,occasion,match_with,why_recommend,variants,search_booster,description_text,tags')
+            .limit(4)
+            .order('updated_at', { ascending: false })
+          if (fallbackError) throw new Error(`Fallback products error: ${fallbackError.message}`)
+          fallbackProducts = recentProducts || []
+        }
+        
+        fetchedProducts = fallbackProducts
+      }
+
+      products = fetchedProducts
 
       // 2) AI-enhanced keyword/price filtering to refine or fallback
       const keywords = aiAnalysis.keywords.length > 0 ? aiAnalysis.keywords : extractGarmentKeywords(message)
@@ -652,9 +721,95 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // POST-FILTERING: Remove products that don't match the request intent
+      const filterKeywords = aiAnalysis.keywords.length > 0 ? aiAnalysis.keywords : extractGarmentKeywords(message)
+      
+      // Check if this is a general question (no specific clothing type requested)
+      const isGeneralQuestion = /ban co gi|goi y|suggest|recommend|gi tot|gi hay/.test(normalizeVi(message))
+      
+      if (filterKeywords.length > 0 && !isGeneralQuestion) {
+        // Filter out products that don't match keywords for "áo ấm" type requests
+        if (filterKeywords.includes('ao am') || filterKeywords.includes('len') || filterKeywords.includes('sweater') || filterKeywords.includes('hoodie') || filterKeywords.includes('winter')) {
+          // Only keep warm clothing, remove pants/shorts
+          products = products.filter(p => {
+            const title = normalizeVi(p.title || '')
+            const desc = normalizeVi(p.description_text || '')
+            const combined = title + ' ' + desc
+            
+            // Must have clothing keywords (shirts, jackets, etc) - exclude only pants/shorts
+            const hasClothingKeywords = /ao|len|sweater|hoodie|khoac|jacket|long sleeve|dai tay|polo|thun|vest|bomber|shirt|so mi/.test(combined)
+            // Must NOT be pants
+            const isPants = /quan|pants|short/.test(combined)
+            
+            return hasClothingKeywords && !isPants
+          })
+          console.log('🔥 Filtered for warm clothing, remaining products:', products.length)
+        }
+        
+        // Filter by garment type from AI analysis
+        if (aiAnalysis.garmentType === 'shirt') {
+          products = products.filter(p => {
+            const title = normalizeVi(p.title || '')
+            const isShirt = /ao|shirt|polo|sweater|hoodie|len/.test(title)
+            const isPants = /quan|pants/.test(title)
+            return isShirt && !isPants
+          })
+          console.log('🔥 Filtered for shirts, remaining products:', products.length)
+        } else if (aiAnalysis.garmentType === 'pants') {
+          products = products.filter(p => {
+            const title = normalizeVi(p.title || '')
+            const isPants = /quan|pants|jean/.test(title)
+            const isShirt = /ao(?!.*quan)|shirt|polo|sweater|hoodie/.test(title)
+            return isPants && !isShirt
+          })
+          console.log('🔥 Filtered for pants, remaining products:', products.length)
+        } else if (aiAnalysis.garmentType === 'jacket') {
+          products = products.filter(p => {
+            const title = normalizeVi(p.title || '')
+            const isJacket = /khoac|jacket|coat|blazer|gio/.test(title)
+            return isJacket
+          })
+          console.log('🔥 Filtered for jackets, remaining products:', products.length)
+        }
+        
+        // Filter by season
+        if (aiAnalysis.filters.season === 'winter' || filterKeywords.includes('winter')) {
+          products = products.filter(p => {
+            const title = normalizeVi(p.title || '')
+            const desc = normalizeVi(p.description_text || '')
+            const combined = title + ' ' + desc
+            
+            // Exclude summer items
+            const isSummerItem = /short|thun|tee|tank/.test(combined)
+            return !isSummerItem
+          })
+          console.log('🔥 Filtered for winter, remaining products:', products.length)
+        } else if (aiAnalysis.filters.season === 'summer' || filterKeywords.includes('summer')) {
+          products = products.filter(p => {
+            const title = normalizeVi(p.title || '')
+            const desc = normalizeVi(p.description_text || '')
+            const combined = title + ' ' + desc
+            
+            // Exclude winter items
+            const isWinterItem = /len|sweater|hoodie|khoac(?!.*gio)|jacket(?!.*jean)/.test(combined)
+            return !isWinterItem
+          })
+          console.log('🔥 Filtered for summer, remaining products:', products.length)
+        }
+      }
+      
       // Sort by combined score and keep top set
       products.sort((a, b) => (productScores.get(b.id) ?? 0) - (productScores.get(a.id) ?? 0))
       products = products.slice(0, 2) // Force limit to 2 products
+      
+      // CRITICAL: Update productScores to match the final products array
+      // This ensures the AI sees the same products that will be returned to the frontend
+      const finalProductIds = new Set(products.map(p => p.id))
+      for (const [id] of Array.from(productScores.entries())) {
+        if (!finalProductIds.has(id)) {
+          productScores.delete(id)
+        }
+      }
     }
 
     const contextSections: string[] = []
@@ -714,7 +869,7 @@ export async function POST(request: NextRequest) {
               model: 'gpt-4o-mini',
               temperature: 0.8,
               messages: chatMessages,
-              max_tokens: promptType === 'greeting' ? 100 : promptType === 'service_info' ? 150 : 200, // Reduced tokens for speed
+              max_tokens: promptType === 'greeting' ? 200 : promptType === 'service_info' ? 200 : 250, // Increased for complete responses
               stream: true
             })
 
@@ -743,7 +898,7 @@ export async function POST(request: NextRequest) {
       model: 'gpt-4o-mini',
       temperature: 0.8,
       messages: chatMessages,
-      max_tokens: promptType === 'greeting' ? 100 : promptType === 'service_info' ? 150 : 200 // Reduced tokens for speed
+      max_tokens: promptType === 'greeting' ? 200 : promptType === 'service_info' ? 200 : 250 // Increased for complete responses
     })
 
     const answer = completion.choices[0]?.message?.content?.trim() 
@@ -753,17 +908,12 @@ export async function POST(request: NextRequest) {
     
     if (shouldSuggestProducts && products.length > 0) {
       console.log('🟢 Found products:', products.length, 'for request:', message)
+      
+      // CRITICAL FIX: Use the products array directly (which is already sorted and filtered)
+      // This ensures the AI's text response and the product cards show the EXACT same products
       type ProductRow = NonNullable<typeof products>[number]
-      const productMap = new Map<number, ProductRow>()
-      products.forEach((row) => productMap.set(row.id, row as ProductRow))
-
-      const orderedProductIds = Array.from(productScores.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([id]) => id)
-
-      productCards = orderedProductIds
-        .map((id) => productMap.get(id))
-        .filter((item): item is ProductRow => Boolean(item))
+      
+      productCards = products
         .slice(0, MAX_PRODUCT_CARDS)
         .map((product) => ({
           id: product.id,
@@ -778,6 +928,8 @@ export async function POST(request: NextRequest) {
           why_recommend: product.why_recommend,
           variants: product.variants
         }))
+      
+      console.log('🟢 Product cards being returned:', productCards.map(p => ({ id: p.id, title: p.title })))
     } else {
       console.log('🔴 No products to return. shouldSuggestProducts:', shouldSuggestProducts, 'products.length:', products.length)
     }

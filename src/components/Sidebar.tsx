@@ -12,7 +12,8 @@ import {
   CameraIcon,
   SwatchIcon,
   CreditCardIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  QrCodeIcon
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -23,7 +24,8 @@ import {
   CameraIcon as CameraIconSolid,
   SwatchIcon as SwatchIconSolid,
   CreditCardIcon as CreditCardIconSolid,
-  ShieldCheckIcon as ShieldCheckIconSolid
+  ShieldCheckIcon as ShieldCheckIconSolid,
+  QrCodeIcon as QrCodeIconSolid
 } from '@heroicons/react/24/solid'
 import React from 'react'
 import { useSidebar } from './SidebarProvider'
@@ -46,6 +48,12 @@ const menuItems = [
     icon: SwatchIcon,
     iconActive: SwatchIconSolid,
     label: 'Your Wardrobe'
+  },
+  {
+    id: '/qr-codes',
+    icon: QrCodeIcon,
+    iconActive: QrCodeIconSolid,
+    label: 'QR Codes'
   },
   {
     id: '/history',
