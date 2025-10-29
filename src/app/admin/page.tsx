@@ -97,7 +97,7 @@ export default function AdminDashboard() {
 
         const response = await fetch('/api/admin/check-admin', {
           headers: {
-            'Authorization': `Bearer ${session.session.access_token}`
+            'Authorization': `Bearer ${session.access_token}`
           }
         })
 

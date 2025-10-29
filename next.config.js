@@ -24,7 +24,6 @@ const nextConfig = {
   // Optimize chunks and prevent timeout
   compress: true,
   productionBrowserSourceMaps: false,
-  swcMinify: true,
   webpack: (config, { isServer }) => {
     return config
   },
