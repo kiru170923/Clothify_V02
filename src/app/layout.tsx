@@ -6,6 +6,7 @@ import { QueryProvider } from '@/components/QueryProvider'
 import { SidebarProvider } from '@/components/SidebarProvider'
 import ChatbotProvider from '@/components/ChatbotProvider'
 import { Analytics } from '@vercel/analytics/next'
+import { GoogleAnalytics } from '@next/third-parties/google'
 // import AuthGuard from '@/components/AuthGuard'
 // import NotificationProvider from '@/components/NotificationProvider'
 
@@ -48,6 +49,9 @@ export default function RootLayout({
           </SupabaseProvider>
         </QueryProvider>
       </body>
+      {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+      )}
     </html>
   )
 }
