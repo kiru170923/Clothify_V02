@@ -127,27 +127,85 @@ export async function POST(
       .getPublicUrl(uploadData.path)
 
     // 8. Call Try-On API
+    // Create a temporary session token for the QR owner to make internal API call
+    // This is needed because /api/clothify/try-on expects a user token
     try {
-      const tryOnResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/clothify/try-on`, {
+      // Use service role to call try-on directly without auth check
+      // We'll call KIE.AI directly instead of going through /api/clothify/try-on
+      
+      const kieApiKey = process.env.KIE_AI_API_KEY || process.env.KIEAI_API_KEY
+      if (!kieApiKey) {
+        throw new Error('KIE_AI_API_KEY or KIEAI_API_KEY not configured')
+      }
+
+      // Generate prompt for try-on
+      const prompt = 'Virtual try-on: person wearing new clothing item, maintain fit and pose, realistic blend'
+      
+      const requestBody = {
+        model: 'google/nano-banana-edit',
+        input: {
+          prompt,
+          negative_prompt: 'blurry, low quality, distorted, artifacts, poor fit, deformed',
+          image_urls: [userImageUrl, qrCode.clothing_image_url],
+          output_format: 'png',
+          image_size: '3:4',
+          num_inference_steps: 35,
+          guidance_scale: 7.0
+        }
+      }
+
+      const kieResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${kieApiKey}`,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` // Use service role for internal API
         },
-        body: JSON.stringify({
-          personImage: userImageUrl,
-          clothingImage: qrCode.clothing_image_url,
-          clothingImageUrls: [qrCode.clothing_image_url],
-          selectedGarmentType: 'auto',
-          fastMode: true
-        })
+        body: JSON.stringify(requestBody)
       })
 
-      const tryOnResult = await tryOnResponse.json()
+      const kieData = await kieResponse.json()
 
-      if (!tryOnResponse.ok || !tryOnResult.success || !tryOnResult.resultImageUrl) {
-        throw new Error(tryOnResult.error || 'Try-on failed')
+      if (kieData.code !== 200 || !kieData.data?.taskId) {
+        throw new Error(kieData.msg || 'Failed to create try-on task')
       }
+
+      const taskId = kieData.data.taskId
+      console.log('✅ KIE.AI task created:', taskId)
+
+      // Poll for result (copied from /api/clothify/try-on)
+      let attempts = 0
+      const maxAttempts = 60
+      let resultImageUrl: string | null = null
+
+      while (attempts < maxAttempts) {
+        const delay = Math.min(250 * Math.pow(2, Math.floor(attempts / 5)), 4000)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        
+        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/task/${taskId}`, {
+          headers: { 'Authorization': `Bearer ${kieApiKey}` }
+        })
+        
+        const statusData = await statusResponse.json()
+        console.log(`🔍 Poll attempt ${attempts + 1}: ${statusData.data?.status}`)
+        
+        if (statusData.data?.status === 'SUCCESS') {
+          if (statusData.data.output?.images?.[0]) {
+            resultImageUrl = statusData.data.output.images[0]
+            console.log('✅ Got result image URL:', resultImageUrl)
+            break
+          }
+        } else if (statusData.data?.status === 'FAILED') {
+          throw new Error(statusData.data.error || 'KIE.AI task failed')
+        }
+        
+        attempts++
+      }
+
+      if (!resultImageUrl) {
+        throw new Error('Try-on timeout - no result after polling')
+      }
+
+      console.log('✅ Try-on successful, result URL:', resultImageUrl)
 
       // 9. Deduct token from owner
       // First get current used_tokens
@@ -191,7 +249,7 @@ export async function POST(
       await supabaseAdmin.from('qr_scan_history').insert({
         qr_code_id: qrCode.id,
         user_image_url: userImageUrl,
-        result_image_url: tryOnResult.resultImageUrl,
+        result_image_url: resultImageUrl,
         ip_address: ip,
         user_agent: userAgent,
         success: true
@@ -200,7 +258,7 @@ export async function POST(
       // 13. Return result
       return NextResponse.json({
         success: true,
-        resultImageUrl: tryOnResult.resultImageUrl,
+        resultImageUrl,
         tokensRemaining: ownerTokens.total_tokens - 1
       })
 

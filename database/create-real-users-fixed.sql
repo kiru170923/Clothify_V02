@@ -118,3 +118,6 @@ SELECT 'Total users:' as info, COUNT(*) as count FROM public.users
 UNION ALL
 SELECT 'Total tokens:' as info, COUNT(*) as count FROM public.user_tokens;
 
+
+
+
