@@ -204,9 +204,25 @@ export async function POST(
               
               // Success! Get result
               if (state === 'success' || state === 'completed') {
-                resultImageUrl = statusData.data.resultImageUrl
-                console.log('✅ Got result image URL:', resultImageUrl)
-                break
+                // Parse resultJson which contains the actual image URLs
+                if (statusData.data.resultJson) {
+                  try {
+                    const resultData = JSON.parse(statusData.data.resultJson)
+                    resultImageUrl = resultData.resultUrls?.[0] || null
+                    console.log('✅ Got result image URL:', resultImageUrl)
+                  } catch (parseError) {
+                    console.error('❌ Failed to parse resultJson:', parseError)
+                  }
+                }
+                
+                // Fallback: check if resultImageUrl exists directly
+                if (!resultImageUrl && statusData.data.resultImageUrl) {
+                  resultImageUrl = statusData.data.resultImageUrl
+                }
+                
+                if (resultImageUrl) {
+                  break
+                }
               }
               
               // Failed
