@@ -1931,8 +1931,8 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
 
   return (
     <>
-    <div className="min-h-screen bg-yellow-300" style={{ backgroundColor: '#FFD93D' }}>
-      <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50">
+      <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white/80 backdrop-blur-sm">
       {/* Sticky Clear Conversation Button */}
       {messages.length > 1 && (
         <motion.button
@@ -1946,7 +1946,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           }}
           whileTap={{ scale: 0.95 }}
           onClick={clearConversation}
-          className="fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-3 bg-red-500 text-white border-4 border-black font-bold uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-150"
+          className="fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-red-400/20"
           title="Xóa hội thoại"
         >
           <motion.div
@@ -2027,8 +2027,8 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
                 <div className={`flex items-end gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
               {/* Avatar */}
               {message.type !== 'user' && (
-                <div className="w-10 h-10 bg-pink-400 border-4 border-black flex items-center justify-center text-black text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                  <SparklesIcon className="w-5 h-5" />
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-xs shadow-md">
+                  <SparklesIcon className="w-4 h-4" />
                 </div>
               )}
               <div className={`max-w-[70%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
