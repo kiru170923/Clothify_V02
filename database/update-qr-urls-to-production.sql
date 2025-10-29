@@ -26,3 +26,4 @@ WHERE created_at IS NOT NULL;
 -- Recommendation: Just create new QR codes after setting production URL
 
 
+
