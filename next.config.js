@@ -2,6 +2,16 @@
 const nextConfig = {
   images: {
     domains: ['localhost', 'supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'qriiosvdowitaigzvwfo.supabase.co',
+      },
+    ],
   },
   // Optimize chunks and prevent timeout
   compress: true,
