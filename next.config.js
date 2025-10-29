@@ -11,6 +11,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'qriiosvdowitaigzvwfo.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'tempfile.aiquickdraw.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.aiquickdraw.com',
+      },
     ],
   },
   // Optimize chunks and prevent timeout
