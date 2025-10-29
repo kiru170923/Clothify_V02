@@ -191,20 +191,27 @@ export async function POST(
             const statusData = await statusResponse.json()
             console.log(`🔍 Poll attempt ${attempts + 1}:`, statusData.data?.state || 'unknown')
             
-            // Check state (processing, generating, completed, failed)
-            if (statusData.code === 200 && (statusData.data.state === 'processing' || statusData.data.state === 'generating')) {
-              attempts++
-              continue
-            }
-            
-            if (statusData.code === 200 && statusData.data.state === 'completed') {
-              resultImageUrl = statusData.data.resultImageUrl
-              console.log('✅ Got result image URL:', resultImageUrl)
-              break
-            }
-            
-            if (statusData.code === 200 && statusData.data.state === 'failed') {
-              throw new Error(statusData.data.error || 'KIE.AI task failed')
+            // Check state (waiting, processing, generating, success, failed)
+            if (statusData.code === 200) {
+              const state = statusData.data?.state
+              
+              // Still processing
+              if (state === 'waiting' || state === 'processing' || state === 'generating') {
+                attempts++
+                continue
+              }
+              
+              // Success! Get result
+              if (state === 'success' || state === 'completed') {
+                resultImageUrl = statusData.data.resultImageUrl
+                console.log('✅ Got result image URL:', resultImageUrl)
+                break
+              }
+              
+              // Failed
+              if (state === 'failed') {
+                throw new Error(statusData.data.error || 'KIE.AI task failed')
+              }
             }
           }
           
