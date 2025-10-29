@@ -54,7 +54,7 @@ export async function sendQRFeatureAnnouncement(options: EmailOptions): Promise<
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Clothify <noreply@clothify.top>',
+        from: 'Clothify <onboarding@resend.dev>',
         to: [to],
         subject: '✨ Tính năng mới: QR Code Thử Đồ Ảo - Clothify',
         html,
