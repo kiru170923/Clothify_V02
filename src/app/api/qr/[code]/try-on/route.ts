@@ -181,24 +181,38 @@ export async function POST(
         const delay = Math.min(250 * Math.pow(2, Math.floor(attempts / 5)), 4000)
         await new Promise(resolve => setTimeout(resolve, delay))
         
-        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/task/${taskId}`, {
-          headers: { 'Authorization': `Bearer ${kieApiKey}` }
-        })
-        
-        const statusData = await statusResponse.json()
-        console.log(`🔍 Poll attempt ${attempts + 1}: ${statusData.data?.status}`)
-        
-        if (statusData.data?.status === 'SUCCESS') {
-          if (statusData.data.output?.images?.[0]) {
-            resultImageUrl = statusData.data.output.images[0]
-            console.log('✅ Got result image URL:', resultImageUrl)
-            break
+        try {
+          // Use correct KIE.AI polling endpoint
+          const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+            headers: { 'Authorization': `Bearer ${kieApiKey}` }
+          })
+          
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json()
+            console.log(`🔍 Poll attempt ${attempts + 1}:`, statusData.data?.state || 'unknown')
+            
+            // Check state (processing, generating, completed, failed)
+            if (statusData.code === 200 && (statusData.data.state === 'processing' || statusData.data.state === 'generating')) {
+              attempts++
+              continue
+            }
+            
+            if (statusData.code === 200 && statusData.data.state === 'completed') {
+              resultImageUrl = statusData.data.resultImageUrl
+              console.log('✅ Got result image URL:', resultImageUrl)
+              break
+            }
+            
+            if (statusData.code === 200 && statusData.data.state === 'failed') {
+              throw new Error(statusData.data.error || 'KIE.AI task failed')
+            }
           }
-        } else if (statusData.data?.status === 'FAILED') {
-          throw new Error(statusData.data.error || 'KIE.AI task failed')
+          
+          attempts++
+        } catch (pollError) {
+          console.error('❌ Polling error:', pollError)
+          attempts++
         }
-        
-        attempts++
       }
 
       if (!resultImageUrl) {
