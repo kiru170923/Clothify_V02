@@ -62,7 +62,7 @@ import VoiceCommands from './ui/VoiceCommands'
 import StyleQuiz from './ui/StyleQuiz'
 import AnalyticsDashboard from './ui/AnalyticsDashboard'
 
-type ChatActionKind = 'quick-text' | 'service' | 'link' | 'confirm-tryon' | 'cancel'
+type ChatActionKind = 'quick-text' | 'service' | 'link'
 
 interface ChatAction {
   id: string
@@ -187,7 +187,6 @@ export default function FashionChatbot() {
   const router = useRouter()
   const { session } = useSupabase() as any
   const SIMPLE_MODE = true
-  const ENABLE_ACTIONS = false
   
   // Initialize conversation memory
   const {
@@ -240,7 +239,6 @@ export default function FashionChatbot() {
 
   const filterActions = (actions?: ChatAction[]) => {
     if (!actions || actions.length === 0) return undefined
-    if (!ENABLE_ACTIONS) return undefined
     if (!SIMPLE_MODE) return actions
     // In simple mode, only keep quick-text actions
     const kept = actions.filter(a => a.kind === 'quick-text')
@@ -257,35 +255,6 @@ export default function FashionChatbot() {
       createAction({ label: 'Tìm sản phẩm nam', kind: 'quick-text', value: 'Mình muốn tìm outfit công sở nam dưới 800k', submitType: 'search', autoSend: true })
     ]),
   })
-
-  // Small helper to make responses feel more natural
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-  // Ensure AI text only mentions first product and is complete
-  const normalizeSingleProductAnswer = (text: string): string => {
-    try {
-      const t = String(text || '')
-      // Cut at common "item 2" markers
-      const markers = [
-        /\n\s*2\./m,
-        /\n\s*###\s*2/m,
-        /\n\s*-\s*2\./m
-      ]
-      let cutIdx = -1
-      for (const r of markers) {
-        const m = t.match(r)
-        if (m && m.index !== undefined) {
-          cutIdx = cutIdx === -1 ? m.index : Math.min(cutIdx, m.index)
-        }
-      }
-      let out = cutIdx !== -1 ? t.slice(0, cutIdx).trimEnd() : t
-      // Ensure sentence ends with punctuation
-      if (!/[\.!?…]$/.test(out)) out = out + '.'
-      return out
-    } catch {
-      return text
-    }
-  }
 
   // Load messages from memory only (no localStorage for speed)
   const [messages, setMessages] = useState<Message[]>([buildWelcomeMessage()])
@@ -338,10 +307,6 @@ export default function FashionChatbot() {
   const [tryOnLoading, setTryOnLoading] = useState<string | null>(null)
   const [tryOnResults, setTryOnResults] = useState<Map<string, string>>(new Map())
   const [showImageModal, setShowImageModal] = useState<{ url: string; alt: string } | null>(null)
-  const [showTryOnConfirmModal, setShowTryOnConfirmModal] = useState<{ 
-    productImageUrl: string
-    availableTokens: number 
-  } | null>(null)
   const [wardrobeAnalysisLoading, setWardrobeAnalysisLoading] = useState(false)
   const [userModelImage, setUserModelImage] = useState<string | null>(null)
   const [profileLoaded, setProfileLoaded] = useState(false)
@@ -478,9 +443,7 @@ export default function FashionChatbot() {
     }
   }
 
-  const pushBotMessage = async (content: string, extra?: Partial<Message>) => {
-    // small natural delay before responding
-    await sleep(250)
+  const pushBotMessage = (content: string, extra?: Partial<Message>) => {
     let safeContent = content ?? ''
     if (typeof safeContent !== 'string') safeContent = String(safeContent ?? '')
     if (safeContent.trim().length === 0) {
@@ -490,17 +453,6 @@ export default function FashionChatbot() {
     // Apply personalization only (emotional layer removed)
     let personalizedContent = conversationContext ? getPersonalizedResponse(safeContent) : safeContent
     
-    // Build fallback quick actions if none provided
-    let computedActions: ChatAction[] | undefined = undefined
-    if (ENABLE_ACTIONS && !extra?.actions) {
-      try {
-        const actions = generateQuickActions(followUpContext)
-          .slice(0, 3)
-          .map(a => createAction({ label: a.label, value: a.value, kind: 'quick-text', submitType: 'chat' }))
-        computedActions = filterActions(actions)
-      } catch {}
-    }
-    
     const message: Message = {
       id: generateMessageId(),
       type: 'bot',
@@ -508,10 +460,7 @@ export default function FashionChatbot() {
         .replace(/\r\n|\r/g, '\n')
         .replace(/\n{2,}/g, '\n\n'),
       timestamp: new Date(),
-      ...extra,
-      ...(ENABLE_ACTIONS
-        ? { actions: filterActions(extra?.actions) ?? computedActions }
-        : {}),
+      ...(extra ? { ...extra, actions: filterActions(extra.actions) } : {}),
     }
     setMessages((prev) => [...prev, message])
     return message
@@ -770,13 +719,12 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
     }
   }
 
-  // Handle try-on button click - check tokens and show confirmation
   const handleTryOnApi = async (productImageUrl: string) => {
     try {
       if (!productImageUrl) {
-        toast.error('Không có ảnh sản phẩm để thử đồ')
-        return
-      }
+      toast.error('Không có ảnh sản phẩm để thử đồ')
+      return
+    }
       
       if (!userModelImage) {
         pushBotMessage('Bạn cần tải ảnh người mẫu của bạn trước (full/half body). Hãy gửi ảnh tại đây hoặc vào mục Tủ đồ để lưu ảnh mẫu nhé!', {
@@ -789,52 +737,6 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
         return
       }
 
-      // Check user tokens first
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        toast.error('Vui lòng đăng nhập để sử dụng tính năng này')
-        return
-      }
-
-      // Fetch current token balance
-      const tokenRes = await fetch('/api/membership/tokens', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      })
-      
-      if (!tokenRes.ok) {
-        toast.error('Không thể kiểm tra số token. Vui lòng thử lại.')
-        return
-      }
-      
-      const tokenData = await tokenRes.json()
-      const availableTokens = tokenData.tokens?.total_tokens || 0
-
-      // Check if user has enough tokens
-      if (availableTokens < 1) {
-        pushBotMessage('⚠️ Bạn không đủ token để thử đồ ảo. Vui lòng mua thêm token để tiếp tục sử dụng tính năng này.', {
-          actions: [
-            createAction({ label: '💎 Mua token', kind: 'service', value: 'buy-tokens' }),
-            createAction({ label: '📊 Xem gói thành viên', kind: 'service', value: 'view-membership' }),
-          ]
-        })
-        return
-      }
-
-      // Show confirmation modal instead of chat message
-      setShowTryOnConfirmModal({
-        productImageUrl,
-        availableTokens
-      })
-      
-    } catch (e: any) {
-      console.error('tryon check error', e)
-      toast.error('Có lỗi xảy ra khi kiểm tra token')
-    }
-  }
-
-  // Execute the actual try-on after confirmation and token deduction
-  const executeRealTryOn = async (productImageUrl: string) => {
-    try {
       // Set loading state immediately
       setTryOnLoading(productImageUrl)
       
@@ -1049,7 +951,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
       setIsLoading(true)
       try {
         const recentContext = messages
-          .slice(-12)
+          .slice(-6)
           .map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: String(m.content || '') }))
         const convSummary = (() => {
           try {
@@ -1071,10 +973,8 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
         if (!resp.ok) throw new Error(data.error || 'Gợi ý thất bại')
 
         if (data.answer) {
-          const single = normalizeSingleProductAnswer(String(data.answer))
-          const actions = buildQuickActionsFromAnswer(single)
-          await sleep(300)
-          await pushBotMessage(single, actions ? { actions } : undefined)
+          const actions = buildQuickActionsFromAnswer(String(data.answer))
+          pushBotMessage(String(data.answer), actions ? { actions } : undefined)
         }
       } catch (e: any) {
         console.error('Simple recommend error:', e)
@@ -1205,7 +1105,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
         const resp = await fetch('/api/stylist/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: `${messageText}\n\nYêu cầu hệ thống: Chỉ gợi ý đúng 1 sản phẩm nổi bật nhất. Hoàn tất câu trả lời, không để dở dang.`, context: recentContext, summary: convSummary }),
+          body: JSON.stringify({ message: messageText, context: recentContext, summary: convSummary }),
           signal: controller.signal,
         }).finally(() => clearTimeout(timeoutId))
 
@@ -1213,16 +1113,15 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
         if (!resp.ok) throw new Error(data.error || 'Search failed')
 
         if (data.answer) {
-          const single = normalizeSingleProductAnswer(String(data.answer))
-          const actions = buildQuickActionsFromAnswer(single)
-          await sleep(300)
-          await pushBotMessage(single, actions ? { actions } : undefined)
+          const actions = buildQuickActionsFromAnswer(String(data.answer))
+          pushBotMessage(String(data.answer), actions ? { actions } : undefined)
           
           // Display products if available
-          if (data.products && Array.isArray(data.products) && data.products.length > 0) {
-            const firstItem = data.products[0]
-            const product = mapProductToCard(firstItem)
-            await pushBotMessage('', { product })
+          if (data.products && Array.isArray(data.products)) {
+            data.products.forEach((item: any) => {
+              const product = mapProductToCard(item)
+              pushBotMessage('', { product })
+            })
           }
         }
       } catch (err: any) {
@@ -1402,19 +1301,22 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            message: `Tôi đã tìm được ${finalProducts.length} sản phẩm phù hợp cho yêu cầu "${trimmedQuery || messageText}". ${contextForAI} Hãy tạo một thông báo ngắn gọn và tự nhiên để giới thiệu CHỈ 1 sản phẩm tiêu biểu nhất cho khách hàng, trả lời trọn vẹn, không để dở dang.`
+            message: `Tôi đã tìm được ${finalProducts.length} sản phẩm phù hợp cho yêu cầu "${trimmedQuery || messageText}". ${contextForAI} Hãy tạo một thông báo ngắn gọn và tự nhiên để giới thiệu các sản phẩm này cho khách hàng.`
           }),
           signal: aiSummaryController.signal,
         }).finally(() => clearTimeout(aiTimeoutId))
         
         const aiSummaryData = await parseResponseJson(aiSummaryResponse)
-        const summaryText = aiSummaryData.answer ? normalizeSingleProductAnswer(String(aiSummaryData.answer)) : `Mình đã sàng lọc ${finalProducts.length} lựa chọn phù hợp cho bạn. Bấm "Thử ngay" để xem sản phẩm gợi ý.`
+        const summaryText = aiSummaryData.answer || `Mình đã sàng lọc ${finalProducts.length} lựa chọn phù hợp cho bạn. Bấm "Thử ngay" trên từng sản phẩm hoặc chọn hành động bên dưới để tiếp tục.`
 
-        // Display only the first result
+        // Display results
         if (finalProducts.length > 0) {
-          await pushBotMessage(summaryText)
+          pushBotMessage(summaryText)
           const first = finalProducts[0]
-          if (first) await pushBotMessage('', { product: first })
+          if (first) pushBotMessage('', { product: first })
+          for (const product of finalProducts.slice(1)) {
+              pushBotMessage('', { product })
+          }
         }
 
         setPendingClarify(null)
@@ -1722,7 +1624,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
         try {
           // OPTIMIZED: Reduce context processing for speed
           const recentContext = messages
-            .slice(-8)
+            .slice(-3) // Reduced from 6 to 3 messages for speed
             .map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: String(m.content || '') }))
           const convSummary = (() => {
             try { 
@@ -1736,7 +1638,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           const resp = await fetch('/api/stylist/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `${userMessage.content}\n\nYêu cầu hệ thống: Nếu đề xuất sản phẩm, hãy CHỈ gợi ý 1 sản phẩm tốt nhất và trả lời trọn vẹn.`, context: recentContext, summary: convSummary }),
+            body: JSON.stringify({ message: userMessage.content, context: recentContext, summary: convSummary }),
             signal: controller.signal,
           }).finally(() => clearTimeout(timeoutId))
 
@@ -1757,17 +1659,43 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           } else {
             const data = await parseResponseJson(resp)
             if (!resp.ok) throw new Error(data.error || 'Chat failed')
-            if (data.answer) { const single = normalizeSingleProductAnswer(String(data.answer)); await sleep(300); await pushBotMessage(single) }
+            if (data.answer) pushBotMessage(String(data.answer))
             
-            // Display products if available
+            // Display products if available (only if AI didn't already describe them)
             console.log('🔍 Frontend received products:', data.products?.length || 0, 'for message:', inputValue)
             if (data.products && Array.isArray(data.products) && data.products.length > 0) {
-              // Always show the first product card
-              const firstItem = data.products[0]
-              if (firstItem) {
-                const product = mapProductToCard(firstItem)
-                await pushBotMessage('', { product })
-              }
+              // Check if AI response already contains detailed product descriptions
+              const hasProductDescriptions = data.answer && (
+                data.answer.includes('Giá:') || 
+                data.answer.includes('Link:') || 
+                data.answer.includes('Mô tả:') ||
+                data.answer.includes('### 1.') ||
+                data.answer.includes('### 2.') ||
+                data.answer.includes('### 3.') ||
+                data.answer.includes('### 4.') ||
+                data.answer.includes('VNĐ') ||
+                data.answer.includes('VND') ||
+                data.answer.includes('Xem chi tiết') ||
+                data.answer.includes('Xem tại đây') ||
+                data.answer.includes('Phong cách:') ||
+                data.answer.includes('Gợi ý phối đồ:') ||
+                data.answer.includes('Lời khuyên phối đồ:') ||
+                data.answer.includes('Màu sắc:') ||
+                data.answer.includes('Tổng chi phí:') ||
+                data.answer.includes('Link sản phẩm:') ||
+                (data.answer.includes('Áo') && data.answer.includes('Giá')) ||
+                (data.answer.includes('Quần') && data.answer.includes('Giá')) ||
+                data.answer.split('---').length > 1 || // Check for separator lines
+                data.answer.includes('1.') && data.answer.includes('2.') // Check for numbered lists
+              )
+              
+              // Always show ProductCards when products are available
+              // Limit to 2 products
+              const limitedProducts = data.products.slice(0, 2)
+              limitedProducts.forEach((item: any) => {
+                const product = mapProductToCard(item)
+                pushBotMessage('', { product })
+              })
             }
           }
         } catch (err: any) {
@@ -1819,7 +1747,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           if (suggestsSearch || nlu.intent === 'search') {
             await handleQuickSearch(inputValue, {}, { skipUserMessage: true, userMessageContent: inputValue })
           } else {
-            await pushBotMessage(data.answer, {
+            pushBotMessage(data.answer, {
               actions: [
                 createAction({ label: '🔍 Tìm sản phẩm', kind: 'quick-text', value: 'Mình muốn tìm sản phẩm', submitType: 'search' }),
                 createAction({ label: '🎨 Tư vấn phong cách', kind: 'quick-text', value: 'Tư vấn phong cách cho mình' }),
@@ -1830,7 +1758,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           }
         } else {
           // Fallback response
-          await pushBotMessage('Mình hiểu bạn đang tìm kiếm thông tin về thời trang nam. Hãy để mình giúp bạn:', {
+          pushBotMessage('Mình hiểu bạn đang tìm kiếm thông tin về thời trang nam. Hãy để mình giúp bạn:', {
             actions: [
               createAction({ label: '🔍 Tìm sản phẩm', kind: 'quick-text', value: 'Mình muốn tìm sản phẩm', submitType: 'search' }),
               createAction({ label: '🎨 Tư vấn phong cách', kind: 'quick-text', value: 'Tư vấn phong cách cho mình' }),
@@ -1872,8 +1800,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           throw new Error(data.error || 'Chatbot đang bận, thử lại sau nhé')
         }
 
-        await sleep(300)
-        await pushBotMessage(data.answer || 'Mình sẽ kiểm tra thêm thông tin cho bạn nhé!')
+        pushBotMessage(data.answer || 'Mình sẽ kiểm tra thêm thông tin cho bạn nhé!')
         setIsLoading(false)
         isSubmittingRef.current = false
         return
@@ -1895,7 +1822,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
       
       const data2 = await parseResponseJson(response2)
       if (response2.ok && data2.answer) {
-        await pushBotMessage(data2.answer, {
+        pushBotMessage(data2.answer, {
           actions: [
             createAction({ label: '🔍 Tìm sản phẩm', kind: 'quick-text', value: 'Mình muốn tìm sản phẩm phù hợp', submitType: 'search' }),
             createAction({ label: '🎨 Tư vấn phong cách', kind: 'quick-text', value: 'Tư vấn phong cách cho mình với.' }),
@@ -1904,7 +1831,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           ],
         })
       } else {
-        await pushBotMessage('Mình hiểu bạn đang tìm kiếm thông tin về thời trang nam. Hãy để mình giúp bạn:', {
+        pushBotMessage('Mình hiểu bạn đang tìm kiếm thông tin về thời trang nam. Hãy để mình giúp bạn:', {
           actions: [
             createAction({ label: '🔍 Tìm sản phẩm', kind: 'quick-text', value: 'Mình muốn tìm sản phẩm phù hợp', submitType: 'search' }),
             createAction({ label: '🎨 Tư vấn phong cách', kind: 'quick-text', value: 'Tư vấn phong cách cho mình với.' }),
@@ -1944,8 +1871,8 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
 
   return (
     <>
-    <div className="min-h-screen bg-yellow-300" style={{ backgroundColor: '#FFD93D' }}>
-      <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white border-8 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-yellow-50" style={{ backgroundColor: '#f6f1e9' }}>
+      <div className="w-full h-screen mx-0 my-0 overflow-hidden flex flex-col bg-white/80 backdrop-blur-sm">
       {/* Sticky Clear Conversation Button */}
       {messages.length > 1 && (
         <motion.button
@@ -1959,7 +1886,7 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
           }}
           whileTap={{ scale: 0.95 }}
           onClick={clearConversation}
-          className="fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-3 bg-red-500 text-white border-4 border-black font-bold uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-150"
+          className="fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-red-400/20"
           title="Xóa hội thoại"
         >
           <motion.div
@@ -2040,18 +1967,16 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
                 <div className={`flex items-end gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
               {/* Avatar */}
               {message.type !== 'user' && (
-                <div className="w-10 h-10 bg-pink-400 border-4 border-black flex items-center justify-center text-black text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                  <SparklesIcon className="w-5 h-5" />
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-xs shadow-md">
+                  <SparklesIcon className="w-4 h-4" />
                 </div>
               )}
               <div className={`max-w-[70%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
-                {(message.content?.trim() || (message.actions && message.actions.length > 0) || message.image) && (
                 <div
                   className={`rounded-2xl px-4 py-3 shadow-md ${
                     message.type === 'user' ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white rounded-tr-md' : 'bg-white text-gray-900 border border-amber-200 rounded-tl-md'
                   }`}
                 >
-                    {message.content?.trim() && (
                   <div className="text-sm whitespace-pre-wrap break-words">
                     {message.content
                       .replace(/┌([^┐]*)┐/g, '')
@@ -2059,24 +1984,10 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
                       .replace(/🖼️\s*\[([^\]]+)\]/g, '')
                       .replace(/\[Thử ngay\]/g, '')
                       .replace(/\[Mua ngay\]/g, '')
-                          // unwrap markdown emphasis like *text*, **text**, ***text***
-                          .replace(/\*{1,3}([^*][^]*?)\*{1,3}/g, '$1')
-                          // remove leftover multiple asterisks (e.g., *** separators)
-                          .replace(/\*{3,}/g, '')
-                          // remove markdown headings like ### Title
-                          .replace(/^#{1,6}\s*/gmi, '')
-                          // remove "- Link sản phẩm: ..." lines (already have card)
-                          .replace(/^\s*-\s*Link\s*sản\s*phẩm:.*$/gmi, '')
-                          // remove inline code fences/backticks for plain render
-                          .replace(/`{1,3}([^`]*?)`{1,3}/g, '$1')
-                          // compress extra blank lines left after removals
-                          .replace(/\n{3,}/g, '\n\n')
-                          .trim()
                     }
                   </div>
-                    )}
 
-                    {ENABLE_ACTIONS && message.actions && message.actions.length > 0 && (
+                  {message.actions && message.actions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {message.actions.map((action) => (
                         <button
@@ -2122,7 +2033,6 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
                     })}
                   </p>
                 </div>
-                )}
 
                 {/* Product Card using new component */}
                 {message.product && (
@@ -2390,94 +2300,6 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
             >
               ×
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Try-On Confirmation Modal */}
-      {showTryOnConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowTryOnConfirmModal(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <SparklesIcon className="w-6 h-6 text-amber-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Xác nhận thử đồ ảo</h3>
-            </div>
-            
-            <div className="mb-6 space-y-3">
-              <p className="text-gray-700">
-                Tính năng thử đồ ảo sẽ tốn <span className="font-bold text-amber-600">1 token</span>.
-              </p>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-sm text-amber-800">
-                  💰 Số token hiện có: <span className="font-bold">{showTryOnConfirmModal.availableTokens} token</span>
-                </p>
-                <p className="text-sm text-amber-700 mt-1">
-                  → Sau khi thử đồ: <span className="font-bold">{showTryOnConfirmModal.availableTokens - 1} token</span>
-                </p>
-              </div>
-              <p className="text-sm text-gray-600">
-                Bạn có muốn tiếp tục không?
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowTryOnConfirmModal(null)}
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-              >
-                ❌ Hủy
-              </button>
-              <button
-                onClick={async () => {
-                  const { productImageUrl } = showTryOnConfirmModal
-                  setShowTryOnConfirmModal(null)
-                  
-                  try {
-                    const { data: { session } } = await supabase.auth.getSession()
-                    if (!session?.access_token) {
-                      toast.error('Vui lòng đăng nhập')
-                      return
-                    }
-
-                    // Deduct 1 token
-                    toast.loading('Đang trừ token...', { id: 'token-deduct' })
-                    
-                    const tokenDeductRes = await fetch('/api/membership/tokens', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                      },
-                      body: JSON.stringify({
-                        tokensToUse: 1,
-                        description: 'Virtual try-on',
-                      })
-                    })
-
-                    if (!tokenDeductRes.ok) {
-                      const errorData = await tokenDeductRes.json()
-                      toast.error(errorData.error || 'Không thể trừ token', { id: 'token-deduct' })
-                      return
-                    }
-
-                    const tokenResult = await tokenDeductRes.json()
-                    toast.success(`✅ Đã trừ 1 token. Còn lại: ${tokenResult.tokens?.total_tokens || 0} token`, { id: 'token-deduct' })
-                    
-                    // Now execute the actual try-on
-                    await executeRealTryOn(productImageUrl)
-                    
-                  } catch (error) {
-                    console.error('Token deduction error:', error)
-                    toast.error('Có lỗi xảy ra khi trừ token', { id: 'token-deduct' })
-                  }
-                }}
-                className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md hover:shadow-lg"
-              >
-                ✅ Xác nhận (-1 token)
-              </button>
-            </div>
           </div>
         </div>
       )}
