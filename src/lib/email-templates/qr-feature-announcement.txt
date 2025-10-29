@@ -1,0 +1,62 @@
+✨ TÍNH NĂNG MỚI: QR CODE THỬ ĐỒ ẢO ✨
+
+Xin chào {{USER_NAME}},
+
+Chúng tôi rất vui mừng giới thiệu tính năng mới QR CODE THỬ ĐỒ ẢO - một công cụ mạnh mẽ giúp bạn chia sẻ sản phẩm thời trang và mang lại trải nghiệm thử đồ ảo cho khách hàng của bạn!
+
+═══════════════════════════════════════
+
+🎯 DÀNH CHO AI?
+
+• Chủ shop thời trang: Tạo QR cho sản phẩm, in ra catalog hoặc đăng social media
+• Nhà bán hàng online: Chia sẻ link thử đồ trực tiếp với khách hàng
+• Influencer/KOL: Tạo QR cho outfit, followers thử ngay không cần app
+• Cửa hàng offline: Dán QR lên sản phẩm, khách thử đồ không cần vào phòng thay
+
+═══════════════════════════════════════
+
+🚀 CÁCH HOẠT ĐỘNG
+
+Bước 1: TẠO QR CODE
+→ Upload ảnh sản phẩm, đặt tên, và tạo QR code trong vài giây
+
+Bước 2: CHIA SẺ
+→ In QR ra catalog, đăng lên Instagram, hoặc gửi link cho khách hàng
+
+Bước 3: KHÁCH HÀNG QUÉT & THỬ ĐỒ
+→ Họ chỉ cần quét QR, upload ảnh của mình, và xem kết quả thử đồ ngay lập tức!
+
+═══════════════════════════════════════
+
+💎 LỢI ÍCH CHO BẠN
+
+✅ Tăng tương tác: Khách hàng trải nghiệm sản phẩm trước khi mua
+✅ Tiết kiệm thời gian: Không cần phòng thay đồ, không cần app
+✅ Theo dõi analytics: Biết sản phẩm nào được quan tâm nhiều nhất
+✅ Chuyên nghiệp: 3 format xuất QR phù hợp mọi mục đích
+
+═══════════════════════════════════════
+
+🎨 BẮT ĐẦU NGAY
+
+Tạo QR Code đầu tiên tại: https://www.clothify.top/qr-codes/new
+
+💰 Chi phí: Tạo QR miễn phí! Chỉ tốn 1 token khi khách hàng thử đồ thành công.
+
+═══════════════════════════════════════
+
+Cảm ơn bạn đã tin tưởng và sử dụng Clothify! Chúng tôi luôn nỗ lực mang đến những tính năng mới giúp bạn kinh doanh thời trang hiệu quả hơn.
+
+Nếu có bất kỳ câu hỏi nào, đừng ngại liên hệ với chúng tôi!
+
+Trân trọng,
+Đội ngũ Clothify
+
+═══════════════════════════════════════
+
+🌐 www.clothify.top
+📖 Xem hướng dẫn chi tiết: https://www.clothify.top/qr-codes
+
+Email này được gửi đến {{USER_EMAIL}}
+© 2025 Clothify. All rights reserved.
+

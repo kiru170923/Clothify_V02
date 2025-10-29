@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSupabase } from '@/components/SupabaseProvider'
 import PaymentManagement from '@/components/admin/PaymentManagement'
 import UserManagement from '@/components/admin/UserManagement'
+import EmailBroadcast from '@/components/admin/EmailBroadcast'
 import { 
   Users, 
   TrendingUp,
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users' | 'emails'>('overview')
 
     // Allow anyone to access admin dashboard
   const isAuthorized = true
@@ -173,6 +174,16 @@ export default function AdminDashboard() {
             }`}
           >
             Người dùng
+          </button>
+          <button
+            onClick={() => setActiveTab('emails')}
+            className={`font-semibold text-lg transition ${
+              activeTab === 'emails'
+                ? 'text-black border-b-4 border-black pb-2'
+                : 'text-gray-500 hover:text-black'
+            }`}
+          >
+            📧 Email Broadcast
           </button>
         </div>
 
@@ -329,6 +340,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'payments' && <PaymentManagement />}
         {activeTab === 'users' && <UserManagement />}
+        {activeTab === 'emails' && <EmailBroadcast />}
       </div>
     </div>
   )
