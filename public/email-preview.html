@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Preview - QR Feature Announcement</title>
+</head>
+<body style="margin: 0; padding: 20px; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  
+  <div style="max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <h1 style="color: #1f2937; margin-bottom: 20px;">📧 Email Preview</h1>
+    <p style="color: #6b7280; margin-bottom: 30px;">
+      Đây là preview của email sẽ được gửi đến users. Actual email sẽ có personalization (USER_NAME, USER_EMAIL).
+    </p>
+    
+    <div style="border: 2px dashed #e5e7eb; padding: 20px; border-radius: 8px; background: #fafafa;">
+      <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
+        <strong>Subject:</strong> ✨ Tính năng mới: QR Code Thử Đồ Ảo - Clothify
+      </p>
+      <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
+        <strong>From:</strong> Clothify &lt;noreply@clothify.top&gt;
+      </p>
+      <p style="margin: 0; color: #6b7280; font-size: 14px;">
+        <strong>To:</strong> {{USER_EMAIL}}
+      </p>
+    </div>
+
+    <div style="margin-top: 30px; padding: 30px; background: linear-gradient(135deg, #FEF3C7 0%, #FFFFFF 100%); border-radius: 12px; border: 1px solid #e5e7eb;">
+      <iframe 
+        src="../src/lib/email-templates/qr-feature-announcement.html" 
+        style="width: 100%; height: 1200px; border: none; border-radius: 8px; background: white;"
+        title="Email Content"
+      ></iframe>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+      <h3 style="margin: 0 0 10px 0; color: #1e40af;">ℹ️ Thông tin</h3>
+      <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 14px;">
+        <li>Email sẽ được personalize với tên user</li>
+        <li>Có cả HTML (như trên) và Text version</li>
+        <li>Responsive - tốt trên cả desktop và mobile</li>
+        <li>CTA button link đến: https://www.clothify.top/qr-codes/new</li>
+      </ul>
+    </div>
+  </div>
+
+</body>
+</html>
+

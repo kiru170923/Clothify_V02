@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSupabase } from '@/components/SupabaseProvider'
+import { supabase } from '@/lib/supabase'
 import PaymentManagement from '@/components/admin/PaymentManagement'
 import UserManagement from '@/components/admin/UserManagement'
 import EmailBroadcast from '@/components/admin/EmailBroadcast'
@@ -54,9 +55,8 @@ export default function AdminDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users' | 'emails'>('overview')
-
-    // Allow anyone to access admin dashboard
-  const isAuthorized = true
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [checkingAdmin, setCheckingAdmin] = useState(true)
 
   const fetchDashboardData = async () => {
     try {
@@ -78,15 +78,54 @@ export default function AdminDashboard() {
     }
   }
 
+  // Check if user is admin
   useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false)
+        setCheckingAdmin(false)
+        return
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          setIsAdmin(false)
+          setCheckingAdmin(false)
+          return
+        }
+
+        const response = await fetch('/api/admin/check-admin', {
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`
+          }
+        })
+
+        const data = await response.json()
+        setIsAdmin(data.isAdmin || false)
+      } catch (error) {
+        console.error('Error checking admin status:', error)
+        setIsAdmin(false)
+      } finally {
+        setCheckingAdmin(false)
+      }
+    }
+
     if (!authLoading) {
+      checkAdminStatus()
+    }
+  }, [user, authLoading])
+
+  // Fetch dashboard data when admin is confirmed
+  useEffect(() => {
+    if (!authLoading && isAdmin) {
       fetchDashboardData()
       const interval = setInterval(fetchDashboardData, 30000)
       return () => clearInterval(interval)
     }
-  }, [isAuthorized, authLoading])
+  }, [isAdmin, authLoading])
 
-  if (authLoading) {
+  if (authLoading || checkingAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent"></div>
@@ -94,7 +133,7 @@ export default function AdminDashboard() {
     )
   }
 
-  if (!isAuthorized) {
+  if (!user || !isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-center">
