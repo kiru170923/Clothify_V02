@@ -21,23 +21,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Check if user is admin
-    const { data: profile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('is_admin')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    // 3. Get query params
+    // 2. Get query params
     const { searchParams } = new URL(request.url)
     const testMode = searchParams.get('test') === 'true'
     const limit = testMode ? 5 : undefined
 
-    // 4. Fetch all users with emails
+    // 3. Fetch all users with emails
     const { data: authUsers, error: fetchError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (fetchError) {
@@ -77,10 +66,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`📧 Preparing to send to ${usersToEmail.length} users${testMode ? ' (TEST MODE)' : ''}`)
 
-    // 5. Send bulk emails
+    // 4. Send bulk emails
     const result = await sendBulkQRFeatureAnnouncement(usersToEmail)
 
-    // 6. Log activity
+    // 5. Log activity
     await supabaseAdmin
       .from('admin_activity')
       .insert({
