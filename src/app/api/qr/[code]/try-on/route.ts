@@ -190,6 +190,7 @@ export async function POST(
           if (statusResponse.ok) {
             const statusData = await statusResponse.json()
             console.log(`🔍 Poll attempt ${attempts + 1}:`, statusData.data?.state || 'unknown')
+            console.log(`🔍 Full status data:`, JSON.stringify(statusData, null, 2))
             
             // Check state (waiting, processing, generating, success, failed)
             if (statusData.code === 200) {
