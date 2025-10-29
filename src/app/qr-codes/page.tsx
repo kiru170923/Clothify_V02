@@ -265,9 +265,9 @@ export default function QRCodesPage() {
                     <button
                       onClick={() => showQRCodeModal(qr)}
                       className="flex-1 px-3 py-2 bg-amber-100 text-amber-700 rounded-lg font-medium hover:bg-amber-200 transition-colors text-sm"
-                      title="View QR"
+                      title="View Details"
                     >
-                      👁️ Xem
+                      📋 Chi tiết
                     </button>
                     <button
                       onClick={() => toggleQRStatus(qr.code, qr.isActive)}
@@ -280,51 +280,6 @@ export default function QRCodesPage() {
                     >
                       {qr.isActive ? <EyeSlashIcon className="w-4 h-4 mx-auto" /> : <EyeIcon className="w-4 h-4 mx-auto" />}
                     </button>
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowExportMenu(showExportMenu === qr.code ? null : qr.code)}
-                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors text-sm"
-                        title="Download QR"
-                      >
-                        <ArrowDownTrayIcon className="w-4 h-4" />
-                      </button>
-                      
-                      {/* Export Menu */}
-                      {showExportMenu === qr.code && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-black shadow-lg rounded-lg z-10 overflow-hidden">
-                          <button
-                            onClick={() => {
-                              downloadQR(qr, 'plain')
-                              setShowExportMenu(null)
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-amber-50 transition-colors border-b border-gray-200"
-                          >
-                            <div className="font-medium text-sm">QR Đơn giản</div>
-                            <div className="text-xs text-gray-500">Chỉ mã QR</div>
-                          </button>
-                          <button
-                            onClick={() => {
-                              downloadQR(qr, 'branded-simple')
-                              setShowExportMenu(null)
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-amber-50 transition-colors border-b border-gray-200"
-                          >
-                            <div className="font-medium text-sm">QR + Ảnh SP</div>
-                            <div className="text-xs text-gray-500">QR ở góc ảnh</div>
-                          </button>
-                          <button
-                            onClick={() => {
-                              downloadQR(qr, 'branded-full')
-                              setShowExportMenu(null)
-                            }}
-                            className="w-full px-4 py-3 text-left hover:bg-amber-50 transition-colors"
-                          >
-                            <div className="font-medium text-sm">Full Branding</div>
-                            <div className="text-xs text-gray-500">Layout chuyên nghiệp</div>
-                          </button>
-                        </div>
-                      )}
-                    </div>
                     <button
                       onClick={() => deleteQR(qr.code, qr.name)}
                       className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm"
@@ -368,17 +323,10 @@ export default function QRCodesPage() {
                   </button>
                   <button
                     onClick={() => downloadQR(selectedQR, 'branded-simple')}
-                    className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-300 text-blue-800 font-medium rounded-xl hover:bg-blue-100 transition-all text-left"
-                  >
-                    <div className="font-bold">🖼️ QR + Ảnh sản phẩm</div>
-                    <div className="text-xs text-blue-600">QR ở góc ảnh + text</div>
-                  </button>
-                  <button
-                    onClick={() => downloadQR(selectedQR, 'branded-full')}
                     className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition-all text-left shadow-lg"
                   >
-                    <div className="font-bold">⭐ Full Branding</div>
-                    <div className="text-xs text-amber-100">Layout chuyên nghiệp (1080x1080px)</div>
+                    <div className="font-bold">🖼️ QR + Ảnh sản phẩm</div>
+                    <div className="text-xs text-amber-100">QR ở góc ảnh + branding</div>
                   </button>
                 </div>
               </div>
