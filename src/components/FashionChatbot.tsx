@@ -58,7 +58,6 @@ import { useConversationState, ConversationState, UserIntent } from '../lib/conv
 import { useSmartFollowUp, FollowUpContext } from '../lib/smartFollowUp'
 import { useAdvancedNLU } from '../lib/advancedNLU'
 import { useStyleAnalysis, StyleProfile } from '../lib/styleAnalysisEngine'
-import VoiceCommands from './ui/VoiceCommands'
 import StyleQuiz from './ui/StyleQuiz'
 import AnalyticsDashboard from './ui/AnalyticsDashboard'
 
@@ -269,7 +268,7 @@ export default function FashionChatbot() {
   
   // Phase 4: Advanced Features State
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false)
-  const [activeFeature, setActiveFeature] = useState<'voice' | 'quiz' | 'analytics' | null>(null)
+  const [activeFeature, setActiveFeature] = useState<'quiz' | 'analytics' | null>(null)
   const [followUpContext, setFollowUpContext] = useState<FollowUpContext>({
     missingInfo: [],
     conversationFlow: [],
@@ -467,7 +466,7 @@ export default function FashionChatbot() {
   }
 
   // Phase 4: Advanced Feature Handlers
-  const handleAdvancedFeature = (feature: 'voice' | 'quiz' | 'analytics') => {
+  const handleAdvancedFeature = (feature: 'quiz' | 'analytics') => {
     setActiveFeature(feature)
     setShowAdvancedFeatures(true)
   }
@@ -2341,7 +2340,6 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800">
-                  {activeFeature === 'voice' && 'Lệnh giọng nói'}
                   {activeFeature === 'quiz' && 'Trắc nghiệm phong cách'}
                   {activeFeature === 'analytics' && 'Analytics Dashboard'}
                 </h2>
@@ -2355,17 +2353,6 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
 
               {/* Content */}
               <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-                {activeFeature === 'voice' && (
-                  <VoiceCommands
-                    onCommandExecuted={handleVoiceCommand}
-                    onVoiceInput={(text) => {
-                      setInputValue(text)
-                      handleSubmit({ preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent)
-                    }}
-                  />
-                )}
-                
-                
                 {activeFeature === 'quiz' && (
                   <StyleQuiz
                     onComplete={handleStyleQuizComplete}
@@ -2389,17 +2376,6 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
       {/* Phase 4: Advanced Features Quick Access */}
       <div className="fixed bottom-4 right-4 z-30">
         <div className="flex flex-col gap-2">
-          <motion.button
-            onClick={() => handleAdvancedFeature('voice')}
-            className="p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            title="Lệnh giọng nói"
-          >
-            <MicrophoneIcon className="w-5 h-5" />
-          </motion.button>
-          
-          
           <motion.button
             onClick={() => handleAdvancedFeature('quiz')}
             className="p-3 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
