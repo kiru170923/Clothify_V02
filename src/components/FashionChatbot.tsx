@@ -1720,9 +1720,17 @@ Tôi đã tìm thấy một số sản phẩm phù hợp với phong cách của
 
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 60000) // Increased to 60s for stability
+          
+          // Get session for authorization
+          const { data: { session } } = await supabase.auth.getSession()
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`
+          }
+          
           const resp = await fetch('/api/stylist/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ message: `${userMessage.content}\n\nYêu cầu hệ thống: Nếu đề xuất sản phẩm, hãy CHỈ gợi ý 1 sản phẩm tốt nhất và trả lời trọn vẹn.`, context: recentContext, summary: convSummary }),
             signal: controller.signal,
           }).finally(() => clearTimeout(timeoutId))

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's wardrobe items with range
     const { data: items, error, count } = await supabaseAdmin
-      .from('user_wardrobe')
+      .from('user_wardrobe_items')
       .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     // Save wardrobe item to database with classification
     const { data: savedItem, error: saveError } = await supabaseAdmin
-      .from('user_wardrobe')
+      .from('user_wardrobe_items')
       .insert({
         id: crypto.randomUUID(),
         user_id: user.id,
@@ -267,7 +267,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete wardrobe item
     const { error: deleteError } = await supabaseAdmin
-      .from('user_wardrobe')
+      .from('user_wardrobe_items')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id) // Ensure user can only delete their own items

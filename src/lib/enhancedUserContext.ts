@@ -376,11 +376,18 @@ export class EnhancedUserContextEngine {
       contextString += '\n'
     }
 
-    contextString += `HƯỚNG DẪN SỬ DỤNG:\n`
-    contextString += `- Sử dụng thông tin trên để đưa ra gợi ý phù hợp với người dùng\n`
-    contextString += `- Tham khảo tủ đồ hiện tại để đề xuất items bổ sung hoặc phối đồ\n`
-    contextString += `- Đề cập đến size, màu sắc và phong cách yêu thích khi gợi ý\n`
-    contextString += `- Đưa ra lời khuyên về cách phối đồ với items hiện có\n`
+    contextString += `⚠️ HƯỚNG DẪN QUAN TRỌNG:\n`
+    contextString += `1. KHI KHÁCH HỎI VỀ THÔNG TIN CÁ NHÂN (chiều cao, cân nặng, size, giới tính, tuổi, etc.):\n`
+    contextString += `   → PHẢI trả lời dựa trên "THÔNG TIN NGƯỜI DÙNG" ở trên\n`
+    contextString += `   → Nếu data là "Chưa cập nhật", nói "Bạn chưa cập nhật [thông tin này] trong profile"\n`
+    contextString += `   → KHÔNG BAO GIỜ nói "tôi không có thông tin"\n\n`
+    contextString += `2. KHI KHÁCH HỎI VỀ TỦ ĐỒ (có gì, thiếu gì, phối đồ):\n`
+    contextString += `   → Xem phần "TỦ ĐỒ HIỆN TẠI" ở trên và trả lời cụ thể\n`
+    contextString += `   → Liệt kê các món có sẵn: "Bạn có X món [category]: [tên item 1], [tên item 2]..."\n`
+    contextString += `   → Nếu tủ đồ trống, nói "Bạn chưa thêm món đồ nào vào tủ đồ"\n`
+    contextString += `   → KHÔNG BAO GIỜ nói "tôi không thể xem tủ đồ"\n\n`
+    contextString += `3. Luôn sử dụng thông tin này để cá nhân hóa gợi ý\n`
+    contextString += `4. Đề xuất items phù hợp với size, style và items hiện có\n`
 
     return contextString
   }

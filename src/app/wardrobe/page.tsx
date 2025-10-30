@@ -12,18 +12,21 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShirt, faTshirt, faBagShopping } from '@fortawesome/free-solid-svg-icons'
 
 export interface WardrobeItem {
-  id: string
+  id: string | number
   user_id: string
   image_url: string
-  name: string
-  category: 'top' | 'bottom' | 'dress' | 'shoes' | 'accessory' | 'accessories' | 'outerwear'
-  subcategory: string
+  title: string
+  name?: string // Backward compatibility
+  category: string
+  subcategory?: string
   color: string
-  style: string
-  season: string
-  gender: string
-  confidence: number
-  description: string
+  style_tags?: string[]
+  occasion_tags?: string[]
+  season_suitable?: string[]
+  ai_analysis?: any
+  ai_notes?: string
+  description?: string
+  added_at?: string
   created_at: string
 }
 
@@ -78,7 +81,7 @@ export default function WardrobePage() {
   }, [session])
 
   // Delete wardrobe item
-  const deleteWardrobeItem = async (id: string) => {
+  const deleteWardrobeItem = async (id: string | number) => {
     if (!session?.access_token) return
     
     try {
@@ -253,7 +256,7 @@ export default function WardrobePage() {
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                         <img
                           src={item.image_url}
-                          alt={item.name}
+                          alt={item.title || item.name || 'Wardrobe item'}
                           className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                           onClick={() => setZoomedImage(item.image_url)}
                         />
@@ -272,8 +275,8 @@ export default function WardrobePage() {
                       
                       {/* Item Info */}
                       <div className="mt-2 space-y-1">
-                        <p className="text-sm text-gray-900 truncate" title={item.name}>
-                          {item.name}
+                        <p className="text-sm text-gray-900 truncate" title={item.title || item.name || 'Wardrobe item'}>
+                          {item.title || item.name || 'Wardrobe item'}
                         </p>
                         
                         {/* AI Classification Info */}
@@ -296,7 +299,7 @@ export default function WardrobePage() {
                              item.category}
                           </span>
                           <span className="text-gray-500">
-                            {item.color} • {item.style}
+                            {item.color} • {item.style_tags?.[0] || 'casual'}
                           </span>
                         </div>
                         
