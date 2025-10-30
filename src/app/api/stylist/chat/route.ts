@@ -812,10 +812,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // IMPORTANT: Build product context AFTER filtering (so AI sees final products)
+    // This ensures AI text matches ProductCards exactly
+    const finalProducts = products.slice(0, MAX_PRODUCT_CARDS)
+    
     const contextSections: string[] = []
-    for (const product of products) {
+    for (const product of finalProducts) {
       const chunks = productChunks.get(product.id) ?? []
-      const context = chunks.slice(0, 1).join('\n\n') // Reduced from 3 to 1 chunk for speed
+      const context = chunks.slice(0, 1).join('\n\n')
       contextSections.push(
         `[SP ${product.id}] ${product.title}\nPrice: ${formatCurrency(product.price)}\nStyle: ${product.style?.join(', ') || 'versatile'} ; Occasion: ${product.occasion?.join(', ') || 'versatile'}\nLink: ${product.url}\n${context}`
       )
@@ -853,7 +857,7 @@ export async function POST(request: NextRequest) {
       {
         role: 'user',
         content: shouldSuggestProducts 
-          ? `Customer asks: "${message}"\n\n${enhancedContext}\n\nPRODUCT CONTEXT:\n${contextBlock}\n\nProvide detailed product recommendation with styling advice. Consider their existing wardrobe when making suggestions.`
+          ? `Customer asks: "${message}"\n\n${enhancedContext}\n\nPRODUCT CONTEXT:\n${contextBlock}\n\n⚠️ CRITICAL: Only mention products listed above in PRODUCT CONTEXT. The frontend will show ProductCards for these EXACT products. Your text must match the products shown in cards. Do NOT mention products that are not in the PRODUCT CONTEXT above.`
           : `Customer asks: "${message}"\n\n${enhancedContext}\n\nProvide helpful response without product suggestions. Consider their existing wardrobe when giving advice. If you have wardrobe access, use it proactively instead of asking about it.`
       }
     ]
