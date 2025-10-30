@@ -221,7 +221,7 @@ export const ProfileTab = React.memo(function ProfileTab() {
                   ) : membershipData?.membership?.plan ? (
                     `${membershipData.membership.plan.name} - ${membershipData.membership.billing_cycle === 'monthly' ? membershipData.membership.plan.tokens_monthly : membershipData.membership.plan.tokens_yearly} tokens/${membershipData.membership.billing_cycle === 'monthly' ? 'month' : 'year'}`
                   ) : (
-                    'Free Plan - 10 tokens/month'
+                    'Free Plan - 3 tokens/month'
                   )}
                 </p>
               </div>
