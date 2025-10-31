@@ -211,53 +211,63 @@ export default function QRCodesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all border border-amber-100 overflow-hidden"
               >
-                {/* QR Preview */}
-                <div className="p-6 bg-gradient-to-br from-amber-50 to-yellow-50 flex items-center justify-center">
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
+                {/* Media header with product image + tiny QR */}
+                <div className="relative h-40 bg-amber-50">
+                  {qr.clothingImageUrl ? (
+                    // Product image banner
+                    <img
+                      src={qr.clothingImageUrl}
+                      alt={qr.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-amber-700/70">
+                      <SparklesIcon className="w-8 h-8" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  {/* Tiny QR overlay */}
+                  <div className="absolute bottom-3 right-3 bg-white p-1.5 rounded-lg shadow-md border border-amber-100">
                     <QRCodeCanvas
-                      id={`qr-${qr.code}`}
+                      id={`qr-mini-${qr.code}`}
                       value={qr.publicUrl}
-                      size={150}
-                      level="H"
-                      includeMargin
+                      size={72}
+                      level="M"
+                      includeMargin={false}
                     />
                   </div>
                 </div>
 
                 {/* Info */}
                 <div className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 mb-1">{qr.name}</h3>
-                      <p className="text-xs text-gray-500 font-mono">{qr.code}</p>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 truncate" title={qr.name}>{qr.name}</h3>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-[11px] text-gray-500 font-mono truncate">{qr.code}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          qr.status === 'active' ? 'bg-green-100 text-green-800' :
+                          qr.status === 'expired' ? 'bg-red-100 text-red-800' :
+                          qr.status === 'max_uses_reached' ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {qr.status === 'active' ? 'Active' :
+                           qr.status === 'expired' ? 'Expired' :
+                           qr.status === 'max_uses_reached' ? 'Max Uses' :
+                           'Disabled'}
+                        </span>
+                      </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      qr.status === 'active' ? 'bg-green-100 text-green-800' :
-                      qr.status === 'expired' ? 'bg-red-100 text-red-800' :
-                      qr.status === 'max_uses_reached' ? 'bg-orange-100 text-orange-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {qr.status === 'active' ? '🟢 Active' :
-                       qr.status === 'expired' ? '🔴 Expired' :
-                       qr.status === 'max_uses_reached' ? '🟠 Max Uses' :
-                       '⚫ Disabled'}
-                    </span>
                   </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="text-center p-2 bg-blue-50 rounded-lg">
-                      <div className="text-lg font-bold text-blue-600">{qr.totalScans}</div>
-                      <div className="text-xs text-gray-600">Scans</div>
-                    </div>
-                    <div className="text-center p-2 bg-green-50 rounded-lg">
-                      <div className="text-lg font-bold text-green-600">{qr.successfulTryons}</div>
-                      <div className="text-xs text-gray-600">Success</div>
-                    </div>
-                    <div className="text-center p-2 bg-amber-50 rounded-lg">
-                      <div className="text-lg font-bold text-amber-600">{qr.tokensSpent}</div>
-                      <div className="text-xs text-gray-600">Tokens</div>
-                    </div>
+                  {/* Compact stats */}
+                  <div className="flex items-center gap-2 text-[11px] mb-3">
+                    <span className="px-2 py-1 rounded bg-blue-50 text-blue-700">Scans: <b>{qr.totalScans}</b></span>
+                    <span className="px-2 py-1 rounded bg-green-50 text-green-700">Success: <b>{qr.successfulTryons}</b></span>
+                    <span className="px-2 py-1 rounded bg-amber-50 text-amber-700">Tokens: <b>{qr.tokensSpent}</b></span>
                   </div>
 
                   {/* Actions */}
