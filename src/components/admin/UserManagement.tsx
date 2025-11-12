@@ -54,6 +54,7 @@ export default function UserManagement() {
   const [activeUsers, setActiveUsers] = useState(7)
   const [chartOpen, setChartOpen] = useState(true)
   const [chartData, setChartData] = useState<any[]>([])
+  const [chartLoading, setChartLoading] = useState(false)
 
   const fetchUsers = async () => {
     try {
@@ -72,24 +73,6 @@ export default function UserManagement() {
       setData(result)
       
       setActiveUsers(Math.floor(Math.random() * 5) + 7)
-
-      // Generate chart data: users grouped by date
-      if (result.users && result.users.length > 0) {
-        const dateMap: Record<string, number> = {}
-        result.users.forEach((user: User) => {
-          const date = new Date(user.createdAt).toLocaleDateString('vi-VN', {
-            month: '2-digit',
-            day: '2-digit',
-          })
-          dateMap[date] = (dateMap[date] || 0) + 1
-        })
-
-        const chartArray = Object.entries(dateMap)
-          .map(([date, count]) => ({ date, users: count }))
-          .sort((a, b) => a.date.localeCompare(b.date))
-
-        setChartData(chartArray)
-      }
     } catch (error) {
       console.error('Error fetching users:', error)
     } finally {
@@ -97,13 +80,39 @@ export default function UserManagement() {
     }
   }
 
+  const fetchChartData = async () => {
+    try {
+      setChartLoading(true)
+      const params = new URLSearchParams()
+      
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
+
+      const response = await fetch(`/api/admin/users/chart-data?${params}`)
+      const result = await response.json()
+      
+      if (result.chartData) {
+        setChartData(result.chartData)
+      }
+    } catch (error) {
+      console.error('Error fetching chart data:', error)
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
   }, [currentPage])
 
+  useEffect(() => {
+    fetchChartData()
+  }, [dateFrom, dateTo])
+
   const handleSearch = () => {
     setCurrentPage(1)
     fetchUsers()
+    fetchChartData()
   }
 
   const formatDate = (dateString: string) => {
@@ -170,7 +179,11 @@ export default function UserManagement() {
 
         {chartOpen && (
           <div className="p-6 bg-white">
-            {chartData.length > 0 ? (
+            {chartLoading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-black border-t-transparent"></div>
+              </div>
+            ) : chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

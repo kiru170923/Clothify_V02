@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react'
 import { useSupabase } from '@/components/SupabaseProvider'
 import PaymentManagement from '@/components/admin/PaymentManagement'
 import UserManagement from '@/components/admin/UserManagement'
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
 import { 
   Users, 
   TrendingUp,
   CreditCard, 
   ShoppingBag, 
   Activity,
-  RefreshCw
+  RefreshCw,
+  BarChart3
 } from 'lucide-react'
 
 interface DashboardData {
@@ -51,7 +53,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users' | 'analytics'>('overview')
 
   const fetchDashboardData = async () => {
     try {
@@ -158,6 +160,16 @@ export default function AdminDashboard() {
             }`}
           >
             Người dùng
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`font-semibold text-lg transition ${
+              activeTab === 'analytics'
+                ? 'text-black border-b-4 border-black pb-2'
+                : 'text-gray-500 hover:text-black'
+            }`}
+          >
+            📊 Phân Tích
           </button>
         </div>
 
@@ -314,6 +326,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'payments' && <PaymentManagement />}
         {activeTab === 'users' && <UserManagement />}
+        {activeTab === 'analytics' && <AnalyticsDashboard />}
       </div>
     </div>
   )

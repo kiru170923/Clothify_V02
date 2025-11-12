@@ -33,16 +33,18 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: true })
 
-    const { data: chats } = await supabaseAdmin
-      .from('chat_messages')
+    // Get QR scans as proxy for engagement
+    const { data: qrScans } = await supabaseAdmin
+      .from('qr_scan_history')
       .select('created_at')
       .gte('created_at', startDate.toISOString())
+      .eq('success', true)
       .order('created_at', { ascending: true })
 
     // Process data by day
     const userGrowth = processDataByDay(userProfiles || [], 'users')
     const revenueChart = processRevenueByDay(payments || [])
-    const activityChart = processActivityByDay(tryOns || [], chats || [])
+    const activityChart = processActivityByDay(tryOns || [], qrScans || [])
 
     // Calculate user segments
     const totalUsers = userProfiles?.length || 0
@@ -62,14 +64,21 @@ export async function GET(request: NextRequest) {
 
     // Calculate top features usage
     const totalTryOns = tryOns?.length || 0
-    const totalChats = chats?.length || 0
+    const totalQrScans = qrScans?.length || 0
+    
+    // Get wardrobe items count
+    const { data: wardrobeItems } = await supabaseAdmin
+      .from('user_wardrobe_items')
+      .select('id', { count: 'exact' })
+      .gte('created_at', startDate.toISOString())
+    
+    const totalWardrobeItems = wardrobeItems?.length || 0
     
     const topFeatures = [
-      { feature: 'AI Try-On', usage: totalTryOns, growth: 0 }, // Will calculate growth later
-      { feature: 'AI Chatbot', usage: totalChats, growth: 0 },
-      { feature: 'Wardrobe', usage: 0, growth: 0 }, // No wardrobe data yet
-      { feature: 'Style Quiz', usage: 0, growth: 0 }, // No style quiz data yet
-      { feature: 'Model Generation', usage: 0, growth: 0 } // No model generation data yet
+      { feature: 'AI Try-On', usage: totalTryOns, growth: 0 },
+      { feature: 'QR Scans', usage: totalQrScans, growth: 0 },
+      { feature: 'Wardrobe Items', usage: totalWardrobeItems, growth: 0 },
+      { feature: 'Premium Users', usage: premiumUsers, growth: 0 }
     ]
 
     // Simple conversion funnel
@@ -92,7 +101,7 @@ export async function GET(request: NextRequest) {
         totalUsers,
         totalRevenue: payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
         totalTryOns,
-        totalChats,
+        totalChats: totalQrScans, // Using QR scans as proxy
         premiumUsers
       }
     })
@@ -131,7 +140,7 @@ function processRevenueByDay(payments: any[]) {
   }))
 }
 
-function processActivityByDay(tryOns: any[], chats: any[]) {
+function processActivityByDay(tryOns: any[], qrScans: any[]) {
   const dailyData: { [key: string]: { tryOns: number; chats: number } } = {}
   
   tryOns.forEach(item => {
@@ -140,7 +149,7 @@ function processActivityByDay(tryOns: any[], chats: any[]) {
     dailyData[date].tryOns++
   })
 
-  chats.forEach(item => {
+  qrScans.forEach(item => {
     const date = new Date(item.created_at).toISOString().split('T')[0]
     if (!dailyData[date]) dailyData[date] = { tryOns: 0, chats: 0 }
     dailyData[date].chats++

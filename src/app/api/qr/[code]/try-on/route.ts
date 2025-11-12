@@ -332,7 +332,7 @@ export async function POST(
     }
 
     // 9. Attempt try-on with WHOMEAI first, fallback to KIE.AI if needed
-    let resultImageUrl: string | null = null
+      let resultImageUrl: string | null = null
     let providerUsed: 'whomeai' | 'kieai' = 'whomeai'
 
     try {
@@ -356,69 +356,69 @@ export async function POST(
       } catch (fallbackError) {
         console.error('❌ KIE.AI fallback failed:', fallbackError)
         throw fallbackError
+        }
       }
-    }
 
-    if (!resultImageUrl) {
+      if (!resultImageUrl) {
       throw new Error('Virtual try-on failed - no result image returned')
-    }
+      }
 
-    console.log('✅ Try-on successful, result URL:', resultImageUrl)
+      console.log('✅ Try-on successful, result URL:', resultImageUrl)
 
     // 10. Deduct token from owner
-    const { data: currentTokenData } = await supabaseAdmin
-      .from('user_tokens')
-      .select('used_tokens')
-      .eq('user_id', qrCode.user_id)
-      .single()
-    
-    const currentUsedTokens = currentTokenData?.used_tokens || 0
-    
-    const { error: tokenDeductError } = await supabaseAdmin
-      .from('user_tokens')
-      .update({
-        total_tokens: ownerTokens.total_tokens - 1,
-        used_tokens: currentUsedTokens + 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', qrCode.user_id)
+      const { data: currentTokenData } = await supabaseAdmin
+        .from('user_tokens')
+        .select('used_tokens')
+        .eq('user_id', qrCode.user_id)
+        .single()
+      
+      const currentUsedTokens = currentTokenData?.used_tokens || 0
+      
+      const { error: tokenDeductError } = await supabaseAdmin
+        .from('user_tokens')
+        .update({
+          total_tokens: ownerTokens.total_tokens - 1,
+          used_tokens: currentUsedTokens + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', qrCode.user_id)
 
-    if (tokenDeductError) {
-      console.error('Token deduction error:', tokenDeductError)
-      // Continue anyway - we don't want to fail the user experience
-    }
+      if (tokenDeductError) {
+        console.error('Token deduction error:', tokenDeductError)
+        // Continue anyway - we don't want to fail the user experience
+      }
 
     // 11. Record token usage
-    await supabaseAdmin.from('token_usage_history').insert({
-      user_id: qrCode.user_id,
-      tokens_used: 1,
-      usage_type: 'qr_tryon',
-      description: `QR Try-On: ${qrCode.name || code}`
-    })
+      await supabaseAdmin.from('token_usage_history').insert({
+        user_id: qrCode.user_id,
+        tokens_used: 1,
+        usage_type: 'qr_tryon',
+        description: `QR Try-On: ${qrCode.name || code}`
+      })
 
     // 12. Update QR stats
-    await supabaseAdmin.rpc('increment_successful_tryon', {
-      qr_code_id_param: qrCode.id,
-      tokens_used: 1
-    })
+      await supabaseAdmin.rpc('increment_successful_tryon', {
+        qr_code_id_param: qrCode.id,
+        tokens_used: 1
+      })
 
     // 13. Log successful scan
-    await supabaseAdmin.from('qr_scan_history').insert({
-      qr_code_id: qrCode.id,
-      user_image_url: userImageUrl,
-      result_image_url: resultImageUrl,
-      ip_address: ip,
-      user_agent: userAgent,
-      success: true
-    })
+      await supabaseAdmin.from('qr_scan_history').insert({
+        qr_code_id: qrCode.id,
+        user_image_url: userImageUrl,
+        result_image_url: resultImageUrl,
+        ip_address: ip,
+        user_agent: userAgent,
+        success: true
+      })
 
     // 14. Return result
-    return NextResponse.json({
-      success: true,
-      resultImageUrl,
+      return NextResponse.json({
+        success: true,
+        resultImageUrl,
       tokensRemaining: ownerTokens.total_tokens - 1,
       provider: providerUsed
-    })
+      })
 
   } catch (error: any) {
     console.error('Error in QR try-on API:', error)
@@ -436,13 +436,13 @@ export async function POST(
           const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
           const userAgent = request.headers.get('user-agent') || 'unknown'
           
-          await supabaseAdmin.from('qr_scan_history').insert({
-            qr_code_id: qrCode.id,
-            ip_address: ip,
-            user_agent: userAgent,
-            success: false,
+      await supabaseAdmin.from('qr_scan_history').insert({
+        qr_code_id: qrCode.id,
+        ip_address: ip,
+        user_agent: userAgent,
+        success: false,
             error_message: error.message || 'Try-on failed'
-          })
+      })
         }
       } catch (logError) {
         console.error('Failed to log error:', logError)
