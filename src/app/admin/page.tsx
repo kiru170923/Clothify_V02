@@ -2,18 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useSupabase } from '@/components/SupabaseProvider'
-import { supabase } from '@/lib/supabase'
 import PaymentManagement from '@/components/admin/PaymentManagement'
 import UserManagement from '@/components/admin/UserManagement'
-import EmailBroadcast from '@/components/admin/EmailBroadcast'
 import { 
   Users, 
   TrendingUp,
   CreditCard, 
   ShoppingBag, 
   Activity,
-  RefreshCw,
-  AlertCircle
+  RefreshCw
 } from 'lucide-react'
 
 interface DashboardData {
@@ -54,9 +51,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users' | 'emails'>('overview')
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
-  const [checkingAdmin, setCheckingAdmin] = useState(true)
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'users'>('overview')
 
   const fetchDashboardData = async () => {
     try {
@@ -78,69 +73,19 @@ export default function AdminDashboard() {
     }
   }
 
-  // Check if user is admin
+  // Fetch dashboard data when user is loaded
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false)
-        setCheckingAdmin(false)
-        return
-      }
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
-          setIsAdmin(false)
-          setCheckingAdmin(false)
-          return
-        }
-
-        const response = await fetch('/api/admin/check-admin', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        })
-
-        const data = await response.json()
-        setIsAdmin(data.isAdmin || false)
-      } catch (error) {
-        console.error('Error checking admin status:', error)
-        setIsAdmin(false)
-      } finally {
-        setCheckingAdmin(false)
-      }
-    }
-
     if (!authLoading) {
-      checkAdminStatus()
-    }
-  }, [user, authLoading])
-
-  // Fetch dashboard data when admin is confirmed
-  useEffect(() => {
-    if (!authLoading && isAdmin) {
       fetchDashboardData()
       const interval = setInterval(fetchDashboardData, 30000)
       return () => clearInterval(interval)
     }
-  }, [isAdmin, authLoading])
+  }, [authLoading])
 
-  if (authLoading || checkingAdmin) {
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent"></div>
-      </div>
-    )
-  }
-
-  if (!user || !isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-black mx-auto mb-4" />
-          <p className="text-black font-semibold">Truy cập không được phép</p>
-          <p className="text-gray-600 text-sm">Bạn không có quyền truy cập vào trang này.</p>
-        </div>
       </div>
     )
   }
@@ -213,16 +158,6 @@ export default function AdminDashboard() {
             }`}
           >
             Người dùng
-          </button>
-          <button
-            onClick={() => setActiveTab('emails')}
-            className={`font-semibold text-lg transition ${
-              activeTab === 'emails'
-                ? 'text-black border-b-4 border-black pb-2'
-                : 'text-gray-500 hover:text-black'
-            }`}
-          >
-            📧 Email Broadcast
           </button>
         </div>
 
@@ -379,7 +314,6 @@ export default function AdminDashboard() {
 
         {activeTab === 'payments' && <PaymentManagement />}
         {activeTab === 'users' && <UserManagement />}
-        {activeTab === 'emails' && <EmailBroadcast />}
       </div>
     </div>
   )
