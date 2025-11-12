@@ -35,6 +35,11 @@ interface DashboardData {
     successRate: number
     totalWardrobeItems: number
     uniqueUsersWithWardrobe: number
+    totalQrScans: number
+    successfulQrScans: number
+    qrScanSuccessRate: number
+    totalQrCodes: number
+    avgScansPerQr: number
   }
   membership: {
     totalActiveMemberships: number
@@ -285,6 +290,26 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-center pb-4 border-b border-black">
                     <span className="text-gray-600">Tỷ lệ thành công</span>
                     <span className="text-black font-semibold">{dashboardData.engagement.successRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Tổng lượt quét QR</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.totalQrScans.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">QR quét thành công</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.successfulQrScans.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Tỷ lệ thành công QR</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.qrScanSuccessRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-4 border-b border-black">
+                    <span className="text-gray-600">Tổng số mã QR</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.totalQrCodes.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Trung bình quét/QR</span>
+                    <span className="text-black font-semibold">{dashboardData.engagement.avgScansPerQr.toFixed(1)}</span>
                   </div>
                 </div>
               </div>

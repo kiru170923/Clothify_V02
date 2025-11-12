@@ -184,6 +184,26 @@ async function fetchEngagementMetrics() {
       totalTryOns = minTryOns
     }
 
+    // Get QR scan metrics
+    const { data: qrScansData } = await supabaseAdmin
+      .from('qr_scan_history')
+      .select('id, success, scanned_at')
+    
+    const totalQrScans = qrScansData?.length || 0
+    const successfulQrScans = qrScansData?.filter((s: any) => s.success === true).length || 0
+    const qrScanSuccessRate = totalQrScans > 0 
+      ? (successfulQrScans / totalQrScans * 100) 
+      : 0
+
+    // Get QR codes stats
+    const { data: qrCodesData } = await supabaseAdmin
+      .from('qr_codes')
+      .select('id, total_scans, successful_tryons')
+    
+    const totalQrCodes = qrCodesData?.length || 0
+    const totalQrScansFromCodes = qrCodesData?.reduce((sum: number, qr: any) => sum + (qr.total_scans || 0), 0) || 0
+    const totalSuccessfulQrTryons = qrCodesData?.reduce((sum: number, qr: any) => sum + (qr.successful_tryons || 0), 0) || 0
+
     // Success rate: 90-95% (realistic, accounting for failures)
     // Calculate based on completed vs failed images if available
     const { data: completedImages } = await supabaseAdmin
@@ -225,14 +245,29 @@ async function fetchEngagementMetrics() {
     
     const uniqueUsersWithWardrobe = new Set(usersWithWardrobe?.map((w: any) => w.user_id) || []).size
 
+    // Use the larger value between qr_scan_history and qr_codes totals
+    const finalTotalQrScans = Math.max(totalQrScans, totalQrScansFromCodes)
+    const finalSuccessfulQrScans = Math.max(successfulQrScans, totalSuccessfulQrTryons)
+    const finalQrScanSuccessRate = finalTotalQrScans > 0
+      ? (finalSuccessfulQrScans / finalTotalQrScans * 100)
+      : 0
+
     return {
       totalTryOns,
       successfulTryOns,
       successRate: parseFloat(successRate.toFixed(1)),
       totalWardrobeItems,
       uniqueUsersWithWardrobe,
-      avgItemsPerUser: uniqueUsersWithWardrobe
-        ? parseFloat((totalWardrobeItems / uniqueUsersWithWardrobe).toFixed(1))
+      avgItemsPerUser: uniqueUsersWithWardrobe 
+        ? parseFloat((totalWardrobeItems / uniqueUsersWithWardrobe).toFixed(1)) 
+        : 0,
+      // QR Scan metrics
+      totalQrScans: finalTotalQrScans,
+      successfulQrScans: finalSuccessfulQrScans,
+      qrScanSuccessRate: parseFloat(finalQrScanSuccessRate.toFixed(1)),
+      totalQrCodes,
+      avgScansPerQr: totalQrCodes > 0 
+        ? parseFloat((finalTotalQrScans / totalQrCodes).toFixed(1)) 
         : 0
     }
   } catch (error) {
@@ -243,7 +278,12 @@ async function fetchEngagementMetrics() {
       successRate: 0,
       totalWardrobeItems: 0,
       uniqueUsersWithWardrobe: 0,
-      avgItemsPerUser: 0
+      avgItemsPerUser: 0,
+      totalQrScans: 0,
+      successfulQrScans: 0,
+      qrScanSuccessRate: 0,
+      totalQrCodes: 0,
+      avgScansPerQr: 0
     }
   }
 }
